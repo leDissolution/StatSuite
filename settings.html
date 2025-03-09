@@ -1,0 +1,25 @@
+<!-- You might want to add additional HTML elements to ST. 
+    It's good practice to separate it out from your code -->
+<div class="example-extension-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <div class="flex-container alignitemscenter margin0">
+                <b data-i18n="ext_obj_title">Stats</b>
+                <i id="statBarPopoutButton" class="fa-solid fa-window-restore menu_button margin0"></i>
+            </div>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div id="statsDrawerContent">
+                <div class="stat-container">
+                    <div id="#statBase" class="stat" style="display: none;">
+                        <p class="value"></p>
+                    </div>
+
+                    <table></table>
+                </div>
+                <div><input id="requestStats" class="menu_button" type="submit" value="Request stats" /></div>
+            </div>
+        </div>
+    </div>
+</div>
