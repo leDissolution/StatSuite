@@ -3,6 +3,9 @@
 
 //You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+import { saveSettingsDebounced, saveChatConditional } from "../../../../../../script.js";
+
+import { Stats, generateStatPrompt, generateExportPrompt } from './prompts.js';
 
 import {
 	substituteParams,
@@ -10,183 +13,30 @@ import {
 	event_types,
 	generateQuietPrompt,
 	generateRaw,
-	animation_duration
+    animation_duration,
+    chat
 } from '../../../../script.js';
 
 import { dragElement } from '../../../../scripts/RossAscends-mods.js';
 import { loadMovingUIState } from '../../../../scripts/power-user.js';
 
 // Keep track of where your extension is located, name should match repo name
-const extensionName = "engram";
+const extensionName = "StatSuite";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const extensionSettings = extension_settings[extensionName];
+const extensionSettings = extension_settings[extensionName] || {};
 const defaultSettings = {};
 
 
-
-// Loads the extension settings if they exist, otherwise initializes them to the defaults.
 async function loadSettings() {
-	//Create the settings if they don't exist
-	extension_settings[extensionName] = extension_settings[extensionName] || {};
-	if (Object.keys(extension_settings[extensionName]).length === 0) {
-		Object.assign(extension_settings[extensionName], defaultSettings);
+    if (Object.keys(extensionSettings).length === 0) {
+        Object.assign(extensionSettings, defaultSettings);
 	}
 
-	// // Updating settings in the UI
-	// $("#example_setting").prop("checked", extension_settings[extensionName].example_setting).trigger("input");
-}
-
-const defaultPrompt = `Pause the roleplay. You are now a statistician tasked with providing consistent emotional assessments. Assign scores based on a standardized, repeatable method, ensuring minimal variation between evaluations of similar dialogues. Focus on maintaining statistical consistency.
-
-Provide a numerical assessment of Mika's emotions regarding recent events on an exponential scale from negative 10 to positive 10. Consider the definitions and reference values for guidance, but do not limit yourself to specific examples. Assign scores that best fit the situation, using a wide range to reflect different levels of intensity. Avoid clustering around certain typical values unless clearly justified by the situation.
-
-Happiness: Misery (-10) / Joy (+10)
-Extreme misery: Overwhelming sadness and despair.
-Significant sadness: A deep, noticeable sadness that affects behavior.
-Neutral: No significant feeling of happiness or sadness.
-Moderate joy: A feeling of contentment and happiness, but not overwhelming.
-Extreme joy: Uncontainable happiness and bliss.
-(Evaluate: Is the character showing contentment or distress? Does the dialogue suggest profound joy or sadness?)
-
-Security: Fear (-10) / Trust (+10)
-Extreme fear: Paralyzing, overwhelming fear of harm or danger.
-Anxiety: Unease or apprehension, a sense of looming threat.
-Neutral: No significant fear or trust in the situation.
-Moderate trust: Comfortable reliance or faith in the situation or others.
-Complete trust: Absolute confidence and sense of safety or security.
-(Evaluate: Does the character feel safe and secure, or are they anxious and threatened?)
-
-Anger: Frustration (-10) / Resolve (+10)
-Extreme frustration: Intense feelings of helplessness or rage due to obstacles, leading to potential outbursts or withdrawal.
-Significant irritation: Noticeable annoyance or impatience with a situation, but not overwhelming.
-Neutral: No strong feelings of frustration or determination; the character is indifferent.
-Rage: An intense emotional response to perceived injustices or provocations, often resulting in aggressive behavior and a desire for retaliation.
-Moderate resolve: A clear sense of determination to act or a playful competitiveness.
-Strong resolve: Unshakeable determination to achieve a goal or overcome challenges, reflecting a proactive approach.
-Cue: Frustration arises when the character feels blocked or unable to influence a situation, leading to negative emotional responses. Rage can stem from feelings of injustice or strong provocation. Resolve signifies determination and proactive efforts to overcome challenges. Assess whether the character feels hindered and powerless, is experiencing intense anger, or is actively striving to achieve a goal when assigning scores.
-
-Desire: Disgust (-10) / Desire (+10)
-Extreme disgust: Revulsion or complete rejection of something.
-Significant aversion: Strong dislike or unwillingness to engage.
-Neutral: No strong feeling of attraction or disgust.
-Attraction: A moderate interest or liking.
-Strong desire: A powerful urge or longing for something.
-(Evaluate: Does the character feel drawn to or repelled by something? How intense is this attraction or disgust?)
-Cue: Desire refers to any form of interest, longing, or attraction, and is not limited to sexual or romantic desire. It can apply to ideas, actions, objects, or goals.
-
-Surprise: Shock (-10) / Glee (+10)
-Extreme shock – An overwhelming, distressing event that causes fear or strong discomfort.
-Negative surprise – An unexpected event that causes unease or mild discomfort. Even if the event is not shocking, discomfort, unease, or uncertainty should result in a negative score.
-Neutral – An event was expected
-Positive surprise – A surprising event that brings clear joy or satisfaction.
-Extreme glee – An unexpectedly delightful event causing intense joy.
-
-Cue: Mild discomfort or unease, even in non-distressing situations, should result in neutral or negative scores. Curiosity or challenges that cause unease should not lead to positive scores unless there's clear happiness or satisfaction.
-Cue: While surprise can indicate novelty, it is essential to evaluate the emotional impact of the event. Positive surprise may elicit joy or excitement, while negative surprise should reflect feelings of unease, discomfort, or anxiety. In cases where the character is taken aback but experiences discomfort or concern, the score should reflect a negative valuation.
-
-Conscience: Self-condemnation (-10) / Integrity (+10)
-Extreme self-condemnation: Crushing guilt or self-blame.
-Significant guilt: Deep remorse or regret for actions taken.
-Neutral: No strong feeling of guilt or moral self-assurance.
-Moderate integrity: A sense of doing the right thing, feeling morally good.
-Strong integrity: Absolute certainty of moral righteousness and correctness.
-(Evaluate: Does the character feel morally right or guilty? How strongly do they feel about their actions or choices?)
-
-Esteem: Self-loathing (-10) / Pride (+10)
-Extreme self-loathing: Intense hatred or rejection of oneself.
-Significant shame: Strong feelings of embarrassment or failure.
-Neutral: No significant feelings of pride or shame.
-Moderate pride: A healthy recognition of one’s accomplishments or worth.
-Strong pride: An overwhelming sense of personal achievement, exceptional self-worth, and confidence.
-(Evaluate: How does the character feel about themselves in this moment? Does the situation elevate or diminish their self-worth?)
-
-Belonging: Isolation (-10) / Connection (+10)
-Extreme isolation: Profound loneliness and disconnection from others.
-Significant loneliness: Noticeable feelings of being alone, with a lack of meaningful connections.
-Neutral: No strong feelings of connection or isolation.
-Moderate connection: Feeling included and accepted within a group, with some emotional ties to others.
-Strong connection: A deep, unwavering sense of belonging and emotional connection with a community or group.
-(Evaluate: Does the character feel connected to others or isolated? How strongly do they feel a part of a group or disconnected?)
-
-Avoid any information except the scales, and do not provide detailed analysis or any kind of comment. Preserve the scale names at all cost. Strictly keep to the example format:
-
-[[Happiness: x]] [[Security: x]] [[Anger: x]] [[Desire: x]] [[Surprise: x]] [[Conscience: x]] [[Esteem: x]] [[Belonging: x]]
-`;
-
-const stats = ['Happiness', 'Security', 'Anger', 'Desire', 'Surprise', 'Conscience', 'Esteem', 'Belonging'];
-
-function parseStats(str) {
-	const parsed = {};
-	const matches = str.match(/\[\[([^\:]+):\s*(-?\d+)\]\]/g);
-
-	if (matches) {
-		matches.forEach(item => {
-			const [name, value] = item.match(/^\[\[([^\:]+):\s*(-?\d+)\]\]$/).slice(1);
-			parsed[name.trim()] = parseInt(value);
-		});
-	}
-
-	return parsed;
-}
-
-function calculateIQR(values) {
-    const sortedValues = [...values].sort((a, b) => a - b);
-    const q1 = sortedValues[Math.floor((sortedValues.length / 4))];
-    const q3 = sortedValues[Math.floor((sortedValues.length * 3) / 4)];
-    return { q1, q3, iqr: q3 - q1 };
-}
-
-function removeOutliersIQR(values) {
-	const threshold = 1.5;
-
-    const { q1, q3, iqr } = calculateIQR(values);
-    const lowerBound = q1 - threshold * iqr;
-    const upperBound = q3 + threshold * iqr;
-
-    // Filter out outliers
-    return values.filter(value => value >= lowerBound && value <= upperBound);
-}
-
-function calculateMedian(values) {
-    if (values.length === 0) return 0; // Handle empty array
-
-    // Sort the array
-    values.sort((a, b) => a - b);
-    
-    const mid = Math.floor(values.length / 2); // Get the middle index
-
-    // If the length is odd, return the middle element
-    if (values.length % 2 !== 0) {
-        return values[mid];
-    } else {
-        // If even, return the average of the two middle elements
-        return (values[mid - 1] + values[mid]) / 2;
-    }
-}
-
-function calcStats(statsValues)
-{
-	const result = {};
-
-    for (const key in statsValues) {
-        const values = statsValues[key];
-        
-        const filteredValues = removeOutliersIQR(values);
-
-		if (filteredValues.length != values.length)
-		{
-			console.log(key);
-			console.log(values);
-			console.log(filteredValues);
-		}
-        const average = filteredValues.length > 0 ? (filteredValues.reduce((a, b) => a + b, 0) / filteredValues.length) : 0;
-
-		//const average = calculateMedian(filteredValues);
-
-        result[key] = average.toFixed(1);
-    }
-
-    return result;
+    $("#modelUrl").prop("value", extensionSettings.modelUrl).trigger("input");
+    $("#modelUrl").on("input", function () {
+        extensionSettings.modelUrl = $(this).prop("value");
+        saveSettingsDebounced();
+    });
 }
 
 async function doStats(times)
@@ -231,15 +81,319 @@ async function doStats(times)
 	table.append(row);
 }
 
-// This function is called when the button is clicked
+const API_URL = "{0}/api/v1/generate"
+const supportedStats = [Stats.POSE, Stats.LOCATION];
+
+function getRecentMessages() {
+    const messages = chat.filter(c => !c.is_system).slice(-2);
+
+    if (messages.length !== 2) return null;
+
+    var previousStats = messages[0].stats;
+
+    if (!previousStats) {
+        previousStats = {};
+    }
+
+    for (const char of [messages[0].name, messages[1].name]) {
+        if (!previousStats[char]) {
+            previousStats[char] = {};
+        }
+
+        for (const stat of supportedStats) {
+            if (!previousStats[char][stat]) {
+                previousStats[char][stat] = "unspecified";
+            }
+        }
+    }
+
+    // Find message indices in the original chat array
+    const prevIndex = chat.indexOf(messages[0]);
+    const newIndex = chat.indexOf(messages[1]);
+
+    return {
+        previousName: messages[0].name,
+        previousMessage: messages[0].mes,
+        previousStats: previousStats,
+        previousIndex: prevIndex,
+
+        newName: messages[1].name,
+        newMessage: messages[1].mes,
+        newStats: messages[1].stats,
+        newIndex: newIndex
+    }
+}
+
+function displayStats(messageId, stats) {
+    const messageDiv = $(`[mesid="${messageId}"]`);
+    if (!messageDiv.length) return;
+
+    // Remove existing stats table if any
+    messageDiv.find('.stats-table-container').remove();
+
+    // Get all unique characters
+    const characters = Object.keys(stats);
+    if (characters.length === 0) return;
+
+    // Create table container
+    const container = $('<div class="stats-table-container"></div>')
+        .css({
+            /*'margin-top': '10px',*/
+            'padding': '5px',
+            'font-size': '0.9em'
+        });
+
+    // Add edit button
+    const editButton = $('<div class="stats-edit-button fa-solid fa-pencil"></div>')
+        .css({
+            'cursor': 'pointer',
+            'float': 'right',
+            'padding': '2px 5px',
+            'opacity': '0.7'
+        })
+        .hover(
+            function () { $(this).css('opacity', '1'); },
+            function () { $(this).css('opacity', '0.7'); }
+        );
+
+    container.append(editButton);
+
+    // Create table
+    const table = $('<table></table>')
+        .css({
+            'width': '100%',
+            'border-collapse': 'collapse'
+        });
+
+    // Create header row with character names
+    const headerRow = $('<tr></tr>');
+    headerRow.append($('<th></th>').css('padding', '2px 5px')); // Empty corner cell
+    characters.forEach(char => {
+        headerRow.append(
+            $('<th></th>')
+                .text(char)
+                .css('padding', '2px 5px')
+        );
+    });
+    table.append(headerRow);
+
+    // Create rows for each stat type
+    supportedStats.forEach(stat => {
+        const row = $('<tr></tr>');
+
+        // Stat name cell
+        row.append(
+            $('<td></td>')
+                .text(stat.toLowerCase())
+                .css({
+                    'padding': '2px 5px',
+                    'font-weight': 'bold'
+                })
+        );
+
+        // Stat values for each character
+        characters.forEach(char => {
+            const cell = $('<td></td>')
+                .text(stats[char][stat] || 'unspecified')
+                .css('padding', '2px 5px')
+                .attr('data-character', char)
+                .attr('data-stat', stat);
+            row.append(cell);
+        });
+
+        table.append(row);
+    });
+
+    container.append(table);
+    messageDiv.find('.mes_text').after(container);
+
+    // Add click handler for edit button
+    editButton.on('click', function () {
+        const isEditing = container.hasClass('editing');
+
+        if (!isEditing) {
+            // Switch to edit mode
+            container.addClass('editing');
+            table.find('td[data-character]').each(function () {
+                const cell = $(this);
+                const value = cell.text();
+                const input = $('<input type="text">')
+                    .val(value)
+                    .css({
+                        'width': '100%',
+                        'box-sizing': 'border-box',
+                        'padding': '2px',
+                        'border': '1px solid var(--accent-color)',
+                        'background-color': 'var(--background-color)',
+                        'color': 'var(--text-color)'
+                    });
+                cell.empty().append(input);
+            });
+            editButton.removeClass('fa-pen').addClass('fa-check');
+        } else {
+            // Save changes
+            const newStats = { ...stats };
+            table.find('td[data-character]').each(function () {
+                const cell = $(this);
+                const char = cell.attr('data-character');
+                const stat = cell.attr('data-stat');
+                const value = cell.find('input').val();
+                newStats[char][stat] = value;
+            });
+
+            // Update message stats
+            chat[messageId].stats = newStats;
+            saveChatConditional();
+
+            // Redisplay stats
+            displayStats(messageId, newStats);
+        }
+    });
+}
+
+function setMessageStats(stats, messageIndex) {
+    const message = chat[messageIndex];
+    message.stats = stats;
+    displayStats(messageIndex, stats);
+    saveChatConditional();
+}
+
+function statsToString(charName, stats) {
+    const attributes = Object.entries(stats)
+        .map(([key, value]) => `${key.toLowerCase()}="${value}"`)
+        .join(' ');
+    return `<stats character="${charName}" ${attributes} />`;
+}
+
+function statsToStringForStat(stats, statType) {
+    return Object.entries(stats)
+        .map(([charName, charStats]) => {
+            const statValue = charStats[statType];
+            return `<stats character="${charName}" ${statType.toLowerCase()}="${statValue}" />`;
+        })
+        .join('\n');
+}
+
+function statsToStringFull(stats) {
+    return Object.entries(stats)
+        .map(([charName, charStats]) => {
+            const attributes = Object.entries(charStats)
+                .map(([key, value]) => `${key.toLowerCase()}="${value}"`)
+                .join(' ');
+            return `<stats character="${charName}" ${attributes} />`;
+        })
+        .join('\n');
+}
+
+function parseStatsString(statsString) {
+    const result = {};
+
+    // Extract character name
+    const charMatch = statsString.match(/character="([^"]+)"/);
+    if (!charMatch) return null;
+
+    const charName = charMatch[1];
+    result[charName] = {};
+
+    // Extract other attributes
+    const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
+    for (const match of matches) {
+        const [_, key, value] = match;
+        if (key !== 'character') {
+            result[charName][key.toUpperCase()] = value;
+        }
+    }
+
+    return result;
+}
+
+async function makeStats() {
+    const messages = getRecentMessages();
+    const chars = [messages.previousName, messages.newName];
+    chars.sort();
+
+    const resultingStats = {};
+    chars.forEach(char => resultingStats[char] = {});
+
+    const previousStatsString = statsToStringFull(messages.previousStats);
+
+    var top_k = 1;
+    var temperature = 0.5;
+
+    if (messages.newStats) {
+        top_k = 3;
+        temperature = 1;
+    }
+
+    for (const char of chars) {
+        for (const stat of supportedStats) {
+            const statPrompt = generateStatPrompt(stat, char, messages.previousName, messages.previousMessage, messages.newName, messages.newMessage, previousStatsString, resultingStats[char]);
+            console.log(statPrompt);
+
+            try {
+                const response = await $.post(API_URL.replace("{0}", extensionSettings.modelUrl),
+                    JSON.stringify({
+                        prompt: statPrompt,
+                        top_k: top_k,
+                        temperature: temperature,
+                        stop_sequence: ['"']
+                    }));
+                resultingStats[char][stat] = response.results[0].text.split('"')[0];
+            } catch (error) {
+                console.error(`Error fetching stat ${stat} for ${char}:`, error);
+            }
+        }
+    }
+
+    setMessageStats(resultingStats, messages.newIndex);
+}
+
+async function exportChat() {
+    const messages = chat.filter(c => !c.is_system);
+    const exports = [];
+
+    for (let i = 1; i < messages.length; i++) {
+        const previousMessage = messages[i - 1];
+        const currentMessage = messages[i];
+
+        if (!previousMessage.stats && !currentMessage.stats) {
+            continue;
+        }
+
+        const exportPrompt = generateExportPrompt(
+            previousMessage.name,
+            previousMessage.mes,
+            currentMessage.name,
+            currentMessage.mes,
+            previousMessage.stats ? statsToStringFull(previousMessage.stats) : '',
+            currentMessage.stats ? statsToStringFull(currentMessage.stats) : ''
+        );
+
+        exports.push(exportPrompt);
+    }
+
+    const exportString = exports.join('\n\n');
+
+    // Create a Blob containing the export text
+    const blob = new Blob([exportString], { type: 'text/plain' });
+
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'chat_export.txt';
+
+    // Append link to document, click it, and remove it
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the URL object
+    URL.revokeObjectURL(link.href);
+}
+
+
 async function onButtonClick() {
-	const times = 1;
-	const repeats = 1;
-	
-	for (var i = 0; i < repeats; i++)
-	{
-		await doStats(times);
-	}
+    makeStats();
 }
 
 const statBarPopoutId = "statBarPopout";
@@ -290,23 +444,33 @@ function doPopout(e) {
 	}
 }
 
-// This function is called when the extension is loaded
-jQuery(async () => {
-	// This is an example of loading HTML from a file
-	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
-	//const displayHtml = await $.get(`${extensionFolderPath}/display.html`);
+function onChatChanged() {
+    chat.forEach((message, index) => {
+        if (message.stats && !message.is_system) {
+            displayStats(index, message.stats);
+        }
+    });
+}
 
-	// Append settingsHtml to extensions_settings
-	// extension_settings and extensions_settings2 are the left and right columns of the settings menu
-	// Left should be extensions that deal with system functions and right should be visual/UI related 
+function onMessageRendered() {
+    makeStats();
+}
+
+jQuery(async () => {
+	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+
 	$("#extensions_settings").append(settingsHtml);
 
-	$(document).on('click', '#requestStats', onButtonClick);
+    $(document).on('click', '#requestStats', onButtonClick);
+    $(document).on('click', '#exportStats', exportChat);
 	$(document).on('click', '#statBarPopoutButton', function (e) {
 		doPopout(e);
 		e.stopPropagation();
 	});
 
-	// Load settings when starting things up (if you have any)
-	loadSettings();
+    loadSettings();
+
+    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);
+    eventSource.on(event_types.USER_MESSAGE_RENDERED, onMessageRendered);
 });
