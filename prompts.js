@@ -81,9 +81,9 @@ function getRules(fieldName) {
     }
 }
 
-const NON_INSTRUCT_TEMPLATE = `<previousMessage from={previous_from}>{previous_message}</previousMessage>
+const NON_INSTRUCT_TEMPLATE = `<previousMessage from="{previous_from}"">{previous_message}</previousMessage>
 {previous_stats}
-<message from={name}>{message}</message>
+<message from="{name}">{message}</message>
 <stats character="{req_name}" {existingNewStats}{stat}="`
 
 const EXPORT_TEMPLATE = `<previousMessage from={previous_from}>{previous_message}</previousMessage>

@@ -84,10 +84,47 @@ async function doStats(times)
 const API_URL = "{0}/api/v1/generate"
 const supportedStats = [Stats.POSE, Stats.LOCATION];
 
-function getRecentMessages() {
-    const messages = chat.filter(c => !c.is_system).slice(-2);
+function getRecentMessages(specificMessageIndex = null) {
+    let messages = [];
 
-    if (messages.length !== 2) return null;
+    if (specificMessageIndex !== null) {
+        if (specificMessageIndex < 0 || specificMessageIndex >= chat.length) return null;
+
+        // Special case for first message
+        if (specificMessageIndex === 0) {
+            const firstMessage = chat[0];
+            if (firstMessage.is_system) return null;
+
+            // Create empty previous stats
+            const emptyStats = {};
+            emptyStats[firstMessage.name] = {};
+            for (const stat of supportedStats) {
+                emptyStats[firstMessage.name][stat] = "unspecified";
+            }
+
+            return {
+                previousName: firstMessage.name,
+                previousMessage: "",  // Empty previous message
+                previousStats: emptyStats,
+                previousIndex: -1,    // Invalid index to indicate first message
+
+                newName: firstMessage.name,
+                newMessage: firstMessage.mes,
+                newStats: firstMessage.stats,
+                newIndex: 0
+            }
+        }
+
+        messages = [
+            chat[specificMessageIndex - 1],
+            chat[specificMessageIndex]
+        ];
+
+        if (messages.some(m => m.is_system)) return null;
+    } else { // last two messages
+        messages = chat.filter(c => !c.is_system).slice(-2);
+        if (messages.length !== 2) return null;
+    }
 
     var previousStats = messages[0].stats;
 
@@ -138,25 +175,45 @@ function displayStats(messageId, stats) {
     // Create table container
     const container = $('<div class="stats-table-container"></div>')
         .css({
-            /*'margin-top': '10px',*/
             'padding': '5px',
             'font-size': '0.9em'
         });
 
+    // Create button container for edit and regenerate
+    const buttonContainer = $('<div class="stats-button-container"></div>')
+        .css({
+            'float': 'right',
+            'display': 'flex',
+            'gap': '5px'
+        });
+
+    // Add CSS class for hover behavior
+    const buttonStyle = {
+        'cursor': 'pointer',
+        'padding': '1px 3px',
+        'opacity': '0.3',
+        'transition': 'opacity 0.2s' // Optional: makes opacity change smooth
+    };
+
     // Add edit button
     const editButton = $('<div class="stats-edit-button fa-solid fa-pencil"></div>')
-        .css({
-            'cursor': 'pointer',
-            'float': 'right',
-            'padding': '2px 5px',
-            'opacity': '0.7'
-        })
-        .hover(
-            function () { $(this).css('opacity', '1'); },
-            function () { $(this).css('opacity', '0.7'); }
-        );
+        .css(buttonStyle);
+    const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate"></div>')
+        .css(buttonStyle);
+    const exportButton = $('<div class="stats-export-button fa-solid fa-copy"></div>')
+        .css(buttonStyle);
 
-    container.append(editButton);
+    buttonContainer.append(regenerateButton, editButton, exportButton);
+
+    // Apply hover behavior once to container
+    buttonContainer.on('mouseenter', '.fa-solid', function () {
+        $(this).css('opacity', '1');
+    }).on('mouseleave', '.fa-solid', function () {
+        $(this).css('opacity', '0.3');
+    });
+
+    buttonContainer.append(regenerateButton, editButton);
+    container.append(buttonContainer);
 
     // Create table
     const table = $('<table></table>')
@@ -207,7 +264,14 @@ function displayStats(messageId, stats) {
     container.append(table);
     messageDiv.find('.mes_text').after(container);
 
-    // Add click handler for edit button
+    exportButton.on('click', function () {
+        exportSingleMessage(messageId);
+    });
+
+    regenerateButton.on('click', function () {
+        makeStats(messageId);
+    });
+
     editButton.on('click', function () {
         const isEditing = container.hasClass('editing');
 
@@ -217,19 +281,48 @@ function displayStats(messageId, stats) {
             table.find('td[data-character]').each(function () {
                 const cell = $(this);
                 const value = cell.text();
+
+                // Create input container div
+                const inputContainer = $('<div>')
+                    .css({
+                        'display': 'flex',
+                        'gap': '5px',
+                        'align-items': 'center'
+                    });
+
+                // Create input
                 const input = $('<input type="text">')
                     .val(value)
                     .css({
-                        'width': '100%',
+                        'flex': '1',
                         'box-sizing': 'border-box',
                         'padding': '2px',
-                        'border': '1px solid var(--accent-color)',
-                        'background-color': 'var(--background-color)',
-                        'color': 'var(--text-color)'
+                        'border': 'inherit',
+                        'background-color': 'inherit',
+                        'color': 'inherit'
                     });
-                cell.empty().append(input);
+
+                const statRegenerateButton = $('<div class="fa-solid fa-rotate"></div>')
+                    .css({
+                        ...buttonStyle,
+                        'font-size': '0.8em'
+                    });
+
+                statRegenerateButton.hover(
+                    function () { $(this).css('opacity', '0.3'); }
+                );
+
+                statRegenerateButton.on('click', async function (e) {
+                    e.stopPropagation();
+                    const char = cell.attr('data-character');
+                    const stat = cell.attr('data-stat');
+                    await makeStats(messageId, char, stat);
+                });
+
+                inputContainer.append(statRegenerateButton, input);
+                cell.empty().append(inputContainer);
             });
-            editButton.removeClass('fa-pen').addClass('fa-check');
+            editButton.removeClass('fa-pencil').addClass('fa-check');
         } else {
             // Save changes
             const newStats = { ...stats };
@@ -300,53 +393,256 @@ function parseStatsString(statsString) {
     for (const match of matches) {
         const [_, key, value] = match;
         if (key !== 'character') {
-            result[charName][key.toUpperCase()] = value;
+            result[charName][key.toLowerCase()] = value;
         }
     }
 
     return result;
 }
 
-async function makeStats() {
-    const messages = getRecentMessages();
-    const chars = [messages.previousName, messages.newName];
-    chars.sort();
+const StatConfig = {
+    [Stats.POSE]: {
+        dependencies: [],  // Base stat, no dependencies
+        order: 0,         // Executed first
+    },
+    [Stats.LOCATION]: {
+        dependencies: [Stats.POSE],  // Depends on pose being set
+        order: 1,                    // Executed after pose
+    }
+};
 
-    const resultingStats = {};
-    chars.forEach(char => resultingStats[char] = {});
+// Helper to get all required stats in correct order
+function getRequiredStats(targetStat) {
+    const required = new Set();
+
+    function addDependencies(stat) {
+        StatConfig[stat].dependencies.forEach(dep => {
+            addDependencies(dep);
+            required.add(dep);
+        });
+        required.add(stat);
+    }
+
+    addDependencies(targetStat);
+    return Array.from(required).sort((a, b) => StatConfig[a].order - StatConfig[b].order);
+}
+
+async function generateStat(stat, char, messages, existingStats = {}) {
+    // Get only the dependencies we need for this stat
+    const dependencies = {};
+    if (StatConfig[stat].dependencies.length > 0) {
+        StatConfig[stat].dependencies.forEach(dep => {
+            if (existingStats[dep]) {
+                dependencies[dep] = existingStats[dep];
+            }
+        });
+    }
 
     const previousStatsString = statsToStringFull(messages.previousStats);
 
-    var top_k = 1;
-    var temperature = 0.5;
+    const statPrompt = generateStatPrompt(
+        stat,
+        char,
+        messages.previousName,
+        messages.previousMessage,
+        messages.newName,
+        messages.newMessage,
+        previousStatsString,
+        dependencies  // Pass only the required dependencies
+    );
 
-    if (messages.newStats) {
-        top_k = 3;
-        temperature = 1;
+    console.log(`Generating ${stat} for ${char}:`, statPrompt);
+
+    try {
+        const response = await $.post(API_URL.replace("{0}", extensionSettings.modelUrl),
+            JSON.stringify({
+                prompt: statPrompt,
+                top_k: messages.newStats ? 3 : 1,
+                temperature: messages.newStats ? 1 : 0.5,
+                stop_sequence: ['"']
+            }));
+        return response.results[0].text.split('"')[0];
+    } catch (error) {
+        console.error(`Error generating ${stat} for ${char}:`, error);
+        return "error";
     }
+}
+
+async function pasteStats(messageId) {
+    try {
+        // Create modal
+        const modal = $('<div>')
+            .css({
+                'position': 'fixed',
+                'top': '50%',
+                'left': '50%',
+                'transform': 'translate(-50%, -50%)',
+                'background': 'inherit',
+                'border': 'inherit',
+                'padding': '20px',
+                'z-index': '1000',
+                'border-radius': '5px',
+                'box-shadow': '0 0 10px rgba(0,0,0,0.5)'
+            });
+
+        // Create textarea
+        const textarea = $('<textarea>')
+            .css({
+                'width': '400px',
+                'height': '200px',
+                'margin': '10px 0',
+                'background': 'inherit',
+                'color': 'inherit',
+                'border': 'inherit',
+                'padding': '5px'
+            })
+            .attr('placeholder', 'Paste stats here...');
+
+        // Create buttons
+        const buttonContainer = $('<div>')
+            .css({
+                'display': 'flex',
+                'gap': '10px',
+                'justify-content': 'flex-end'
+            });
+
+        const applyButton = $('<button>')
+            .text('Apply')
+            .css({
+                'padding': '5px 15px',
+                'border': 'none',
+                'border-radius': '3px',
+                'cursor': 'pointer'
+            });
+
+        const cancelButton = $('<button>')
+            .text('Cancel')
+            .css({
+                'padding': '5px 15px',
+                'background': 'inherit',
+                'color': 'inherit',
+                'border': 'inherit',
+                'border-radius': '3px',
+                'cursor': 'pointer'
+            });
+
+        buttonContainer.append(cancelButton, applyButton);
+        modal.append(textarea, buttonContainer);
+        $('body').append(modal);
+
+        // Handle buttons
+        cancelButton.on('click', () => {
+            modal.remove();
+        });
+
+        applyButton.on('click', () => {
+            const clipText = textarea.val();
+            if (!clipText) {
+                toastr.error('No text provided');
+                return;
+            }
+
+            // Find the stats section after </message> tag
+            const statMatch = clipText.match(/<\/message>\n([\s\S]*?)(?:\n\n|$)/);
+            if (!statMatch) {
+                toastr.error('No stats found in pasted text');
+                return;
+            }
+
+            const statsText = statMatch[1];
+            const stats = {};
+
+            // Parse each stats line
+            const statLines = statsText.split('\n');
+            statLines.forEach(line => {
+                const parsed = parseStatsString(line);
+                if (parsed) {
+                    Object.entries(parsed).forEach(([char, charStats]) => {
+                        if (!stats[char]) {
+                            stats[char] = {};
+                        }
+                        Object.assign(stats[char], charStats);
+                    });
+                }
+            });
+
+            if (Object.keys(stats).length === 0) {
+                toastr.error('Failed to parse stats from text');
+                return;
+            }
+
+            setMessageStats(stats, messageId);
+            toastr.success('Stats applied successfully');
+            modal.remove();
+        });
+
+    } catch (err) {
+        console.error('Failed to paste stats:', err);
+        toastr.error('Failed to apply stats');
+    }
+}
+
+function addPasteButton(messageId) {
+    const messageDiv = $(`[mesid="${messageId}"]`);
+    if (!messageDiv.length) return;
+
+    // Remove existing paste button if any
+    messageDiv.find('.paste-stats-button').remove();
+
+    // Create paste button
+    const pasteButton = $('<div class="paste-stats-button fa-solid fa-clipboard"></div>')
+        .css({
+            'cursor': 'pointer',
+            'opacity': '0.3',
+            'transition': 'opacity 0.2s',
+            'padding': '0 5px'
+        })
+        .attr('title', 'Paste stats from clipboard');
+
+    // Add hover effect
+    pasteButton.hover(
+        function () { $(this).css('opacity', '1'); },
+        function () { $(this).css('opacity', '0.3'); }
+    );
+
+    // Add click handler
+    pasteButton.on('click', function () {
+        pasteStats(messageId);
+    });
+
+    // Add to extraMesButtons
+    messageDiv.find('.extraMesButtons').append(pasteButton);
+}
+
+// Modify makeStats to handle cases where no stats exist
+async function makeStats(specificMessageIndex = null, specificChar = null, specificStat = null) {
+    const messages = getRecentMessages(specificMessageIndex);
+    if (!messages) return;
+
+    const chars = specificChar ? [specificChar] : [messages.previousName, messages.newName].sort();
+    const resultingStats = { ...messages.newStats } || {};
+    chars.forEach(char => {
+        if (!resultingStats[char]) resultingStats[char] = {};
+    });
 
     for (const char of chars) {
-        for (const stat of supportedStats) {
-            const statPrompt = generateStatPrompt(stat, char, messages.previousName, messages.previousMessage, messages.newName, messages.newMessage, previousStatsString, resultingStats[char]);
-            console.log(statPrompt);
+        const statsToGenerate = specificStat ?
+            [specificStat] :
+            supportedStats;
 
-            try {
-                const response = await $.post(API_URL.replace("{0}", extensionSettings.modelUrl),
-                    JSON.stringify({
-                        prompt: statPrompt,
-                        top_k: top_k,
-                        temperature: temperature,
-                        stop_sequence: ['"']
-                    }));
-                resultingStats[char][stat] = response.results[0].text.split('"')[0];
-            } catch (error) {
-                console.error(`Error fetching stat ${stat} for ${char}:`, error);
-            }
+        for (const stat of statsToGenerate) {
+            resultingStats[char][stat] = await generateStat(
+                stat,
+                char,
+                messages,
+                resultingStats[char]
+            );
         }
     }
 
     setMessageStats(resultingStats, messages.newIndex);
 }
+
 
 async function exportChat() {
     const messages = chat.filter(c => !c.is_system);
@@ -391,9 +687,40 @@ async function exportChat() {
     URL.revokeObjectURL(link.href);
 }
 
+async function exportSingleMessage(messageId) {
+    const messages = getRecentMessages(messageId);
+    if (!messages) return;
 
-async function onButtonClick() {
-    makeStats();
+    const exportPrompt = generateExportPrompt(
+        messages.previousName,
+        messages.previousMessage,
+        messages.newName,
+        messages.newMessage,
+        messages.previousStats ? statsToStringFull(messages.previousStats) : '',
+        messages.newStats ? statsToStringFull(messages.newStats) : ''
+    );
+
+    try {
+        await navigator.clipboard.writeText(exportPrompt);
+        toastr.success('Message export copied to clipboard');
+    } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+        toastr.error('Failed to copy to clipboard');
+    }
+}
+
+
+async function onRequestStatsClick() {
+    // Find the earliest message without stats that isn't a system message
+    const firstMessageWithoutStats = chat.findIndex(message =>
+        !message.is_system && !message.stats
+    );
+
+    if (firstMessageWithoutStats >= 0) { // Changed from > 0 to >= 0 to include first message
+        makeStats(firstMessageWithoutStats);
+    } else {
+        console.log("No messages without stats found");
+    }
 }
 
 const statBarPopoutId = "statBarPopout";
@@ -446,8 +773,12 @@ function doPopout(e) {
 
 function onChatChanged() {
     chat.forEach((message, index) => {
-        if (message.stats && !message.is_system) {
-            displayStats(index, message.stats);
+        if (!message.is_system) {
+            if (message.stats) {
+                displayStats(index, message.stats);
+            }
+
+            addPasteButton(index);
         }
     });
 }
@@ -461,7 +792,7 @@ jQuery(async () => {
 
 	$("#extensions_settings").append(settingsHtml);
 
-    $(document).on('click', '#requestStats', onButtonClick);
+    $(document).on('click', '#requestStats', onRequestStatsClick);
     $(document).on('click', '#exportStats', exportChat);
 	$(document).on('click', '#statBarPopoutButton', function (e) {
 		doPopout(e);
