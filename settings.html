@@ -9,11 +9,110 @@
         </div>
         <div class="inline-drawer-content">
             <div id="statsDrawerContent">
-                <input type="text" name="modelUrl" id="modelUrl" class="text_pole" value="" />
-                <div><input id="requestStats" class="menu_button" type="submit" value="Request stats" /></div>
-                <div><input id="exportStats" class="menu_button" type="submit" value="Export stats" /></div>
-                <div><input id="reload" class="menu_button" type="submit" value="Reload stats" /></div>
+                <!-- Model Settings Section -->
+                <div class="drawer-section">
+                    <h4>Model Settings</h4>
+                    <input type="text" name="modelUrl" id="modelUrl" class="text_pole" placeholder="Enter model URL" value="" />
+                </div>
+
+                <!-- Character Management Section -->
+                <div class="drawer-section">
+                    <h4>Character Management</h4>
+                    <div class="flex-container">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="autoTrackAuthors">
+                            <span>Automatically track message authors</span>
+                        </label>
+                    </div>
+                    <div class="flex-container character-input-container">
+                        <input type="text" id="new-character-input" class="text_pole" placeholder="Enter character name">
+                        <input type="button" id="add-character-btn" class="menu_button" value="Add" />
+                    </div>
+                    <div id="tracked-characters-list" class="mt-2">
+                        <!-- Characters will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="drawer-section">
+                    <h4>Actions</h4>
+                    <div class="flex-container flex-column">
+                        <input id="requestStats" class="menu_button" type="submit" value="Request stats" />
+                        <input id="exportStats" class="menu_button" type="submit" value="Export stats" />
+                        <input id="reload" class="menu_button" type="submit" value="Reload stats" />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.drawer-section {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.drawer-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1em;
+    color: var(--text-color);
+}
+
+.character-input-container {
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#new-character-input {
+    flex: 1;
+}
+
+.tracked-character {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    margin: 2px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.character-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.remove-character {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.remove-character:hover {
+    opacity: 1;
+    color: var(--warning-color);
+}
+
+.flex-column {
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mt-2 {
+    margin-top: 10px;
+}
+
+.checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.menu_button {
+    margin: 0;
+}
+</style>

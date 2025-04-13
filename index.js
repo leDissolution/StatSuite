@@ -2,7 +2,7 @@
 // ====================================================
 
 //#region Global Imports
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+import { extension_settings, getContext, loadExtensionSettings, saveMetadataDebounced } from "../../../extensions.js";
 import { saveSettingsDebounced, saveChatConditional } from "../../../../../../script.js";
 import {
     substituteParams,
@@ -11,7 +11,8 @@ import {
     generateQuietPrompt,
     generateRaw,
     animation_duration,
-    chat
+    chat,
+    chat_metadata
 } from '../../../../script.js';
 import { dragElement } from '../../../../scripts/RossAscends-mods.js';
 import { loadMovingUIState } from '../../../../scripts/power-user.js';
@@ -20,12 +21,16 @@ import { loadMovingUIState } from '../../../../scripts/power-user.js';
 //#region Local Imports
 import { Stats, generateStatPrompt, generateExportPrompt } from './prompts.js';
 import { exportChat, exportSingleMessage, statsToStringFull } from './export.js';
+import { CharacterRegistry } from './characters.js';
 //#endregion
 
 const extensionName = "StatSuite";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const extensionSettings = extension_settings[extensionName] || {};
-const defaultSettings = {};
+const defaultSettings = {
+    modelUrl: '',
+    autoTrackMessageAuthors: true, // Keep this as it's a behavior setting, not data
+};
 const API_URL = "{0}/api/v1/generate";
 const supportedStats = [Stats.POSE, Stats.LOCATION, Stats.OUTFIT, Stats.EXPOSURE, Stats.ACCESSORIES];
 
@@ -56,6 +61,10 @@ const StatConfig = {
         defaultValue: "unspecified"
     }
 };
+
+const characterRegistry = new CharacterRegistry();
+// Make saveMetadataDebounced available globally for CharacterRegistry
+window.saveMetadataDebounced = saveMetadataDebounced;
 //#endregion
 
 //#region Settings Management
@@ -69,6 +78,15 @@ async function loadSettings() {
         extensionSettings.modelUrl = $(this).prop("value");
         saveSettingsDebounced();
     });
+
+    $("#autoTrackAuthors").prop("checked", extensionSettings.autoTrackMessageAuthors).trigger("input");
+    $("#autoTrackAuthors").on("input", function () {
+        extensionSettings.autoTrackMessageAuthors = $(this).prop("checked");
+        saveSettingsDebounced();
+    });
+
+    // Character registry is now initialized from metadata in its constructor
+    renderCharacterList();
 }
 //#endregion
 
@@ -106,6 +124,12 @@ function getRecentMessages(specificMessageIndex = null) {
         if (specificMessageIndex === 0) {
             const firstMessage = chat[0];
             if (firstMessage.is_system) return null;
+            
+            // Register author if auto-tracking is enabled
+            if (extensionSettings.autoTrackMessageAuthors) {
+                characterRegistry.addCharacter(firstMessage.name);
+            }
+
             const emptyStats = {};
             emptyStats[firstMessage.name] = {};
             for (const stat of supportedStats) {
@@ -129,8 +153,15 @@ function getRecentMessages(specificMessageIndex = null) {
         if (messages.length !== 2) return null;
     }
 
+    // Register authors if auto-tracking is enabled
+    if (extensionSettings.autoTrackMessageAuthors) {
+        [messages[0].name, messages[1].name].forEach(name => 
+            characterRegistry.addCharacter(name)
+        );
+    }
+
     var previousStats = messages[0].stats || {};
-    for (const char of [messages[0].name, messages[1].name]) {
+    for (const char of characterRegistry.getTrackedCharacters()) {
         if (!previousStats[char]) previousStats[char] = {};
         for (const stat of supportedStats) {
             if (!previousStats[char][stat]) {
@@ -138,6 +169,7 @@ function getRecentMessages(specificMessageIndex = null) {
             }
         }
     }
+
     const prevIndex = chat.indexOf(messages[0]);
     const newIndex = chat.indexOf(messages[1]);
 
@@ -221,7 +253,10 @@ async function makeStats(specificMessageIndex = null, specificChar = null, speci
         return;
     }
 
-    const chars = specificChar ? [specificChar] : [messages.previousName, messages.newName].sort();
+    const chars = specificChar ? 
+        [specificChar] : 
+        characterRegistry.getTrackedCharacters();
+
     const resultingStats = { ...messages.newStats } || {};
     chars.forEach(char => {
         if (!resultingStats[char]) {
@@ -683,6 +718,7 @@ function doPopout(e) {
 }
 
 function onChatChanged() {
+    characterRegistry.initializeFromMetadata();
     chat.forEach((message, index) => {
         if (!message.is_system) {
             if (message.stats) displayStats(index, message.stats);
@@ -707,9 +743,47 @@ jQuery(async () => {
         doPopout(e);
         e.stopPropagation();
     });
+
+    // Update character management UI handlers to use metadata
+    $('#add-character-btn').on('click', function() {
+        const charName = $('#new-character-input').val().trim();
+        if (charName) {
+            characterRegistry.addCharacter(charName);
+            $('#new-character-input').val('');
+            renderCharacterList();
+        }
+    });
+
     loadSettings();
-    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        characterRegistry.initializeFromMetadata();
+        onChatChanged();
+    });
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);
     eventSource.on(event_types.USER_MESSAGE_RENDERED, onMessageRendered);
 });
 //#endregion
+
+function renderCharacterList() {
+    const container = $('#tracked-characters-list');
+    container.empty();
+
+    characterRegistry.getTrackedCharacters().forEach(char => {
+        const charElement = $(`
+            <div class="tracked-character">
+                <span>${char}</span>
+                <div class="character-actions">
+                    <i class="fas fa-times remove-character" data-character="${char}"></i>
+                </div>
+            </div>
+        `);
+        container.append(charElement);
+    });
+
+    // Update event handlers to use metadata
+    container.find('.remove-character').on('click', function() {
+        const char = $(this).data('character');
+        characterRegistry.removeCharacter(char);
+        renderCharacterList();
+    });
+}
