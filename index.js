@@ -351,9 +351,55 @@ function displayStats(messageId, stats) {
         const messages = getRecentMessages(messageId);
         exportSingleMessage(messages);
     });
-    regenerateButton.on('click', function (e) {
-        makeStats(messageId, null, null, e.altKey == true);
+    regenerateButton.on('click', async function (e) {
+        const currentIndex = messageId;
+        
+        if (e.shiftKey) {
+            // Mega-regeneration: regenerate all stats for all characters in all later messages
+            const laterMessages = chat
+                .slice(currentIndex)  // Get all messages after current
+                .map((msg, idx) => ({ msg, idx: currentIndex + idx }))  // Keep track of original indices
+                .filter(({ msg }) => !msg.is_system)
+                .slice(0, 50);  // Skip system messages
+
+            console.log(`Mega-regenerating all stats for all characters in ${laterMessages.length} messages`);
+
+            for (const { msg, idx } of laterMessages) {
+                await makeStats(idx, null, null, e.altKey == true);
+            }
+
+            toastr.success(`Regenerated all stats in ${laterMessages.length} messages`);
+        }
+        else if (e.ctrlKey) {
+            // Limited regeneration: up to 5 later messages
+            const laterMessages = chat
+                .slice(currentIndex)
+                .map((msg, idx) => ({ msg, idx: currentIndex + idx }))
+                .filter(({ msg }) => !msg.is_system)
+                .slice(0, 5);  // Limit to 5 messages
+
+            console.log(`Regenerating all stats in ${laterMessages.length} messages`);
+
+            for (const { msg, idx } of laterMessages) {
+                await makeStats(idx, null, null, e.altKey == true);
+            }
+
+            toastr.success(`Regenerated stats in ${laterMessages.length} messages`);
+        }
+        else {
+            // Normal single regeneration
+            await makeStats(messageId, null, null, e.altKey == true);
+        }
     });
+
+    // Add tooltip to show available options
+    regenerateButton.attr('title', 
+        'Click: Regenerate all stats\n' +
+        'Alt+Click: Regenerate with more randomness\n' +
+        'Shift+Click: Regenerate all later messages\n' +
+        'Ctrl+Click: Regenerate next 5 messages'
+    );
+
     editButton.on('click', function () {
         const isEditing = container.hasClass('editing');
         if (!isEditing) {
