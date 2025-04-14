@@ -1,3 +1,5 @@
+import { Stats } from './stats_logic.js'; // Added for refactoring
+
 export const ChatMLTokens = Object.freeze({
     START: '<|im_start|>',
     END: '<|im_end|>',
@@ -8,13 +10,6 @@ export const ChatMLTokens = Object.freeze({
     }
 });
 
-export const Stats = Object.freeze({
-    POSE: 'pose',
-    LOCATION: 'location',
-    OUTFIT: 'outfit',
-    EXPOSURE: 'exposure',
-    ACCESSORIES: 'accessories',
-});
 
 const NON_INSTRUCT_TEMPLATE = `<previousMessage from="{previous_from}"">{previous_message}</previousMessage>
 {previous_stats}
