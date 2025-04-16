@@ -3,13 +3,15 @@ import { generateExportPrompt } from './prompts.js';
 import { chat } from '../../../../script.js';
 
 export async function exportChat() {
-    const allMessages = chat.filter(c => !c.is_system);
+    const allMessages = chat.filter(c => !c.is_system && !/^\[.*\]$/.test(c.mes));
     const exports = [];
 
     for (let i = 1; i < allMessages.length; i++) {
         const previousMessage = allMessages[i - 1];
         const currentMessage = allMessages[i];
+
         if (!previousMessage.stats && !currentMessage.stats) continue;
+        
         const exportPrompt = generateExportPrompt(
             previousMessage.name,
             previousMessage.mes,

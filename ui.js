@@ -4,10 +4,9 @@
 import {
     animation_duration,
     chat,
-} from '../../../../script.js'; // Core script globals
-import { dragElement } from '../../../../scripts/RossAscends-mods.js'; // Mod script global
-import { loadMovingUIState } from '../../../../scripts/power-user.js'; // Power user script global
-// Assuming jQuery ($) and toastr are globally available
+} from '../../../../script.js';
+import { dragElement } from '../../../../scripts/RossAscends-mods.js';
+import { loadMovingUIState } from '../../../../scripts/power-user.js';
 
 // Local Module Dependencies
 import { extensionSettings, updateSetting } from './settings.js';
@@ -17,10 +16,10 @@ import {
     parseStatsString,
     setMessageStats,
     supportedStats,
-    StatConfig // Needed for default values in getRecentMessages called by exportButton
+    StatConfig
 } from './stats_logic.js';
 import { exportChat, exportSingleMessage } from './export.js';
-import { onChatChanged } from './events.js';
+import { onChatChanged, EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from './events.js';
 
 let _characterRegistryInstance = null;
 
@@ -54,6 +53,9 @@ function bindSettingsUI() {
             renderCharacterList(); // Re-render the list
         }
     });
+
+    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_ADDED, renderCharacterList);
+    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_REMOVED, renderCharacterList);
 
     // Initial rendering of character list
     renderCharacterList();
@@ -96,7 +98,6 @@ export function renderCharacterList() {
 }
 
 
-// --- Stats Display in Chat --- (Moved from index.js)
 export function displayStats(messageId, stats) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length) return;
@@ -195,14 +196,16 @@ export function displayStats(messageId, stats) {
                 console.log(`StatSuite: Regenerating all stats in ${messagesToProcess.length} messages`);
             } else { // Normal single regeneration
                 messagesToProcess = [{ idx: messageId }]; // Process only the current index
-                toastMessage = 'Regenerated stats for current message';
                 console.log(`StatSuite: Regenerating stats for message ${messageId}`);
             }
 
             for (const { idx } of messagesToProcess) {
                 await makeStats(idx, null, null, useAlt);
             }
-            if (messagesToProcess.length > 0) toastr.success(toastMessage);
+
+            if (messagesToProcess.length > 0 && toastMessage != "") {
+                toastr.success(toastMessage);
+            }
 
         } catch (error) {
             console.error("StatSuite: Error during regeneration:", error);
@@ -252,14 +255,14 @@ export function displayStats(messageId, stats) {
                              console.log(`StatSuite: Regenerating ${stat} for ${char} in ${messagesToProcess.length} messages`);
                         } else { // Normal single regenerate this stat/char
                             messagesToProcess = [{ idx: messageId }];
-                            toastMessage = `Regenerated ${stat} for ${char}`;
-                            console.log(`StatSuite: Regenerating ${stat} for ${char} in message ${messageId}`);
                         }
 
                         for (const { idx } of messagesToProcess) {
                             await makeStats(idx, char, stat, useAlt);
                         }
-                         if (messagesToProcess.length > 0) toastr.success(toastMessage);
+                         if (messagesToProcess.length > 0 && toastMessage != "") {
+                            toastr.success(toastMessage);
+                         }
 
                     } catch (error) {
                         console.error(`StatSuite: Error regenerating ${stat} for ${char}:`, error);
@@ -289,7 +292,6 @@ export function displayStats(messageId, stats) {
             if (changed) {
                 // Use setMessageStats to handle saving and re-rendering
                 setMessageStats(newStats, messageId);
-                toastr.success("Stats updated manually.");
             } else {
                  // If no changes, just exit edit mode without saving/re-rendering
                  container.removeClass('editing');
@@ -303,7 +305,6 @@ export function displayStats(messageId, stats) {
     });
 }
 
-// --- Paste Button --- (Moved from index.js)
 export function addPasteButton(messageId) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length) return;
@@ -335,7 +336,6 @@ export function addPasteButton(messageId) {
     buttonsContainer.append(requestButton);
 }
 
-// --- Paste Stats Modal --- (Moved from index.js)
 async function pasteStats(messageId) {
     try {
         // Simple modal implementation
@@ -401,7 +401,6 @@ async function pasteStats(messageId) {
     }
 }
 
-// --- Popout Panel Logic --- (Moved from index.js)
 function doPopout(e) {
     const target = e.target;
     const statBarPopoutId = "statBarPopout";
@@ -450,15 +449,15 @@ function doPopout(e) {
         bindSettingsUI(); // Re-bind settings inputs/buttons inside the popout
         loadMovingUIState(); // Load saved position
         $(statBarPopoutIdJ).css('display', 'flex').fadeIn(animation_duration);
-        dragElement(newElement[0]); // Pass the DOM element to dragElement
-
-        // Close button handler
+        dragElement(newElement);
+        
         $('#statBarPopoutClose').off('click').on('click', function () {
-            const popoutContent = $(statBarPopoutIdJ).find('.inline-drawer-content').first().html(); // Get content before removing
+            $('#statsDrawerContent').removeClass('scrollY');
+            const objectivePopoutHTML = $('#statsDrawerContent');
             $(statBarPopoutIdJ).fadeOut(animation_duration, () => {
-                originalElement.html(popoutContent); // Restore content
-                $(statBarPopoutIdJ).remove(); // Remove popout frame
-                // Re-bind UI in original location
+                originalElement.empty();
+                originalElement.html(objectivePopoutHTML);
+                $(statBarPopoutIdJ).remove();
                 bindSettingsUI();
             });
         });

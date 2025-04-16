@@ -112,7 +112,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         currentIndex = specificMessageIndex;
         currentMessage = chat[currentIndex];
 
-        if (currentMessage.is_system) return null; // Don't process system messages
+        if (currentMessage.is_system || /^\[.*\]$/.test(currentMessage.mes)) return null; // Skip system or bracket-wrapped messages
 
         if (currentIndex === 0) {
             // First non-system message case
@@ -121,7 +121,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         } else {
             previousIndex = -1;
             for (let i = currentIndex - 1; i >= 0; i--) {
-                if (!chat[i].is_system) {
+                if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
                     previousMessage = chat[i];
                     previousIndex = i;
                     break;
@@ -136,7 +136,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         currentIndex = -1;
         previousIndex = -1;
         for (let i = chat.length - 1; i >= 0; i--) {
-            if (!chat[i].is_system) {
+            if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
                 if (currentIndex === -1) {
                     currentIndex = i;
                     currentMessage = chat[i];
@@ -316,7 +316,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
 
         for (const stat of sortedStatsToGenerate) {
             // Check if the stat is relevant (either specifically requested or part of the full set)
-            if (specificStat === null || statsToGenerateForChar.includes(stat)) {
+            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === StatConfig[stat].defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
                     char,

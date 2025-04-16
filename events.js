@@ -4,9 +4,13 @@
 import { eventSource, event_types, chat } from '../../../../script.js';
 
 // Local Module Dependencies
-import { extensionSettings } from './settings.js';
 import { makeStats } from './stats_logic.js';
 import { displayStats, addPasteButton } from './ui.js';
+
+// Event Constants
+export const EVENT_CHARACTER_ADDED = 'character-added';
+export const EVENT_CHARACTER_REMOVED = 'character-removed';
+
 // Need CharacterRegistry instance - passed during initialization
 let _characterRegistryInstance = null;
 
@@ -73,6 +77,14 @@ export function onMessageRendered() {
                 lastMessageIndex = i;
                 break;
             }
+        }
+    }
+
+    // Auto-track message authors if enabled
+    if (lastMessageIndex !== -1 && getSettings()?.autoTrackMessageAuthors) {
+        const characterName = chat[lastMessageIndex].name;
+        if (characterName) {
+            addCharacter(characterName);
         }
     }
 
