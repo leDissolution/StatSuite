@@ -2,6 +2,8 @@
 
 // Global Dependencies
 import { eventSource, event_types, chat } from '../../../../script.js';
+import { registerGenerationMutexListeners } from './interconnect.js';
+//import { getSettings } from './settings.js';
 
 // Local Module Dependencies
 import { makeStats } from './stats_logic.js';
@@ -81,7 +83,7 @@ export function onMessageRendered() {
     }
 
     // Auto-track message authors if enabled
-    if (lastMessageIndex !== -1 && getSettings()?.autoTrackMessageAuthors) {
+    if (lastMessageIndex !== -1 && /*getSettings()?.autoTrackMessageAuthors*/ true) {
         const characterName = chat[lastMessageIndex].name;
         if (characterName) {
             addCharacter(characterName);
@@ -118,7 +120,10 @@ export function initializeEventListeners(registryInstance) {
     // Register core application event listeners
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);
-    eventSource.on(event_types.USER_MESSAGE_RENDERED, onMessageRendered);
+    // eventSource.on(event_types.USER_MESSAGE_RENDERED, onMessageRendered);
+
+    // Register generation mutex listeners
+    registerGenerationMutexListeners();
 
     console.log("StatSuite Events: Event listeners initialized.");
 }

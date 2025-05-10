@@ -5,8 +5,10 @@ import { extensionSettings } from './settings.js';
 import { generateStat } from './api.js';
 import { displayStats } from './ui.js';
 import { CharacterRegistry } from './characters.js'
+import { generationCaptured, releaseGeneration } from './interconnect.js'
+import { statsToStringFull } from './export.js';
 
-import { chat, saveChatConditional } from '../../../../script.js';
+import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
 
 // Moved from prompts.js
 export const Stats = Object.freeze({
@@ -285,6 +287,12 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
+    if (!generationCaptured())
+    {
+        console.log("StatSuite: Failed to capture generation mutex. Skipping stat generation.");
+        return;
+    }
+
     // Start with existing stats from the message, or an empty object
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
 
@@ -341,4 +349,45 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     } else {
         console.log("StatSuite: No stats were generated in this run.");
     }
+
+    // Release the mutex after processing
+    await releaseGeneration();
+    console.log("StatSuite: Generation mutex released.");
+}
+
+export async function injectStatsFromLastMessage() {
+    let lastMessageIndex = -1;
+    if (chat && Array.isArray(chat)) {
+        for (let i = chat.length - 1; i >= 0; i--) {
+            if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
+                lastMessageIndex = i;
+                break;
+            }
+        }
+    }
+
+    if (lastMessageIndex == -1) {
+        console.warn("StatSuite: No valid message found for injection.");
+        return;
+    }
+
+    const message = chat[lastMessageIndex];
+    if (!message.stats || Object.keys(message.stats).length === 0) {
+        console.log("StatSuite: No stats found in the last message. Generating new stats.");
+        await makeStats(lastMessageIndex);
+    } else {
+        console.log("StatSuite: Stats already present in the last message. No action taken.");
+    }
+
+    const statsString = statsToStringFull(message.stats);
+    const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]`;
+
+    const ctx = SillyTavern.getContext();  
+
+    ctx.setExtensionPrompt(
+        "StatSuite",
+        injection,
+        extension_prompt_types.IN_CHAT,
+        0
+    )
 }

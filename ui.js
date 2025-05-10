@@ -108,7 +108,8 @@ export function displayStats(messageId, stats) {
 
     const container = $('<div class="stats-table-container"></div>').css({
         'padding': '5px',
-        'font-size': '0.9em'
+        'font-size': '0.9em',
+        'overflow': 'auto'
     });
 
     const buttonStyle = {
@@ -218,6 +219,58 @@ export function displayStats(messageId, stats) {
         if (!isEditing) {
             // --- Enter Edit Mode ---
             container.addClass('editing');
+            
+            // Add remove buttons to header cells
+            table.find('th').not(':first').each(function () {
+                const th = $(this);
+                if (th.find('.remove-character-btn').length === 0) {
+                    const charName = th.text().replace(/×$/, '').trim();
+                    const removeBtn = $('<i class="fas fa-times remove-character-btn" title="Remove character"></i>')
+                        .css({ cursor: 'pointer', marginLeft: '5px', opacity: '0.7' })
+                        .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.7'); })
+                        .on('click', function(e) {
+                            e.stopPropagation();
+                            
+                            var messagesToDelete = []
+
+                            if (e.shiftKey) {
+                                const confirmDelete = confirm(`Are you sure you want to remove ${charName} from ALL messages?`);
+                                if (!confirmDelete) return;
+
+                                messagesToDelete = chat.slice(messageId)
+                                                        .map((msg, idx) => ({ msg, idx: messageId + idx }))
+                                                        .filter(({ msg }) => !msg.is_system);
+                            } else if (e.ctrlKey) {
+                                const confirmDelete = confirm(`Remove ${charName} from next 5 messages?`);
+                                if (!confirmDelete) return;
+
+                                messagesToDelete = chat.slice(messageId)
+                                                        .map((msg, idx) => ({ msg, idx: messageId + idx }))
+                                                        .filter(({ msg }) => !msg.is_system /*&& msg.stats?.[char]?.[stat]*/)
+                                                        .slice(0, 5);
+                            } else { 
+                                messagesToDelete = [{ idx: messageId }];
+                            }
+    
+                            for (const { idx } of messagesToDelete) {
+                                const currentStats = chat[idx].stats;
+
+                                if (currentStats)
+                                {
+                                    delete currentStats[charName];
+                                    
+                                    setMessageStats(currentStats, idx);
+                                }
+                            }
+                            
+                            // Exit edit mode
+                            container.removeClass('editing');
+                            editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
+                        });
+                    th.append(removeBtn);
+                }
+            });
+
             table.find('td[data-character]').each(function () {
                 const cell = $(this);
                 const value = cell.text();
@@ -229,7 +282,7 @@ export function displayStats(messageId, stats) {
                 const statRegenerateButton = $('<div class="fa-solid fa-rotate" title="Click: Regenerate this stat\nAlt+Click: More randomness\nShift+Click: Regenerate in all later messages\nCtrl+Click: Regenerate in next 5 messages"></div>').css({
                     ...buttonStyle, 'font-size': '0.8em'
                 });
-                statRegenerateButton.hover(function () { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); }); // Fix hover opacity
+                statRegenerateButton.hover(function () { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); });
 
                 statRegenerateButton.on('click', async function (e) {
                     e.stopPropagation(); // Prevent triggering edit mode save

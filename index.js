@@ -7,16 +7,26 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 
 //#region Local Imports
 import { initializeSettings } from './settings.js';
-import { initializeStatsLogic } from './stats_logic.js';
+import { initializeStatsLogic, injectStatsFromLastMessage } from './stats_logic.js';
 import { initializeUI } from './ui.js';
 import { initializeEventListeners } from './events.js';
 //#endregion
 
-const extensionName = "StatSuite";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+export const extensionName = "StatSuite";
+export const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
 const characterRegistry = initializeStatsLogic();
 window.saveMetadataDebounced = saveMetadataDebounced;
+
+export async function injectStats(chat, _ctx, abort, type) {
+    if (type == "regenerate" || type == "swipe" || type == "quiet" || type == "impersonate" || type == "continue") {
+        return;
+    }
+
+    await injectStatsFromLastMessage(_ctx);
+}
+
+globalThis.injectStats = injectStats;
 
 jQuery(async () => {
     try {
