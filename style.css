@@ -1,1 +1,16 @@
-/* All style elements for your extension go here */
+.online_status_indicator_stat_suite {
+    border-radius: 100%;
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    background-color: red;
+}
+
+.online_status_indicator_stat_suite.online {
+    background-color: green;
+}
+
+.online_status_text_stat_suite {
+    margin-left: 4px;
+    display: inline-block;
+}

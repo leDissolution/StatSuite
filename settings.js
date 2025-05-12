@@ -1,11 +1,13 @@
 import { extension_settings } from "../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../script.js"
+import { fetchAvailableModels } from "./api.js"
 
 const extensionName = "StatSuite";
 
 export class SuiteSettings {
     constructor() {
         this.modelUrl = '';
+        this.modelName = '';
         this.autoTrackMessageAuthors = true;
         this.enableAutoRequestStats = true;
         this.showStats = true;
@@ -16,7 +18,26 @@ export class SuiteSettings {
 export const ExtensionSettings = extension_settings[extensionName] || new SuiteSettings();
 const defaultSettings = new SuiteSettings();
 
-export function initializeSettings() {
+// Fetch available models from the API
+export async function tryGetModels() {
+    try {
+        const models = await fetchAvailableModels();
+        
+        if (models.length === 0) {
+            console.warn("StatSuite: No models available from the API.");
+            toast.error("StatSuite: No models available from the API.");
+            return [];
+        }
+
+        return models;
+    } catch (error) {
+        console.error("StatSuite: Failed to connect to the API.", error);
+        toast.error("StatSuite: Failed to connect to the API. Please check your settings.");
+        return [];
+    }
+}
+
+export async function initializeSettings() {
     let settingsChanged = false;
     if (Object.keys(ExtensionSettings).length === 0) {
         console.log(`StatSuite: Initializing default settings for ${extensionName}`);
@@ -27,6 +48,17 @@ export function initializeSettings() {
             if (!ExtensionSettings.hasOwnProperty(key)) {
                 console.log(`StatSuite: Adding missing default setting key "${key}"`);
                 ExtensionSettings[key] = defaultSettings[key];
+                settingsChanged = true;
+            }
+        }
+    }
+
+    if (ExtensionSettings.modelUrl && ExtensionSettings.modelUrl !== defaultSettings.modelUrl) {
+        const models = await tryGetModels();
+
+        if (models.length > 0) {
+            if (!ExtensionSettings.modelName || !models.includes(ExtensionSettings.modelName)) {
+                ExtensionSettings.modelName = models[0].id;
                 settingsChanged = true;
             }
         }

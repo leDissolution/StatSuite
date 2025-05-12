@@ -37,7 +37,7 @@ jQuery(async () => {
     }
 
     // Initialize core modules
-    initializeSettings();
+    await initializeSettings();
     initializeUI(characterRegistry);
     initializeEventListeners(characterRegistry);
 

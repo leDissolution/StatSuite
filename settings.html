@@ -12,7 +12,12 @@
                 <!-- Model Settings Section -->
                 <div class="drawer-section">
                     <h4>Model Settings</h4>
-                    <input type="text" name="modelUrl" id="modelUrl" class="text_pole" placeholder="Enter model URL" value="" />
+                    <input type="text" name="modelUrl" id="modelUrl" class="text_pole" style="width: 90%;" placeholder="Enter model URL" value="" />
+                    <div id="retryConnection" class="fa-solid fa-rotate" style="padding-left: 5px; cursor: pointer;"></div>
+                    <div id="modelStatus" class="online_status">
+                        <div class="online_status_indicator_stat_suite"></div>
+                        <div class="online_status_text_stat_suite">No connection...</div>
+                    </div>
                 </div>
 
                 <div class="drawer-section">

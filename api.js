@@ -4,7 +4,33 @@ import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
 import { StatConfig } from './stats_logic.js'; // Will be created
 
-const API_URL = "{0}/api/v1/generate";
+const API_URL = "{0}/v1/completions";
+const LIST_MODELS_URL = "{0}/v1/models";
+
+/**
+ * Fetches the list of available models from the API.
+ * @returns {Promise<Array>} List of available models.
+ * @throws Will throw an error if the API call fails.
+ * */
+export async function fetchAvailableModels() {
+    if (!ExtensionSettings.modelUrl) {
+        console.error("StatSuite API Error: Model URL is not set in settings.");
+        return [];
+    }
+
+    try {
+        const response = await $.get(LIST_MODELS_URL.replace("{0}", ExtensionSettings.modelUrl));
+        if (response && response.data) {
+            return response.data;
+        } else {
+            console.error("StatSuite API Error: Invalid response structure from model listing.");
+            return [];
+        }
+    } catch (error) {
+        console.error("StatSuite API Error: Failed to fetch available models.", error);
+        throw error;
+    }
+}
 
 /**
  * Generates a specific stat for a character using the external API.
@@ -54,17 +80,23 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
             return "error_missing_url";
         }
 
-        const response = await $.post(API_URL.replace("{0}", ExtensionSettings.modelUrl),
-            JSON.stringify({
+        const response = await $.ajax({
+            url: API_URL.replace("{0}", ExtensionSettings.modelUrl),
+            method: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify({
+                model: ExtensionSettings.modelName,
                 prompt: statPrompt,
-                top_k: greedy ? 1 : 3,
                 temperature: greedy ? 0 : 1,
-                stop_sequence: ['"'] // Original stop sequence
-            }));
+                top_p: 1,
+                stop: ['"']
+            })
+        })
 
         // Basic validation of response structure
-        if (response && response.results && response.results.length > 0 && typeof response.results[0].text === 'string') {
-            const text = response.results[0].text;
+        if (response && response.choices && response.choices.length > 0 && typeof response.choices[0].text === 'string') {
+            const text = response.choices[0].text;
             const quoteIndex = text.indexOf('"');
             return quoteIndex !== -1 ? text.substring(0, quoteIndex).trim() : text.trim();
         } else {

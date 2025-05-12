@@ -9,7 +9,7 @@ import { dragElement } from '../../../../scripts/RossAscends-mods.js';
 import { loadMovingUIState } from '../../../../scripts/power-user.js';
 
 // Local Module Dependencies
-import { ExtensionSettings, updateSetting } from './settings.js';
+import { ExtensionSettings, updateSetting, tryGetModels } from './settings.js';
 import {
     makeStats,
     getRecentMessages,
@@ -55,6 +55,46 @@ function bindSettingsUI() {
     $("#collapseOldStats").off("input.statSuite").on("input.statSuite", function () {
         updateSetting('collapseOldStats', $(this).prop("checked"));
     });
+
+    // Bind retry connection button
+    $("#retryConnection").off("click.statSuite").on("click.statSuite", async function () {
+        const modelStatusDiv = $("#modelStatus");
+        $(".online_status_indicator_stat_suite").removeClass("online");
+        $(".online_status_text_stat_suite").text("Checking connection...");
+
+        try {
+            const models = await tryGetModels();
+            
+            if (models.length > 0) {
+                if (models.length == 1)
+                {
+                    $(".online_status_text_stat_suite").text(`${ExtensionSettings.modelName}`);
+                }
+
+                if (models.length > 1) {
+                    const modelSelect = $('<select id="modelSelect"></select>');
+                    models.forEach(model => {
+                        const option = $(`<option value="${model.id}">${model.id}</option>`);
+                        if (model.id === ExtensionSettings.modelName) {
+                            option.prop('selected', true);
+                        }
+                        modelSelect.append(option);
+                    });
+                    $(".online_status_text_stat_suite").text(`${ExtensionSettings.modelName}`);
+                    modelStatusDiv.empty().append(modelSelect);
+                    modelSelect.off("change.statSuite").on("change.statSuite", function () {
+                        const selectedModel = $(this).val();
+                        updateSetting('modelName', selectedModel);
+                        $(".online_status_text_stat_suite").text(`${selectedModel}`);
+                    });
+                }
+
+                $(".online_status_indicator_stat_suite").addClass("online");
+            }
+        } catch (error) {
+            console.error("StatSuite UI Error: Failed to fetch models.", error);
+        }
+    }).trigger("click.statSuite");
 
     // Bind Character Management UI
     $('#add-character-btn').off('click.statSuite').on('click.statSuite', function() {
