@@ -15,12 +15,34 @@
                     <input type="text" name="modelUrl" id="modelUrl" class="text_pole" placeholder="Enter model URL" value="" />
                 </div>
 
+                <div class="drawer-section">
+                    <h4>General Settings</h4>
+                    <div class="setting-item">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="enableAutoRequestStats" checked />
+                            <span>Enable automatic stat requests</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="showStats" checked />
+                            <span>Expand stats by default</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="collapseOldStats" checked />
+                            <span>Collapse old stats</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Character Management Section -->
                 <div class="drawer-section">
                     <h4>Character Management</h4>
                     <div class="flex-container">
                         <label class="checkbox_label">
-                            <input type="checkbox" id="autoTrackAuthors">
+                            <input type="checkbox" id="autoTrackAuthors" checked />
                             <span>Automatically track message authors</span>
                         </label>
                     </div>
@@ -33,22 +55,17 @@
                     </div>
                 </div>
 
-                <!-- Actions Section -->
-                <div class="drawer-section">
-                    <h4>Actions</h4>
-                    <div class="flex-container flex-column">
-                        <input id="requestStats" class="menu_button" type="submit" value="Request stats" />
-                        <input id="exportStats" class="menu_button" type="submit" value="Export stats" />
-                        <input id="reload" class="menu_button" type="submit" value="Reload stats" />
+                <details>
+                    <summary>Dev mode</summary>
+                    <div class="drawer-section">
+                        <h4>Actions</h4>
+                        <div class="flex-container flex-column">
+                            <input id="requestStats" class="menu_button" type="submit" value="Request stats" />
+                            <input id="exportStats" class="menu_button" type="submit" value="Export stats" />
+                            <input id="reload" class="menu_button" type="submit" value="Reload stats" />
+                        </div>
                     </div>
-                </div>
-
-                <div class="setting-item">
-                    <label for="disableAutoRequestStats">
-                        <input type="checkbox" id="disableAutoRequestStats">
-                        Disable automatic stat requests
-                    </label>
-                </div>
+                </details>
             </div>
         </div>
     </div>

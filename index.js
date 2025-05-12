@@ -23,7 +23,7 @@ export async function injectStats(chat, _ctx, abort, type) {
         return;
     }
 
-    await injectStatsFromLastMessage(_ctx);
+    await injectStatsFromLastMessage();
 }
 
 globalThis.injectStats = injectStats;

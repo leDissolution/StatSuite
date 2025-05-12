@@ -1,5 +1,5 @@
 // api.js - Handles communication with the external stat generation API
-import { extensionSettings } from './settings.js'; // Will be created next
+import { ExtensionSettings } from './settings.js'; // Will be created next
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
 import { StatConfig } from './stats_logic.js'; // Will be created
@@ -49,12 +49,12 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
 
     try {
         // Ensure modelUrl is available from settings
-        if (!extensionSettings.modelUrl) {
+        if (!ExtensionSettings.modelUrl) {
             console.error("StatSuite API Error: Model URL is not set in settings.");
             return "error_missing_url";
         }
 
-        const response = await $.post(API_URL.replace("{0}", extensionSettings.modelUrl),
+        const response = await $.post(API_URL.replace("{0}", ExtensionSettings.modelUrl),
             JSON.stringify({
                 prompt: statPrompt,
                 top_k: greedy ? 1 : 3,

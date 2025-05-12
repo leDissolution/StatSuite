@@ -1,11 +1,10 @@
 // stats_logic.js - Core logic for stats definition, generation, and processing
 
 // Imports from other modules
-import { extensionSettings } from './settings.js';
+import { ExtensionSettings } from './settings.js';
 import { generateStat } from './api.js';
 import { displayStats } from './ui.js';
 import { CharacterRegistry } from './characters.js'
-import { generationCaptured, releaseGeneration } from './interconnect.js'
 import { statsToStringFull } from './export.js';
 
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
@@ -153,13 +152,11 @@ export function getRecentMessages(specificMessageIndex = null) {
         if (!previousMessage) previousIndex = -1; // Only one non-system message exists
     }
 
-    // Register authors if auto-tracking is enabled
-    if (extensionSettings.autoTrackMessageAuthors) {
+    if (ExtensionSettings.autoTrackMessageAuthors) {
         if (previousMessage) _characterRegistryInstance.addCharacter(previousMessage.name);
         _characterRegistryInstance.addCharacter(currentMessage.name);
     }
 
-    // Prepare previous stats, ensuring all tracked characters and stats have default values
     const finalPreviousStats = {};
     const sourcePreviousStats = previousMessage ? previousMessage.stats || {} : {};
 
@@ -192,13 +189,12 @@ export function getRecentMessages(specificMessageIndex = null) {
 export function getRequiredStats(targetStat) {
     const required = new Set();
     function addDependencies(stat) {
-        // Check if StatConfig and the specific stat entry exist
         if (!StatConfig || !StatConfig[stat] || !StatConfig[stat].dependencies) {
             console.error(`StatSuite Error: Invalid stat or missing dependencies in StatConfig for "${stat}"`);
-            return; // Stop recursion if config is invalid
+            return;
         }
         StatConfig[stat].dependencies.forEach(dep => {
-            if (!required.has(dep)) { // Prevent infinite loops for circular dependencies (though StatConfig shouldn't have them)
+            if (!required.has(dep)) { // Prevent infinite loops for circular dependencies
                  addDependencies(dep);
                  required.add(dep);
             }
@@ -248,7 +244,13 @@ export function setMessageStats(stats, messageIndex) {
     }
 
     if (statsChanged) {
-        saveChatConditional(); // Assumes global availability
+        saveChatConditional();
+    }
+
+    // If it was the last message in the chat, scroll to the bottom
+    if (messageIndex === chat.length - 1) {
+        const chat = $("#chat");
+        chat.scrollTop(chat[0].scrollHeight);
     }
 }
 
@@ -265,7 +267,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return;
     }
-    if (extensionSettings.disableAutoRequestStats && specificMessageIndex === null && specificChar === null && specificStat === null) {
+    if (!ExtensionSettings.enableAutoRequestStats && specificMessageIndex === null && specificChar === null && specificStat === null) {
         console.log("StatSuite: Automatic stat generation is disabled.");
         return;
     }
@@ -284,12 +286,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     const charsToProcess = specificChar ? [specificChar] : _characterRegistryInstance.getTrackedCharacters();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
-        return;
-    }
-
-    if (!generationCaptured())
-    {
-        console.log("StatSuite: Failed to capture generation mutex. Skipping stat generation.");
         return;
     }
 
@@ -350,8 +346,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.log("StatSuite: No stats were generated in this run.");
     }
 
-    // Release the mutex after processing
-    await releaseGeneration();
     console.log("StatSuite: Generation mutex released.");
 }
 

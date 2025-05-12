@@ -9,7 +9,7 @@ import { dragElement } from '../../../../scripts/RossAscends-mods.js';
 import { loadMovingUIState } from '../../../../scripts/power-user.js';
 
 // Local Module Dependencies
-import { extensionSettings, updateSetting } from './settings.js';
+import { ExtensionSettings, updateSetting } from './settings.js';
 import {
     makeStats,
     getRecentMessages,
@@ -27,21 +27,33 @@ let _characterRegistryInstance = null;
 function bindSettingsUI() {
     console.log("StatSuite UI: Binding settings UI elements.");
     // Bind Model URL input
-    $("#modelUrl").prop("value", extensionSettings.modelUrl || '');
+    $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
         updateSetting('modelUrl', $(this).prop("value"));
     });
 
     // Bind Auto Track Authors checkbox
-    $("#autoTrackAuthors").prop("checked", extensionSettings.autoTrackMessageAuthors);
+    $("#autoTrackAuthors").prop("checked", ExtensionSettings.autoTrackMessageAuthors);
     $("#autoTrackAuthors").off("input.statSuite").on("input.statSuite", function () {
         updateSetting('autoTrackMessageAuthors', $(this).prop("checked"));
     });
 
     // Bind Disable Auto Request Stats checkbox
-    $("#disableAutoRequestStats").prop("checked", extensionSettings.disableAutoRequestStats);
-    $("#disableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('disableAutoRequestStats', $(this).prop("checked"));
+    $("#enableAutoRequestStats").prop("checked", ExtensionSettings.enableAutoRequestStats);
+    $("#enableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
+        updateSetting('enableAutoRequestStats', $(this).prop("checked"));
+    });
+
+    // Bind Show Stats checkbox
+    $("#showStats").prop("checked", ExtensionSettings.showStats);
+    $("#showStats").off("input.statSuite").on("input.statSuite", function () {
+        updateSetting('showStats', $(this).prop("checked"));
+    });
+
+    // Bind Collapse Old Stats checkbox
+    $("#collapseOldStats").prop("checked", ExtensionSettings.collapseOldStats);
+    $("#collapseOldStats").off("input.statSuite").on("input.statSuite", function () {
+        updateSetting('collapseOldStats', $(this).prop("checked"));
     });
 
     // Bind Character Management UI
@@ -106,11 +118,43 @@ export function displayStats(messageId, stats) {
     const characters = Object.keys(stats);
     if (characters.length === 0) return; // No stats to display
 
-    const container = $('<div class="stats-table-container"></div>').css({
+    const parentDiv = $('<div class="stats-table-container"></div>').css({
         'padding': '5px',
         'font-size': '0.9em',
         'overflow': 'auto'
     });
+
+    if (ExtensionSettings.collapseOldStats) {
+        $("details.stats-details").removeAttr('open');
+    }
+
+    const container = $('<details class="stats-details"></details>');
+    if (ExtensionSettings.showStats) {
+        container.attr('open', true);
+    }
+
+    // If it is last message, opening the details should scroll to the bottom
+    if (messageId === chat.length - 1) {
+        container.on('toggle', function () {
+            if (this.open) {
+                setTimeout(() => {
+                    const chat = $("#chat");
+                    chat.scrollTop(chat[0].scrollHeight);
+                }, 0);
+            }
+        });
+    }
+
+    const summary = $('<summary class="stats-summary">Stats</summary>').css({
+        'cursor': 'pointer',
+        'align-items': 'center',
+        'font-style': 'italic',
+        'color': 'var(--SmartThemeBodyColor)',
+        'opacity': '0.7',
+    });
+    container.append(summary);
+
+    parentDiv.append(container);
 
     const buttonStyle = {
         'cursor': 'pointer',
@@ -142,12 +186,10 @@ export function displayStats(messageId, stats) {
     });
     table.append(headerRow);
 
-    // Use supportedStats (imported) to ensure consistent order and inclusion
     supportedStats.forEach(stat => {
         const row = $('<tr></tr>');
         row.append($('<td></td>').text(stat.toLowerCase()).css({ 'padding': '2px 5px', 'font-weight': 'bold' }));
         characters.forEach(char => {
-            // Ensure the character and stat exist, otherwise use default
             const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (StatConfig[stat]?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
                 .text(statValue)
@@ -160,12 +202,10 @@ export function displayStats(messageId, stats) {
     });
 
     container.append(table);
-    // Insert after the message text, ensuring it's inside the message container
-    messageDiv.find('.mes_text').first().after(container);
+    messageDiv.find('.mes_text').first().after(parentDiv);
 
     // --- Button Event Handlers ---
     exportButton.on('click', function () {
-        // getRecentMessages needs StatConfig and supportedStats, which are available via import
         const messages = getRecentMessages(messageId);
         if (messages) {
             exportSingleMessage(messages);
@@ -176,7 +216,7 @@ export function displayStats(messageId, stats) {
 
     regenerateButton.on('click', async function (e) {
         const currentIndex = messageId;
-        const useAlt = e.altKey === true; // More randomness
+        const greedy = e.altKey !== true; // More randomness
         let messagesToProcess = [];
         let toastMessage = '';
 
@@ -201,7 +241,7 @@ export function displayStats(messageId, stats) {
             }
 
             for (const { idx } of messagesToProcess) {
-                await makeStats(idx, null, null, useAlt);
+                await makeStats(idx, null, null, greedy);
             }
 
             if (messagesToProcess.length > 0 && toastMessage != "") {
@@ -288,7 +328,7 @@ export function displayStats(messageId, stats) {
                     e.stopPropagation(); // Prevent triggering edit mode save
                     const char = cell.attr('data-character');
                     const stat = cell.attr('data-stat');
-                    const useAlt = e.altKey === true;
+                    const greedy = e.altKey !== true;
                     let messagesToProcess = [];
                     let toastMessage = '';
 
@@ -306,12 +346,12 @@ export function displayStats(messageId, stats) {
                                                     .slice(0, 5);
                             toastMessage = `Regenerated ${stat} for ${char} in ${messagesToProcess.length} messages`;
                              console.log(`StatSuite: Regenerating ${stat} for ${char} in ${messagesToProcess.length} messages`);
-                        } else { // Normal single regenerate this stat/char
+                        } else {
                             messagesToProcess = [{ idx: messageId }];
                         }
 
                         for (const { idx } of messagesToProcess) {
-                            await makeStats(idx, char, stat, useAlt);
+                            await makeStats(idx, char, stat, greedy);
                         }
                          if (messagesToProcess.length > 0 && toastMessage != "") {
                             toastr.success(toastMessage);
@@ -328,8 +368,7 @@ export function displayStats(messageId, stats) {
             });
             editButton.removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save changes');
         } else {
-            // --- Save Edit Mode ---
-            const newStats = JSON.parse(JSON.stringify(stats)); // Deep copy to modify
+            const newStats = JSON.parse(JSON.stringify(stats));
             let changed = false;
             table.find('td[data-character]').each(function () {
                 const cell = $(this);
@@ -343,17 +382,12 @@ export function displayStats(messageId, stats) {
             });
 
             if (changed) {
-                // Use setMessageStats to handle saving and re-rendering
                 setMessageStats(newStats, messageId);
             } else {
-                 // If no changes, just exit edit mode without saving/re-rendering
-                 container.removeClass('editing');
-                 editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
-                 // Need to redraw the original stats without inputs
-                 displayStats(messageId, stats); // Re-render to remove inputs
+                container.removeClass('editing');
+                editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
+                displayStats(messageId, stats);
             }
-            // Note: displayStats is called by setMessageStats, so the button state is reset there.
-            // If no changes were made, we manually call displayStats again to revert the UI.
         }
     });
 }
