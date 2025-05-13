@@ -1,15 +1,11 @@
-// stats_logic.js - Core logic for stats definition, generation, and processing
-
-// Imports from other modules
+// StatSuite - Core logic for stats definition, generation, and processing
 import { ExtensionSettings } from './settings.js';
 import { generateStat } from './api.js';
 import { displayStats } from './ui.js';
-import { CharacterRegistry } from './characters.js'
+import { CharacterRegistry } from './characters.js';
 import { statsToStringFull } from './export.js';
-
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
 
-// Moved from prompts.js
 export const Stats = Object.freeze({
     POSE: 'pose',
     LOCATION: 'location',
@@ -48,7 +44,6 @@ export const StatConfig = {
     }
 };
 
-// Initialize with CharacterRegistry instance
 let _characterRegistryInstance = null;
 export function initializeStatsLogic() {
     _characterRegistryInstance = new CharacterRegistry();
@@ -63,29 +58,27 @@ export function initializeStatsLogic() {
 export function parseStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
-    if (!charMatch) return null; // Must have a character attribute
+    if (!charMatch) return null;
     const charName = charMatch[1];
     result[charName] = {};
 
     const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
     for (const match of matches) {
         const [_, key, value] = match;
-        if (key !== 'character') { // Exclude the character attribute itself
+        if (key !== 'character') {
             if (Object.values(Stats).includes(key.toLowerCase())) {
-                 result[charName][key.toLowerCase()] = value;
+                result[charName][key.toLowerCase()] = value;
             } else {
                 console.warn(`StatSuite: Ignoring unsupported stat key "${key}" during parsing.`);
             }
         }
     }
-    // If no valid stats were found besides character, return null or handle as needed
     if (Object.keys(result[charName]).length === 0) {
-         console.warn(`StatSuite: No supported stats found for character "${charName}" in string: ${statsString}`);
-         return null; // Let's return null if no actual stats are parsed
+        console.warn(`StatSuite: No supported stats found for character "${charName}" in string: ${statsString}`);
+        return null;
     }
     return result;
 }
-
 
 /**
  * Gets the relevant previous and current message details for stat generation.
@@ -97,7 +90,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return null;
     }
-    if (!chat || chat.length === 0) return null; // No chat messages
+    if (!chat || chat.length === 0) return null;
 
     let currentMessage;
     let previousMessage;
@@ -105,7 +98,6 @@ export function getRecentMessages(specificMessageIndex = null) {
     let previousIndex;
 
     if (specificMessageIndex !== null) {
-        // Handle specific index
         if (specificMessageIndex < 0 || specificMessageIndex >= chat.length) {
             console.warn(`StatSuite: getRecentMessages called with invalid index ${specificMessageIndex}`);
             return null;
@@ -113,10 +105,9 @@ export function getRecentMessages(specificMessageIndex = null) {
         currentIndex = specificMessageIndex;
         currentMessage = chat[currentIndex];
 
-        if (currentMessage.is_system || /^\[.*\]$/.test(currentMessage.mes)) return null; // Skip system or bracket-wrapped messages
+        if (currentMessage.is_system || /^\[.*\]$/.test(currentMessage.mes)) return null;
 
         if (currentIndex === 0) {
-            // First non-system message case
             previousMessage = null;
             previousIndex = -1;
         } else {
@@ -128,9 +119,9 @@ export function getRecentMessages(specificMessageIndex = null) {
                     break;
                 }
             }
-            if (!previousMessage) { // No previous non-system message found
-                 previousMessage = null;
-                 previousIndex = -1;
+            if (!previousMessage) {
+                previousMessage = null;
+                previousIndex = -1;
             }
         }
     } else {
@@ -144,12 +135,12 @@ export function getRecentMessages(specificMessageIndex = null) {
                 } else {
                     previousIndex = i;
                     previousMessage = chat[i];
-                    break; // Found both current and previous
+                    break;
                 }
             }
         }
-        if (!currentMessage) return null; // No non-system messages found
-        if (!previousMessage) previousIndex = -1; // Only one non-system message exists
+        if (!currentMessage) return null;
+        if (!previousMessage) previousIndex = -1;
     }
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
@@ -171,15 +162,14 @@ export function getRecentMessages(specificMessageIndex = null) {
     return {
         previousName: previousMessage ? previousMessage.name : null,
         previousMessage: previousMessage ? previousMessage.mes : "",
-        previousStats: finalPreviousStats, // Use the processed stats with defaults
+        previousStats: finalPreviousStats,
         previousIndex: previousIndex,
         newName: currentMessage.name,
         newMessage: currentMessage.mes,
-        newStats: currentMessage.stats, // Pass the raw stats from the current message
+        newStats: currentMessage.stats,
         newIndex: currentIndex
     };
 }
-
 
 /**
  * Calculates required stats including dependencies.
@@ -194,21 +184,20 @@ export function getRequiredStats(targetStat) {
             return;
         }
         StatConfig[stat].dependencies.forEach(dep => {
-            if (!required.has(dep)) { // Prevent infinite loops for circular dependencies
-                 addDependencies(dep);
-                 required.add(dep);
+            if (!required.has(dep)) {
+                addDependencies(dep);
+                required.add(dep);
             }
         });
-        required.add(stat); // Add the stat itself
+        required.add(stat);
     }
 
     if (StatConfig && StatConfig[targetStat]) {
         addDependencies(targetStat);
     } else {
-         console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
+        console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
     }
 
-    // Sort based on the order defined in StatConfig
     return Array.from(required).sort((a, b) => {
         const orderA = StatConfig[a] ? StatConfig[a].order : Infinity;
         const orderB = StatConfig[b] ? StatConfig[b].order : Infinity;
@@ -232,7 +221,6 @@ export function setMessageStats(stats, messageIndex) {
         return;
     }
 
-    // Simple deep comparison to check if stats actually changed
     const statsChanged = JSON.stringify(message.stats) !== JSON.stringify(stats);
 
     message.stats = stats;
@@ -247,13 +235,11 @@ export function setMessageStats(stats, messageIndex) {
         saveChatConditional();
     }
 
-    // If it was the last message in the chat, scroll to the bottom
     if (messageIndex === chat.length - 1) {
         const chat = $("#chat");
         chat.scrollTop(chat[0].scrollHeight);
     }
 }
-
 
 /**
  * Orchestrates the generation of stats for a specific message.
@@ -277,7 +263,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    // Don't generate if the message content is empty
     if (!messages.newMessage || messages.newMessage.trim() === "") {
         console.log("StatSuite: Skipping stat generation for empty message.");
         return;
@@ -289,10 +274,8 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    // Start with existing stats from the message, or an empty object
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
 
-    // Ensure structure exists for all characters being processed
     charsToProcess.forEach(char => {
         if (!resultingStats[char]) {
             resultingStats[char] = {};
@@ -304,22 +287,18 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         });
     });
 
-
-    let statsActuallyGenerated = false; // Flag to check if any API call was made
+    let statsActuallyGenerated = false;
 
     for (const char of charsToProcess) {
-        // Determine which stats need generation for this character
         const statsToGenerateForChar = specificStat
-            ? getRequiredStats(specificStat) // Get specific stat + dependencies
-            : supportedStats; // Get all supported stats (already sorted by StatConfig definition)
+            ? getRequiredStats(specificStat)
+            : supportedStats;
 
-        // Sort stats based on StatConfig order to handle dependencies correctly
         const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => StatConfig[a].order - StatConfig[b].order);
 
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
         for (const stat of sortedStatsToGenerate) {
-            // Check if the stat is relevant (either specifically requested or part of the full set)
             if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === StatConfig[stat].defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
@@ -339,9 +318,8 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         }
     }
 
-    // Only update if stats were actually generated or potentially modified
     if (statsActuallyGenerated) {
-         setMessageStats(resultingStats, messages.newIndex);
+        setMessageStats(resultingStats, messages.newIndex);
     } else {
         console.log("StatSuite: No stats were generated in this run.");
     }
@@ -376,7 +354,7 @@ export async function injectStatsFromLastMessage() {
     const statsString = statsToStringFull(message.stats);
     const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]`;
 
-    const ctx = SillyTavern.getContext();  
+    const ctx = SillyTavern.getContext();
 
     ctx.setExtensionPrompt(
         "StatSuite",
