@@ -1,6 +1,8 @@
 // StatSuite - Export utilities for chat and stats
 import { generateExportPrompt } from './prompts.js';
 import { chat } from '../../../../script.js';
+import { ExtensionSettings } from './settings.js';
+import { Characters } from './characters.js';
 
 /**
  * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
@@ -41,7 +43,7 @@ export async function exportChat() {
  */
 export async function exportSingleMessage(messages) {
     if (!messages) return;
-    const exportPrompt = generateExportPrompt(
+    let exportPrompt = generateExportPrompt(
         messages.previousName,
         messages.previousMessage,
         messages.newName,
@@ -49,6 +51,18 @@ export async function exportSingleMessage(messages) {
         messages.previousStats ? statsToStringFull(messages.previousStats) : '',
         messages.newStats ? statsToStringFull(messages.newStats) : ''
     );
+
+    if (ExtensionSettings.anonymizeClipboardExport) {
+        let characterMap = {};
+        Characters.getTrackedCharacters().forEach((name, index) => {
+            characterMap[name] = `Character${index + 1}`;
+        });
+        
+        for (const [originalName, newName] of Object.entries(characterMap)) {
+            exportPrompt = exportPrompt.replace(new RegExp(originalName, 'g'), newName);
+        }
+    }
+
     try {
         await navigator.clipboard.writeText(exportPrompt);
         toastr.success('Message export copied to clipboard');

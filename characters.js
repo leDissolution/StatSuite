@@ -111,3 +111,5 @@ export class CharacterRegistry {
         this.saveToMetadata();
     }
 }
+
+export const Characters = new CharacterRegistry();

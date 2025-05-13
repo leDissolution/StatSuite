@@ -12,6 +12,7 @@ export class SuiteSettings {
         this.enableAutoRequestStats = true;
         this.showStats = true;
         this.collapseOldStats = true;
+        this.anonymizeClipboardExport = true;
     }
 }
 

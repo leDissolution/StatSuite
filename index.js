@@ -7,15 +7,14 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 
 //#region Local Imports
 import { initializeSettings } from './settings.js';
-import { initializeStatsLogic, injectStatsFromMessage } from './stats_logic.js';
-import { initializeUI } from './ui.js';
+import { injectStatsFromMessage } from './stats_logic.js';
+import { initializeUI } from './ui/init.js';
 import { initializeEventListeners, onChatChanged } from './events.js';
 //#endregion
 
 export const extensionName = "StatSuite";
 export const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-const characterRegistry = initializeStatsLogic();
 window.saveMetadataDebounced = saveMetadataDebounced;
 
 export async function injectStats(chat, _ctx, abort, type) {
@@ -45,8 +44,8 @@ jQuery(async () => {
 
     // Initialize core modules
     await initializeSettings();
-    initializeUI(characterRegistry);
-    initializeEventListeners(characterRegistry);
+    initializeUI();
+    initializeEventListeners();
     onChatChanged();
 
     console.log("StatSuite: Extension initialized.");

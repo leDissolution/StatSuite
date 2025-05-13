@@ -2,22 +2,26 @@
 import { eventSource, event_types, chat } from '../../../../script.js';
 import { ExtensionSettings } from './settings.js';
 import { makeStats } from './stats_logic.js';
-import { displayStats, addPasteButton } from './ui.js';
+import { displayStats } from './ui/stats-table.js';
+import { addPasteButton } from './ui/message-buttons.js';
+import { Characters } from './characters.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
-
-let _characterRegistryInstance = null;
 
 /**
  * Handles the CHAT_CHANGED event. Refreshes character registry from metadata and updates UI for all messages.
  */
 export function onChatChanged() {
-    if (!_characterRegistryInstance) {
+    // Use global CharacterRegistry if not set
+    if (!Characters) {
+        Characters = new CharacterRegistry();
+    }
+    if (!Characters) {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
     }
-    _characterRegistryInstance.initializeFromMetadata();
+    Characters.initializeFromMetadata();
     if (chat && Array.isArray(chat)) {
         chat.forEach((message, index) => {
             if (!message.is_system) {
@@ -67,18 +71,12 @@ var generating = false;
 
 /**
  * Initializes the event listeners for StatSuite extension.
- * @param {CharacterRegistry} registryInstance Instance of CharacterRegistry.
  */
-export function initializeEventListeners(registryInstance) {
+export function initializeEventListeners() {
     if (!eventSource) {
         console.error("StatSuite Events Error: eventSource is not available!");
         return;
     }
-    if (!registryInstance) {
-        console.error("StatSuite Events Error: CharacterRegistry instance not provided for initialization.");
-        return;
-    }
-    _characterRegistryInstance = registryInstance;
     console.log("StatSuite Events: Initializing event listeners...");
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);

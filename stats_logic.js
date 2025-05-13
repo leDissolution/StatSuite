@@ -1,8 +1,8 @@
 // StatSuite - Core logic for stats definition, generation, and processing
 import { ExtensionSettings } from './settings.js';
 import { generateStat } from './api.js';
-import { displayStats } from './ui.js';
-import { CharacterRegistry } from './characters.js';
+import { displayStats } from './ui/stats-table.js';
+import { Characters } from './characters.js';
 import { statsToStringFull } from './export.js';
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
 
@@ -44,12 +44,6 @@ export const StatConfig = {
     }
 };
 
-let _characterRegistryInstance = null;
-export function initializeStatsLogic() {
-    _characterRegistryInstance = new CharacterRegistry();
-    return _characterRegistryInstance;
-}
-
 /**
  * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
  * @param {string} statsString
@@ -86,7 +80,7 @@ export function parseStatsString(statsString) {
  * @returns {object | null} Object with message details or null if not applicable.
  */
 export function getRecentMessages(specificMessageIndex = null) {
-    if (!_characterRegistryInstance) {
+    if (!Characters) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return null;
     }
@@ -144,14 +138,14 @@ export function getRecentMessages(specificMessageIndex = null) {
     }
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
-        if (previousMessage) _characterRegistryInstance.addCharacter(previousMessage.name);
-        _characterRegistryInstance.addCharacter(currentMessage.name);
+        if (previousMessage) Characters.addCharacter(previousMessage.name);
+        Characters.addCharacter(currentMessage.name);
     }
 
     const finalPreviousStats = {};
     const sourcePreviousStats = previousMessage ? previousMessage.stats || {} : {};
 
-    _characterRegistryInstance.getTrackedCharacters().forEach(char => {
+    Characters.getTrackedCharacters().forEach(char => {
         finalPreviousStats[char] = {};
         const charSourceStats = sourcePreviousStats[char] || {};
         supportedStats.forEach(stat => {
@@ -249,7 +243,7 @@ export function setMessageStats(stats, messageIndex) {
  * @param {boolean} greedy Use greedy sampling for API call.
  */
 export async function makeStats(specificMessageIndex = null, specificChar = null, specificStat = null, greedy = true) {
-    if (!_characterRegistryInstance) {
+    if (!Characters) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return;
     }
@@ -268,7 +262,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    const charsToProcess = specificChar ? [specificChar] : _characterRegistryInstance.getTrackedCharacters();
+    const charsToProcess = specificChar ? [specificChar] : Characters.getTrackedCharacters();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
         return;
@@ -330,10 +324,16 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
 export async function injectStatsFromMessage(messageId) {
     const message = chat[messageId];
     if (!message.stats || Object.keys(message.stats).length === 0) {
-        console.log("StatSuite: No stats found in the last message. Generating new stats.");
-        await makeStats(messageId);
+        if (ExtensionSettings.enableAutoRequestStats) {
+            await makeStats(messageId);
+        }
     } else {
         console.log("StatSuite: Stats already present in the last message. No action taken.");
+    }
+
+    if (!message.stats) {
+        console.warn("StatSuite: No stats found in the last message.");
+        return;
     }
 
     const statsString = statsToStringFull(message.stats);

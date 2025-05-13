@@ -14,3 +14,107 @@
     margin-left: 4px;
     display: inline-block;
 }
+
+.stats-table-container {
+    padding: 5px;
+    font-size: 0.9em;
+    overflow: auto;
+}
+
+.stats-summary {
+    cursor: pointer;
+    align-items: center;
+    font-style: italic;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.7;
+}
+
+.stats-button-container {
+    float: right;
+    display: flex;
+    gap: 5px;
+}
+
+.stats-regenerate-button,
+.stats-edit-button,
+.stats-export-button {
+    cursor: pointer;
+    padding: 1px 5px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.stats-regenerate-button:hover,
+.stats-edit-button:hover,
+.stats-export-button:hover {
+    opacity: 1;
+}
+
+.remove-character-btn {
+    cursor: pointer;
+    margin-left: 5px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-character-btn:hover {
+    opacity: 1;
+}
+
+table.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table th,
+.stats-table td {
+    padding: 2px 5px;
+}
+
+.stat-input-container {
+    display: flex;
+    align-items: center;
+}
+
+.stat-input {
+    flex: 1;
+    box-sizing: border-box;
+    padding: 2px;
+    color: inherit;
+
+    background: 
+    linear-gradient(
+      to right,
+      rgba(180,180,180,0)   0%,
+      rgba(180,180,180,0.05) 5%,
+      rgba(180,180,180,0.05) 90%,
+      rgba(180,180,180,0)   100%
+    );
+
+    border-right: 0px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 0px;
+    border-bottom: 0px;
+}
+
+.editing .stat-input-container {
+    border-top:    1px solid transparent;
+    border-bottom: 1px solid transparent;
+    border-left:   0;
+    border-right:  0;
+
+    border-image-source: 
+        linear-gradient(
+        to right,
+        rgba(255,255,255,0)   0%,
+        rgba(255,255,255,0.1) 5%,
+        rgba(255,255,255,0.1) 95%,
+        rgba(255,255,255,0)   100%
+        );
+    border-image-slice: 1;
+}
+
+.stat-label {
+    white-space: nowrap;
+    width: 1px;;
+}
