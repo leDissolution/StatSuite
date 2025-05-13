@@ -1,12 +1,15 @@
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from './events.js';
+import { chat_metadata } from '../../../../script.js';
+import { saveMetadataDebounced } from '../../../extensions.js';
 
 /**
  * Manages the registry of tracked characters and synchronizes with chat metadata.
  */
 export class CharacterRegistry {
     constructor() {
-        this._characters = new Set();
+        this.characters = new Set();
         this._eventTarget = new EventTarget();
+        
         this.initializeFromMetadata();
     }
 
@@ -14,16 +17,11 @@ export class CharacterRegistry {
      * Loads tracked characters from chat metadata.
      */
     initializeFromMetadata() {
-        if (!window.chat_metadata) {
-            window.chat_metadata = {};
-        }
-        if (!window.chat_metadata.character_registry) {
-            window.chat_metadata.character_registry = {
-                trackedCharacters: []
-            };
-        }
-        const trackedChars = window.chat_metadata.character_registry.trackedCharacters;
-        this._characters.clear();
+        const chatMetadata = chat_metadata.StatSuite;
+
+        const trackedChars = chatMetadata?.trackedCharacters || [];
+
+        this.characters.clear();
         trackedChars.forEach(char => this.addCharacter(char));
     }
 
@@ -33,8 +31,8 @@ export class CharacterRegistry {
      */
     addCharacter(name) {
         if (name && typeof name === 'string') {
-            if (!this._characters.has(name)) {
-                this._characters.add(name);
+            if (!this.characters.has(name)) {
+                this.characters.add(name);
                 this.saveToMetadata();
                 this._eventTarget.dispatchEvent(new CustomEvent(EVENT_CHARACTER_ADDED, { detail: name }));
             }
@@ -47,7 +45,7 @@ export class CharacterRegistry {
      * @returns {boolean} True if removed, false otherwise.
      */
     removeCharacter(name) {
-        const removed = this._characters.delete(name);
+        const removed = this.characters.delete(name);
         if (removed) {
             this.saveToMetadata();
             this._eventTarget.dispatchEvent(new CustomEvent(EVENT_CHARACTER_REMOVED, { detail: name }));
@@ -61,7 +59,7 @@ export class CharacterRegistry {
      * @returns {boolean}
      */
     hasCharacter(name) {
-        return this._characters.has(name);
+        return this.characters.has(name);
     }
 
     /**
@@ -69,7 +67,7 @@ export class CharacterRegistry {
      * @returns {string[]}
      */
     getTrackedCharacters() {
-        return Array.from(this._characters).sort();
+        return Array.from(this.characters).sort();
     }
 
     /**
@@ -94,14 +92,14 @@ export class CharacterRegistry {
      * Saves the current tracked characters to chat metadata.
      */
     saveToMetadata() {
-        if (!window.chat_metadata) {
-            window.chat_metadata = {};
+        if (!chat_metadata.StatSuite) {
+            chat_metadata.StatSuite = {};
         }
-        window.chat_metadata.character_registry = {
-            trackedCharacters: this.getTrackedCharacters()
-        };
-        if (window.saveMetadataDebounced) {
-            window.saveMetadataDebounced();
+
+        chat_metadata.StatSuite.trackedCharacters = Array.from(this.characters);
+
+        if (saveMetadataDebounced) {
+            saveMetadataDebounced();
         }
     }
 
@@ -109,7 +107,7 @@ export class CharacterRegistry {
      * Clears all tracked characters and updates metadata.
      */
     clear() {
-        this._characters.clear();
+        this.characters.clear();
         this.saveToMetadata();
     }
 }
