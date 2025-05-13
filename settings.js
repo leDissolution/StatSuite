@@ -33,7 +33,6 @@ export async function tryGetModels() {
         return models;
     } catch (error) {
         console.error("StatSuite: Failed to connect to the API.", error);
-        toast.error("StatSuite: Failed to connect to the API. Please check your settings.");
         return [];
     }
 }
@@ -64,6 +63,10 @@ export async function initializeSettings() {
                 ExtensionSettings.modelName = models[0].id;
                 settingsChanged = true;
             }
+        }
+        else
+        {
+            toastr.error("StatSuite: Failed to connect to the API. Please check your settings.");
         }
     }
     if (settingsChanged) {

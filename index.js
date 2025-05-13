@@ -7,9 +7,9 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 
 //#region Local Imports
 import { initializeSettings } from './settings.js';
-import { initializeStatsLogic, injectStatsFromLastMessage } from './stats_logic.js';
+import { initializeStatsLogic, injectStatsFromMessage } from './stats_logic.js';
 import { initializeUI } from './ui.js';
-import { initializeEventListeners } from './events.js';
+import { initializeEventListeners, onChatChanged } from './events.js';
 //#endregion
 
 export const extensionName = "StatSuite";
@@ -19,11 +19,18 @@ const characterRegistry = initializeStatsLogic();
 window.saveMetadataDebounced = saveMetadataDebounced;
 
 export async function injectStats(chat, _ctx, abort, type) {
-    if (type == "regenerate" || type == "swipe" || type == "quiet" || type == "impersonate" || type == "continue") {
+    if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;
     }
 
-    await injectStatsFromLastMessage();
+    var messageId = chat.length - 1;
+    while (messageId >= 0 && chat[messageId].is_system) {
+        messageId--;
+    }
+
+    if (messageId > -1) {
+        await injectStatsFromMessage(messageId);
+    }
 }
 
 globalThis.injectStats = injectStats;
@@ -40,6 +47,7 @@ jQuery(async () => {
     await initializeSettings();
     initializeUI(characterRegistry);
     initializeEventListeners(characterRegistry);
+    onChatChanged();
 
     console.log("StatSuite: Extension initialized.");
 });

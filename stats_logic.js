@@ -327,26 +327,11 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     console.log("StatSuite: Generation mutex released.");
 }
 
-export async function injectStatsFromLastMessage() {
-    let lastMessageIndex = -1;
-    if (chat && Array.isArray(chat)) {
-        for (let i = chat.length - 1; i >= 0; i--) {
-            if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
-                lastMessageIndex = i;
-                break;
-            }
-        }
-    }
-
-    if (lastMessageIndex == -1) {
-        console.warn("StatSuite: No valid message found for injection.");
-        return;
-    }
-
-    const message = chat[lastMessageIndex];
+export async function injectStatsFromMessage(messageId) {
+    const message = chat[messageId];
     if (!message.stats || Object.keys(message.stats).length === 0) {
         console.log("StatSuite: No stats found in the last message. Generating new stats.");
-        await makeStats(lastMessageIndex);
+        await makeStats(messageId);
     } else {
         console.log("StatSuite: Stats already present in the last message. No action taken.");
     }
