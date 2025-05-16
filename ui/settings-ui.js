@@ -1,10 +1,11 @@
 // Handles settings UI binding and popout for StatSuite
 
-import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
+import { ExtensionSettings, updateSetting, tryGetModels, getCustomStatsForChat, addCustomStatToChat, removeCustomStatFromChat } from '../settings.js';
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
 import { renderCharacterList } from './character-list.js';
 import { loadMovingUIState } from '../../../../../scripts/power-user.js';
 import { dragElement } from '../../../../../scripts/RossAscends-mods.js';
+import { addCustomStat } from '../stats_logic.js';
 
 let _characterRegistryInstance = null;
 
@@ -88,10 +89,45 @@ export function bindSettingsUI(registryInstance) {
         updateSetting('anonymizeClipboardExport', $(this).prop("checked"));
     });
 
+    // Custom stats UI
+    $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
+        const name = $('#customStatName').val().trim().toLowerCase();
+        const defaultValue = $('#customStatValue').val().trim();
+        if (!name) return;
+        const config = { dependencies: [], order: getCustomStatsForChat().length + 10, defaultValue };
+        if (addCustomStatToChat(name, config)) {
+            addCustomStat(name, config);
+            $('#customStatName').val('');
+            $('#customStatValue').val('');
+            renderCustomStatsList();
+        }
+    });
+    renderCustomStatsList();
+
     _characterRegistryInstance.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharacterList(_characterRegistryInstance));
     _characterRegistryInstance.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharacterList(_characterRegistryInstance));
 
     renderCharacterList(_characterRegistryInstance);
+}
+
+function renderCustomStatsList() {
+    const $list = $('#custom-stats-list');
+    $list.empty();
+    const arr = getCustomStatsForChat();
+    if (!arr || arr.length === 0) {
+        $list.append('<div class="empty">No custom stats defined.</div>');
+        return;
+    }
+    arr.forEach(({ key, config }) => {
+        const $row = $(`<div class="tracked-character"><span><b>${key}</b> (default: <i>${config.defaultValue}</i>)</span><span class="character-actions"><i class="fa-solid fa-trash remove-custom-stat" title="Remove" data-key="${key}"></i></span></div>`);
+        $list.append($row);
+    });
+    // Remove handler
+    $('.remove-custom-stat').off('click.statSuite').on('click.statSuite', function() {
+        const key = $(this).data('key');
+        removeCustomStatFromChat(key);
+        renderCustomStatsList();
+    });
 }
 
 /**

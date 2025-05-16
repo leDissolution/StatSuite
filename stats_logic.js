@@ -6,15 +6,17 @@ import { Characters } from './characters.js';
 import { statsToStringFull } from './export.js';
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
 
-export const Stats = Object.freeze({
+export const Stats = {
     POSE: 'pose',
     LOCATION: 'location',
     OUTFIT: 'outfit',
     EXPOSURE: 'exposure',
     ACCESSORIES: 'accessories',
-});
+    BODYSTATE: 'bodyState',
+    MOOD: 'mood',
+};
 
-export const supportedStats = [Stats.POSE, Stats.LOCATION, Stats.OUTFIT, Stats.EXPOSURE, Stats.ACCESSORIES];
+export const ActiveStats = [Stats.POSE, Stats.LOCATION, Stats.OUTFIT, Stats.EXPOSURE, Stats.ACCESSORIES, Stats.BODYSTATE, Stats.MOOD];
 
 export const StatConfig = {
     [Stats.POSE]: {
@@ -34,15 +36,52 @@ export const StatConfig = {
     },
     [Stats.EXPOSURE]: {
         dependencies: [Stats.OUTFIT],
-        order: 4,
+        order: 3,
         defaultValue: "none"
     },
     [Stats.ACCESSORIES]: {
-        dependencies: [Stats.OUTFIT],
-        order: 3,
+        dependencies: [],
+        order: 4,
         defaultValue: "unspecified"
+    },
+    [Stats.BODYSTATE]: {
+        dependencies: [],
+        order: 5,
+        defaultValue: "normal"
+    },
+    [Stats.MOOD]: {
+        dependencies: [],
+        order: 6,
+        defaultValue: "neutral"
     }
 };
+
+/**
+ * Adds a custom stat to StatSuite at runtime.
+ * @param {string} statKey - The unique key for the stat (lowercase, no spaces).
+ * @param {object} config - The config object: { dependencies: [], order: number, defaultValue: any }
+ * @returns {boolean} True if added, false if already exists or invalid.
+ */
+export function addCustomStat(statKey, config) {
+    if (!statKey || typeof statKey !== 'string') return false;
+    const key = statKey.toLowerCase();
+    if (Stats[key.toUpperCase()] || StatConfig[key]) {
+        console.warn(`StatSuite: Stat "${key}" already exists. Skipping.`);
+        return false;
+    }
+
+    Stats[key.toUpperCase()] = key;
+    ActiveStats.push(key);
+
+    StatConfig[key] = {
+        dependencies: Array.isArray(config.dependencies) ? config.dependencies : [],
+        order: typeof config.order === 'number' ? config.order : ActiveStats.length,
+        defaultValue: config.defaultValue !== undefined ? config.defaultValue : "unspecified",
+        isCustom: true // Marker for custom stats
+    };
+    console.log(`StatSuite: Custom stat "${key}" registered.`);
+    return true;
+}
 
 /**
  * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
@@ -148,7 +187,7 @@ export function getRecentMessages(specificMessageIndex = null) {
     Characters.getTrackedCharacters().forEach(char => {
         finalPreviousStats[char] = {};
         const charSourceStats = sourcePreviousStats[char] || {};
-        supportedStats.forEach(stat => {
+        ActiveStats.forEach(stat => {
             finalPreviousStats[char][stat] = charSourceStats[stat] || StatConfig[stat].defaultValue;
         });
     });
@@ -274,7 +313,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         if (!resultingStats[char]) {
             resultingStats[char] = {};
         }
-        supportedStats.forEach(statKey => {
+        ActiveStats.forEach(statKey => {
             if (!resultingStats[char].hasOwnProperty(statKey)) {
                 resultingStats[char][statKey] = StatConfig[statKey].defaultValue;
             }
@@ -286,7 +325,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     for (const char of charsToProcess) {
         const statsToGenerateForChar = specificStat
             ? getRequiredStats(specificStat)
-            : supportedStats;
+            : ActiveStats;
 
         const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => StatConfig[a].order - StatConfig[b].order);
 

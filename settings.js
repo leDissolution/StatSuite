@@ -1,6 +1,8 @@
 import { extension_settings } from "../../../extensions.js";
-import { saveSettingsDebounced } from "../../../../../../script.js"
+import { saveSettingsDebounced, chat_metadata } from "../../../../../../script.js"
 import { fetchAvailableModels } from "./api.js"
+import { addCustomStat } from './stats_logic.js';
+import { onChatChanged } from "./events.js";
 
 const extensionName = "StatSuite";
 
@@ -73,6 +75,8 @@ export async function initializeSettings() {
     if (settingsChanged) {
         saveSettingsDebounced();
     }
+    // Load custom stats after settings are initialized
+    loadCustomStatsFromChat();
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
 }
 
@@ -88,5 +92,53 @@ export function updateSetting(key, value) {
         console.log(`StatSuite: Setting "${key}" updated.`);
     } else {
         console.warn(`StatSuite: Attempted to update unknown setting "${key}".`);
+    }
+}
+
+/**
+ * Gets the custom stats array for the current chat from chat_metadata.
+ * @returns {Array<{key: string, config: object}>}
+ */
+export function getCustomStatsForChat() {
+    if (!chat_metadata.StatSuite) chat_metadata.StatSuite = {};
+    if (!Array.isArray(chat_metadata.StatSuite.customStats)) chat_metadata.StatSuite.customStats = [];
+    return chat_metadata.StatSuite.customStats;
+}
+
+/**
+ * Adds a custom stat to the current chat and saves.
+ * @param {string} key - Stat key (lowercase, no spaces)
+ * @param {object} config - Stat config object
+ */
+export function addCustomStatToChat(key, config) {
+    const arr = getCustomStatsForChat();
+    if (arr.some(s => s.key === key)) return false;
+    arr.push({ key, config });
+    if (typeof saveMetadataDebounced === 'function') saveMetadataDebounced();
+    onChatChanged();
+    return true;
+}
+
+/**
+ * Removes a custom stat from the current chat and saves.
+ * @param {string} key - Stat key to remove
+ */
+export function removeCustomStatFromChat(key) {
+    const arr = getCustomStatsForChat();
+    const idx = arr.findIndex(s => s.key === key);
+    if (idx === -1) return false;
+    arr.splice(idx, 1);
+    if (typeof saveMetadataDebounced === 'function') saveMetadataDebounced();
+    onChatChanged();
+    return true;
+}
+
+/**
+ * Loads all custom stats from the current chat into StatSuite.
+ */
+export function loadCustomStatsFromChat() {
+    const arr = getCustomStatsForChat();
+    for (const { key, config } of arr) {
+        addCustomStat(key, config);
     }
 }

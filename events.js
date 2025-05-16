@@ -1,7 +1,7 @@
 // StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../script.js';
-import { ExtensionSettings } from './settings.js';
-import { makeStats } from './stats_logic.js';
+import { ExtensionSettings, loadCustomStatsFromChat, getCustomStatsForChat } from './settings.js';
+import { makeStats, StatConfig, Stats } from './stats_logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
 import { Characters } from './characters.js';
@@ -22,6 +22,20 @@ export function onChatChanged() {
         return;
     }
     Characters.initializeFromMetadata();
+
+    // Reload custom stats from chat metadata
+    loadCustomStatsFromChat();
+
+    // Ensure all hardcoded stats are present in chat's custom stats
+    const customStatsArr = getCustomStatsForChat();
+    const customStatKeys = customStatsArr.map(s => s.key);
+    for (const key of Object.values(Stats)) {
+        if (!customStatKeys.includes(key)) {
+            // Add missing hardcoded stat with its config
+            customStatsArr.push({ key, config: { ...StatConfig[key], isCustom: false } });
+        }
+    }
+
     if (chat && Array.isArray(chat)) {
         chat.forEach((message, index) => {
             if (!message.is_system) {

@@ -1,9 +1,9 @@
 // Handles rendering and editing of the stats table for messages
 
-import { supportedStats, StatConfig, setMessageStats, getRecentMessages, makeStats } from '../stats_logic.js';
+import { ActiveStats, StatConfig, setMessageStats, getRecentMessages, makeStats } from '../stats_logic.js';
 import { exportSingleMessage } from '../export.js';
 import { chat } from '../../../../../script.js';
-import { ExtensionSettings } from '../settings.js';
+import { ExtensionSettings, getCustomStatsForChat } from '../settings.js';
 
 /**
  * Batch regenerate stats for a set of messages.
@@ -95,12 +95,68 @@ export function displayStats(messageId, stats) {
     const headerRow = $('<tr></tr>');
     headerRow.append($('<th></th>'));
     characters.forEach(char => {
-        headerRow.append($('<th></th>').text(char));
+        const th = $('<th></th>');
+        // Column regen button (hidden by default, shown in edit mode)
+        const colRegenBtn = $('<div class="fa-solid fa-rotate stats-col-regenerate" title="Regenerate all stats for this character\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages"></div>')
+            .css({ cursor: 'pointer', marginRight: '5px', opacity: '0.3', display: 'none', verticalAlign: 'middle' })
+            .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); })
+            .on('click', async function(e) {
+                e.stopPropagation();
+                const { indices, description } = getRegenerationIndices(messageId, e);
+                const greedy = e.altKey !== true;
+                let toastMessage = '';
+                if (indices.length > 1) {
+                    toastMessage = `Regenerated all stats for ${char} in ${indices.length} messages (${description})`;
+                } else {
+                    toastMessage = `Regenerated all stats for ${char} in ${description}`;
+                }
+                console.log(`StatSuite: Regenerating all stats for ${char} in ${description}`);
+                await regenerateStatsBatch(indices, { char, greedy, toastMessage });
+            });
+        th.append(colRegenBtn, $('<span></span>').text(char));
+        headerRow.append(th);
     });
     table.append(headerRow);
-    supportedStats.forEach(stat => {
+    const presentStats = characters.reduce((acc, char) => {
+        const charStats = stats[char];
+        if (charStats) {
+            Object.keys(charStats).forEach(stat => {
+                if (!acc.includes(stat)) {
+                    acc.push(stat);
+                }
+            });
+        }
+        return acc;
+    }, []);
+    presentStats.sort((a, b) => {
+        const aConfig = StatConfig[a] || {};
+        const bConfig = StatConfig[b] || {};
+        const aOrder = aConfig.order || 0;
+        const bOrder = bConfig.order || 0;
+        return aOrder - bOrder;
+    });
+    presentStats.forEach(stat => {
         const row = $('<tr></tr>');
-        row.append($('<td></td>').text(stat.toLowerCase()).addClass('stat-label'));
+        // Row regen button (hidden by default, shown in edit mode)
+        const rowRegenBtn = $('<div class="fa-solid fa-rotate stats-row-regenerate" title="Regenerate this stat for all characters\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages"></div>')
+            .css({ cursor: 'pointer', marginRight: '5px', opacity: '0.3', display: 'none', verticalAlign: 'middle' })
+            .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); })
+            .on('click', async function(e) {
+                e.stopPropagation();
+                const { indices, description } = getRegenerationIndices(messageId, e);
+                const greedy = e.altKey !== true;
+                let toastMessage = '';
+                if (indices.length > 1) {
+                    toastMessage = `Regenerated ${stat} for all characters in ${indices.length} messages (${description})`;
+                } else {
+                    toastMessage = `Regenerated ${stat} for all characters in ${description}`;
+                }
+                console.log(`StatSuite: Regenerating ${stat} for all characters in ${description}`);
+                await regenerateStatsBatch(indices, { stat, greedy, toastMessage });
+            });
+        const statLabelTd = $('<td></td>').addClass('stat-label');
+        statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
+        row.append(statLabelTd);
         characters.forEach(char => {
             const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (StatConfig[stat]?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
@@ -200,6 +256,7 @@ export function displayStats(messageId, stats) {
                 inputContainer.append(statRegenerateButton, input);
                 cell.empty().append(inputContainer);
             });
+            table.find('.stats-col-regenerate, .stats-row-regenerate').css('display', 'inline-block');
             editButton.removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save changes');
         } else {
             const newStats = JSON.parse(JSON.stringify(stats));
@@ -221,6 +278,7 @@ export function displayStats(messageId, stats) {
                 editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
                 displayStats(messageId, stats);
             }
+            table.find('.stats-col-regenerate, .stats-row-regenerate').css('display', 'none');
         }
     });
 }
