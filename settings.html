@@ -61,7 +61,7 @@
                 </div>
 
                 <details>
-                    <summary>Custom stats</summary>
+                    <summary>Stats</summary>
                     <div class="drawer-section">
                         <h4>Custom stats</h4>
                         <div class="flex-container flex-column">
@@ -83,6 +83,7 @@
                             <input id="requestStats" class="menu_button" type="submit" value="Request stats" />
                             <input id="exportStats" class="menu_button" type="submit" value="Export stats" />
                             <input id="reload" class="menu_button" type="submit" value="Reload stats" />
+                            <input id="clearMetadata" class="menu_button" type="submit" value="Clear metadata" />
                         </div>
                         <div class="flex-container">
                         <label class="checkbox_label">
@@ -136,12 +137,12 @@
     gap: 10px;
 }
 
-.remove-character {
+.remove-character, .remove-custom-stat {
     cursor: pointer;
     opacity: 0.7;
 }
 
-.remove-character:hover {
+.remove-character:hover, .remove-custom-stat:hover {
     opacity: 1;
     color: var(--warning-color);
 }

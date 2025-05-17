@@ -3,7 +3,7 @@
 import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
-import { StatConfig } from './stats_logic.js';
+import { StatsRegistry } from './stats_registry.js';
 
 const API_URL = '{0}/v1/completions';
 const LIST_MODELS_URL = '{0}/v1/models';
@@ -41,14 +41,15 @@ export async function fetchAvailableModels() {
  * @returns {Promise<string>} The generated stat value or an error string (e.g., 'error', 'error_missing_url').
  */
 export async function generateStat(stat, char, messages, existingStats = {}, greedy = true) {
-    if (!StatConfig || !StatConfig[stat]) {
-        console.error(`StatSuite API Error: StatConfig not loaded or stat "${stat}" invalid.`);
+    const statConfig = StatsRegistry.getStatConfig(stat);
+    if (!statConfig) {
+        console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);
         return 'error_invalid_config';
     }
 
     const dependencies = {};
-    if (StatConfig[stat].dependencies.length > 0) {
-        StatConfig[stat].dependencies.forEach(dep => {
+    if (statConfig.dependencies.length > 0) {
+        statConfig.dependencies.forEach(dep => {
             if (existingStats && existingStats[dep]) {
                 dependencies[dep] = existingStats[dep];
             }

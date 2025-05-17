@@ -9,8 +9,6 @@ export class CharacterRegistry {
     constructor() {
         this.characters = new Set();
         this._eventTarget = new EventTarget();
-        
-        this.initializeFromMetadata();
     }
 
     /**

@@ -1,19 +1,27 @@
 // StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../script.js';
-import { ExtensionSettings, loadCustomStatsFromChat, getCustomStatsForChat } from './settings.js';
-import { makeStats, StatConfig, Stats } from './stats_logic.js';
+import { ExtensionSettings } from './settings.js';
+import { makeStats } from './stats_logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
-import { Characters } from './characters.js';
+import { Characters } from './characters_registry.js';
+import { StatsRegistry } from './stats_registry.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
+export const EVENT_STAT_ADDED = 'stat-added';
+export const EVENT_STAT_REMOVED = 'stat-removed';
+
+export var ExtensionInitialized = false;
 
 /**
  * Handles the CHAT_CHANGED event. Refreshes character registry from metadata and updates UI for all messages.
  */
 export function onChatChanged() {
-    // Use global CharacterRegistry if not set
+    if (!ExtensionInitialized) {
+        return;
+    }
+
     if (!Characters) {
         Characters = new CharacterRegistry();
     }
@@ -22,19 +30,7 @@ export function onChatChanged() {
         return;
     }
     Characters.initializeFromMetadata();
-
-    // Reload custom stats from chat metadata
-    loadCustomStatsFromChat();
-
-    // Ensure all hardcoded stats are present in chat's custom stats
-    const customStatsArr = getCustomStatsForChat();
-    const customStatKeys = customStatsArr.map(s => s.key);
-    for (const key of Object.values(Stats)) {
-        if (!customStatKeys.includes(key)) {
-            // Add missing hardcoded stat with its config
-            customStatsArr.push({ key, config: { ...StatConfig[key], isCustom: false } });
-        }
-    }
+    StatsRegistry.initializeFromMetadata();
 
     if (chat && Array.isArray(chat)) {
         chat.forEach((message, index) => {
@@ -97,4 +93,6 @@ export function initializeEventListeners() {
     eventSource.on(event_types.GENERATION_STARTED, () => { generating = true; });
     eventSource.on(event_types.GENERATION_ENDED, () => { generating = false; });
     console.log("StatSuite Events: Event listeners initialized.");
+
+    ExtensionInitialized = true;
 }

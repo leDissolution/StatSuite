@@ -1,20 +1,26 @@
 // Handles settings UI binding and popout for StatSuite
 
-import { ExtensionSettings, updateSetting, tryGetModels, getCustomStatsForChat, addCustomStatToChat, removeCustomStatFromChat } from '../settings.js';
-import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
-import { renderCharacterList } from './character-list.js';
+import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
+import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED } from '../events.js';
+import { renderCharactersList } from './characters-list.js';
+import { renderStatsList } from './stats-list.js';
 import { loadMovingUIState } from '../../../../../scripts/power-user.js';
 import { dragElement } from '../../../../../scripts/RossAscends-mods.js';
-import { addCustomStat } from '../stats_logic.js';
+import { StatsRegistry } from '../stats_registry.js';
+import { chat_metadata } from '../../../../../script.js';
+import { saveMetadataDebounced } from '../../../../extensions.js';
 
 let _characterRegistryInstance = null;
+let _statsRegistryInstance = null;
 
 /**
  * Binds settings UI elements and character management UI.
  * @param {CharacterRegistry} registryInstance
+ * @param {StatsRegistry} statsRegistryInstance
  */
-export function bindSettingsUI(registryInstance) {
+export function bindSettingsUI(registryInstance, statsRegistryInstance) {
     _characterRegistryInstance = registryInstance;
+    _statsRegistryInstance = statsRegistryInstance;
     // Bind Model URL input
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
@@ -80,7 +86,7 @@ export function bindSettingsUI(registryInstance) {
         if (charName && _characterRegistryInstance) {
             _characterRegistryInstance.addCharacter(charName);
             $('#new-character-input').val('');
-            renderCharacterList(_characterRegistryInstance);
+            renderCharactersList(_characterRegistryInstance);
         }
     });
     // Bind Anonymize Clipboard Export checkbox
@@ -89,45 +95,35 @@ export function bindSettingsUI(registryInstance) {
         updateSetting('anonymizeClipboardExport', $(this).prop("checked"));
     });
 
+    $('#clearMetadata').off("click.statSuite").on("click.statSuite", function () {
+        if (confirm("Are you sure you want to clear all metadata? This action cannot be undone.")) {
+            chat_metadata.StatSuite = {};
+            saveMetadataDebounced();
+            
+            location.reload();
+        }
+    });
+
     // Custom stats UI
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
         const name = $('#customStatName').val().trim().toLowerCase();
         const defaultValue = $('#customStatValue').val().trim();
         if (!name) return;
-        const config = { dependencies: [], order: getCustomStatsForChat().length + 10, defaultValue };
-        if (addCustomStatToChat(name, config)) {
-            addCustomStat(name, config);
+        const config = { dependencies: [], order: Object.keys(_statsRegistryInstance._stats).length + 10, defaultValue };
+        if (_statsRegistryInstance.addStat(name, config)) {
             $('#customStatName').val('');
             $('#customStatValue').val('');
-            renderCustomStatsList();
         }
     });
-    renderCustomStatsList();
 
-    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharacterList(_characterRegistryInstance));
-    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharacterList(_characterRegistryInstance));
+    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharactersList(_characterRegistryInstance));
+    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharactersList(_characterRegistryInstance));
 
-    renderCharacterList(_characterRegistryInstance);
-}
+    _statsRegistryInstance.addEventListener(EVENT_STAT_ADDED, () => renderStatsList(_statsRegistryInstance));
+    _statsRegistryInstance.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList(_statsRegistryInstance));
 
-function renderCustomStatsList() {
-    const $list = $('#custom-stats-list');
-    $list.empty();
-    const arr = getCustomStatsForChat();
-    if (!arr || arr.length === 0) {
-        $list.append('<div class="empty">No custom stats defined.</div>');
-        return;
-    }
-    arr.forEach(({ key, config }) => {
-        const $row = $(`<div class="tracked-character"><span><b>${key}</b> (default: <i>${config.defaultValue}</i>)</span><span class="character-actions"><i class="fa-solid fa-trash remove-custom-stat" title="Remove" data-key="${key}"></i></span></div>`);
-        $list.append($row);
-    });
-    // Remove handler
-    $('.remove-custom-stat').off('click.statSuite').on('click.statSuite', function() {
-        const key = $(this).data('key');
-        removeCustomStatFromChat(key);
-        renderCustomStatsList();
-    });
+    renderCharactersList(_characterRegistryInstance);
+    renderStatsList(_statsRegistryInstance);
 }
 
 /**
@@ -166,7 +162,7 @@ export function doPopout(e) {
         originalElement.html('<div class="flex-container alignitemscenter justifyCenter wide100p"><small><i>StatSuite settings popped out</i></small></div>');
         $('#movingDivs').append(newElement);
         newElement.find('#statsDrawerContent').addClass('scrollY');
-        bindSettingsUI(_characterRegistryInstance);
+        bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
         loadMovingUIState();
         $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window.animation_duration || 200);
         dragElement(newElement);
@@ -177,7 +173,7 @@ export function doPopout(e) {
                 originalElement.empty();
                 originalElement.html(objectivePopoutHTML);
                 $(statBarPopoutIdJ).remove();
-                bindSettingsUI(_characterRegistryInstance);
+                bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
             });
         });
     } else {

@@ -4,7 +4,7 @@
  * Renders the list of tracked characters in the settings UI.
  * @param {CharacterRegistry} registryInstance
  */
-export function renderCharacterList(registryInstance) {
+export function renderCharactersList(registryInstance) {
     if (!registryInstance) {
         console.error("StatSuite UI Error: CharacterRegistry instance not available for renderCharacterList.");
         return;
@@ -30,7 +30,7 @@ export function renderCharacterList(registryInstance) {
         const char = $(this).data('character');
         if (registryInstance) {
             registryInstance.removeCharacter(char);
-            renderCharacterList(registryInstance);
+            renderCharactersList(registryInstance);
         }
     });
 }

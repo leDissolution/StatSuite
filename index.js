@@ -9,7 +9,7 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 import { initializeSettings } from './settings.js';
 import { injectStatsFromMessage } from './stats_logic.js';
 import { initializeUI } from './ui/init.js';
-import { initializeEventListeners, onChatChanged } from './events.js';
+import { initializeEventListeners, onChatChanged, ExtensionInitialized } from './events.js';
 //#endregion
 
 export const extensionName = "StatSuite";
@@ -46,6 +46,7 @@ jQuery(async () => {
     await initializeSettings();
     initializeUI();
     initializeEventListeners();
+
     onChatChanged();
 
     console.log("StatSuite: Extension initialized.");

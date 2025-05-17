@@ -1,9 +1,10 @@
 // Handles rendering and editing of the stats table for messages
 
-import { ActiveStats, StatConfig, setMessageStats, getRecentMessages, makeStats } from '../stats_logic.js';
+import { setMessageStats, getRecentMessages, makeStats } from '../stats_logic.js';
 import { exportSingleMessage } from '../export.js';
 import { chat } from '../../../../../script.js';
-import { ExtensionSettings, getCustomStatsForChat } from '../settings.js';
+import { ExtensionSettings } from '../settings.js';
+import { StatsRegistry } from '../stats_registry.js';
 
 /**
  * Batch regenerate stats for a set of messages.
@@ -129,8 +130,8 @@ export function displayStats(messageId, stats) {
         return acc;
     }, []);
     presentStats.sort((a, b) => {
-        const aConfig = StatConfig[a] || {};
-        const bConfig = StatConfig[b] || {};
+        const aConfig = StatsRegistry.getStatConfig(a) || {};
+        const bConfig = StatsRegistry.getStatConfig(b) || {};
         const aOrder = aConfig.order || 0;
         const bOrder = bConfig.order || 0;
         return aOrder - bOrder;
@@ -158,7 +159,7 @@ export function displayStats(messageId, stats) {
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
         row.append(statLabelTd);
         characters.forEach(char => {
-            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (StatConfig[stat]?.defaultValue || 'unspecified');
+            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (StatsRegistry.getStatConfig(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
                 .text(statValue)
                 .attr('data-character', char)

@@ -2,59 +2,10 @@
 import { ExtensionSettings } from './settings.js';
 import { generateStat } from './api.js';
 import { displayStats } from './ui/stats-table.js';
-import { Characters } from './characters.js';
+import { Characters } from './characters_registry.js';
 import { statsToStringFull } from './export.js';
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
-
-export const Stats = {
-    POSE: 'pose',
-    LOCATION: 'location',
-    OUTFIT: 'outfit',
-    EXPOSURE: 'exposure',
-    ACCESSORIES: 'accessories',
-    BODYSTATE: 'bodyState',
-    MOOD: 'mood',
-};
-
-export const ActiveStats = [Stats.POSE, Stats.LOCATION, Stats.OUTFIT, Stats.EXPOSURE, Stats.ACCESSORIES, Stats.BODYSTATE, Stats.MOOD];
-
-export const StatConfig = {
-    [Stats.POSE]: {
-        dependencies: [],
-        order: 0,
-        defaultValue: "unspecified"
-    },
-    [Stats.LOCATION]: {
-        dependencies: [Stats.POSE],
-        order: 1,
-        defaultValue: "unspecified"
-    },
-    [Stats.OUTFIT]: {
-        dependencies: [],
-        order: 2,
-        defaultValue: "unspecified"
-    },
-    [Stats.EXPOSURE]: {
-        dependencies: [Stats.OUTFIT],
-        order: 3,
-        defaultValue: "none"
-    },
-    [Stats.ACCESSORIES]: {
-        dependencies: [],
-        order: 4,
-        defaultValue: "unspecified"
-    },
-    [Stats.BODYSTATE]: {
-        dependencies: [],
-        order: 5,
-        defaultValue: "normal"
-    },
-    [Stats.MOOD]: {
-        dependencies: [],
-        order: 6,
-        defaultValue: "neutral"
-    }
-};
+import { StatsRegistry } from './stats_registry.js';
 
 /**
  * Adds a custom stat to StatSuite at runtime.
@@ -63,24 +14,7 @@ export const StatConfig = {
  * @returns {boolean} True if added, false if already exists or invalid.
  */
 export function addCustomStat(statKey, config) {
-    if (!statKey || typeof statKey !== 'string') return false;
-    const key = statKey.toLowerCase();
-    if (Stats[key.toUpperCase()] || StatConfig[key]) {
-        console.warn(`StatSuite: Stat "${key}" already exists. Skipping.`);
-        return false;
-    }
-
-    Stats[key.toUpperCase()] = key;
-    ActiveStats.push(key);
-
-    StatConfig[key] = {
-        dependencies: Array.isArray(config.dependencies) ? config.dependencies : [],
-        order: typeof config.order === 'number' ? config.order : ActiveStats.length,
-        defaultValue: config.defaultValue !== undefined ? config.defaultValue : "unspecified",
-        isCustom: true // Marker for custom stats
-    };
-    console.log(`StatSuite: Custom stat "${key}" registered.`);
-    return true;
+    return StatsRegistry.addStat(statKey, config);
 }
 
 /**
@@ -99,7 +33,7 @@ export function parseStatsString(statsString) {
     for (const match of matches) {
         const [_, key, value] = match;
         if (key !== 'character') {
-            if (Object.values(Stats).includes(key.toLowerCase())) {
+            if (StatsRegistry.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
             } else {
                 console.warn(`StatSuite: Ignoring unsupported stat key "${key}" during parsing.`);
@@ -183,12 +117,13 @@ export function getRecentMessages(specificMessageIndex = null) {
 
     const finalPreviousStats = {};
     const sourcePreviousStats = previousMessage ? previousMessage.stats || {} : {};
+    const allStats = StatsRegistry.getAllStats();
 
     Characters.getTrackedCharacters().forEach(char => {
         finalPreviousStats[char] = {};
         const charSourceStats = sourcePreviousStats[char] || {};
-        ActiveStats.forEach(stat => {
-            finalPreviousStats[char][stat] = charSourceStats[stat] || StatConfig[stat].defaultValue;
+        allStats.forEach(stat => {
+            finalPreviousStats[char][stat] = charSourceStats[stat] || StatsRegistry.getStatConfig(stat).defaultValue;
         });
     });
 
@@ -212,11 +147,12 @@ export function getRecentMessages(specificMessageIndex = null) {
 export function getRequiredStats(targetStat) {
     const required = new Set();
     function addDependencies(stat) {
-        if (!StatConfig || !StatConfig[stat] || !StatConfig[stat].dependencies) {
+        const statConfig = StatsRegistry.getStatConfig(stat);
+        if (!statConfig || !statConfig.dependencies) {
             console.error(`StatSuite Error: Invalid stat or missing dependencies in StatConfig for "${stat}"`);
             return;
         }
-        StatConfig[stat].dependencies.forEach(dep => {
+        statConfig.dependencies.forEach(dep => {
             if (!required.has(dep)) {
                 addDependencies(dep);
                 required.add(dep);
@@ -224,16 +160,14 @@ export function getRequiredStats(targetStat) {
         });
         required.add(stat);
     }
-
-    if (StatConfig && StatConfig[targetStat]) {
+    if (StatsRegistry.hasStat(targetStat)) {
         addDependencies(targetStat);
     } else {
         console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
     }
-
     return Array.from(required).sort((a, b) => {
-        const orderA = StatConfig[a] ? StatConfig[a].order : Infinity;
-        const orderB = StatConfig[b] ? StatConfig[b].order : Infinity;
+        const orderA = StatsRegistry.getStatConfig(a)?.order ?? Infinity;
+        const orderB = StatsRegistry.getStatConfig(b)?.order ?? Infinity;
         return orderA - orderB;
     });
 }
@@ -308,14 +242,15 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     }
 
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
+    const activeStats = StatsRegistry.getActiveStats();
 
     charsToProcess.forEach(char => {
         if (!resultingStats[char]) {
             resultingStats[char] = {};
         }
-        ActiveStats.forEach(statKey => {
+        activeStats.forEach(statKey => {
             if (!resultingStats[char].hasOwnProperty(statKey)) {
-                resultingStats[char][statKey] = StatConfig[statKey].defaultValue;
+                resultingStats[char][statKey] = StatsRegistry.getStatConfig(statKey).defaultValue;
             }
         });
     });
@@ -325,14 +260,13 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     for (const char of charsToProcess) {
         const statsToGenerateForChar = specificStat
             ? getRequiredStats(specificStat)
-            : ActiveStats;
-
-        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => StatConfig[a].order - StatConfig[b].order);
+            : activeStats;
+        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => StatsRegistry.getStatConfig(a).order - StatsRegistry.getStatConfig(b).order);
 
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
         for (const stat of sortedStatsToGenerate) {
-            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === StatConfig[stat].defaultValue)) {
+            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === StatsRegistry.getStatConfig(stat).defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
                     char,
