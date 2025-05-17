@@ -3,7 +3,7 @@
 import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
-import { StatsRegistry } from './stats_registry.js';
+import { StatsRegistry } from './stats/stats_registry.js';
 
 const API_URL = '{0}/v1/completions';
 const LIST_MODELS_URL = '{0}/v1/models';

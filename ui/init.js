@@ -4,8 +4,8 @@ import { bindSettingsUI } from './settings-ui.js';
 import { doPopout } from './settings-ui.js';
 import { exportChat } from '../export.js';
 import { onChatChanged } from '../events.js';
-import { Characters } from '../characters_registry.js';
-import { StatsRegistry } from '../stats_registry.js';
+import { Characters } from '../characters/characters_registry.js';
+import { StatsRegistry } from '../stats/stats_registry.js';
 
 /**
  * Initializes the UI module, binds event listeners.

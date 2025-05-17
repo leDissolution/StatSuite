@@ -1,10 +1,10 @@
 // Handles rendering and editing of the stats table for messages
 
-import { setMessageStats, getRecentMessages, makeStats } from '../stats_logic.js';
+import { setMessageStats, getRecentMessages, makeStats } from '../stats/stats_logic.js';
 import { exportSingleMessage } from '../export.js';
 import { chat } from '../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
-import { StatsRegistry } from '../stats_registry.js';
+import { StatsRegistry } from '../stats/stats_registry.js';
 
 /**
  * Batch regenerate stats for a set of messages.

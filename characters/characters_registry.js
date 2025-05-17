@@ -1,6 +1,6 @@
-import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from './events.js';
-import { chat_metadata } from '../../../../script.js';
-import { saveMetadataDebounced } from '../../../extensions.js';
+import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
+import { chat_metadata } from '../../../../../script.js';
+import { saveMetadataDebounced } from '../../../../extensions.js';
 
 /**
  * Manages the registry of tracked characters and synchronizes with chat metadata.

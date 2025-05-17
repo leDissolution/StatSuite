@@ -1,7 +1,7 @@
 // StatSuite - StatRegistry: Manages stat definitions, dependencies, and persistence per chat
-import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED } from './events.js';
-import { chat_metadata } from '../../../../script.js';
-import { saveMetadataDebounced } from '../../../extensions.js';
+import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED } from '../events.js';
+import { chat_metadata } from '../../../../../script.js';
+import { saveMetadataDebounced } from '../../../../extensions.js';
 
 class StatEntry {
     /**

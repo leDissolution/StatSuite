@@ -1,6 +1,6 @@
 // Handles adding paste/request buttons to message UI
 
-import { makeStats, parseStatsString, setMessageStats } from '../stats_logic.js';
+import { makeStats, parseStatsString, setMessageStats } from '../stats/stats_logic.js';
 
 /**
  * Adds paste and request buttons to a message's extra buttons container.

@@ -1,11 +1,11 @@
 // StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../script.js';
 import { ExtensionSettings } from './settings.js';
-import { makeStats } from './stats_logic.js';
+import { makeStats } from './stats/stats_logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
-import { Characters } from './characters_registry.js';
-import { StatsRegistry } from './stats_registry.js';
+import { Characters } from './characters/characters_registry.js';
+import { StatsRegistry } from './stats/stats_registry.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';

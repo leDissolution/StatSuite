@@ -7,9 +7,9 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 
 //#region Local Imports
 import { initializeSettings } from './settings.js';
-import { injectStatsFromMessage } from './stats_logic.js';
+import { injectStatsFromMessage } from './stats/stats_logic.js';
 import { initializeUI } from './ui/init.js';
-import { initializeEventListeners, onChatChanged, ExtensionInitialized } from './events.js';
+import { initializeEventListeners, onChatChanged } from './events.js';
 //#endregion
 
 export const extensionName = "StatSuite";

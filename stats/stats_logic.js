@@ -1,14 +1,14 @@
 // StatSuite - Core logic for stats definition, generation, and processing
-import { chat, saveChatConditional, extension_prompt_types } from '../../../../script.js';
-import { evaluateMacros } from '../../../macros.js';
+import { chat, saveChatConditional, extension_prompt_types } from '../../../../../script.js';
+import { evaluateMacros } from '../../../../macros.js';
 
-import { ExtensionSettings } from './settings.js';
-import { generateStat } from './api.js';
-import { displayStats } from './ui/stats-table.js';
-import { Characters } from './characters/characters_registry.js';
-import { statsToStringFull } from './export.js';
+import { ExtensionSettings } from '../settings.js';
+import { generateStat } from '../api.js';
+import { displayStats } from '../ui/stats-table.js';
+import { Characters } from '../characters/characters_registry.js';
+import { statsToStringFull } from '../export.js';
 import { StatsRegistry } from './stats_registry.js';
-import { StatBlock } from './stats/statblock.js';
+import { StatsBlock } from './stat_block.js';
 
 /**
  * Adds a custom stat to StatSuite at runtime.
@@ -194,8 +194,8 @@ export function setMessageStats(stats, messageIndex) {
     // Convert old stats to StatBlock instances
     if (stats && typeof stats === 'object') {
         for (const char of Object.keys(stats)) {
-            if (!(stats[char] instanceof StatBlock)) {
-                stats[char] = new StatBlock(stats[char]);
+            if (!(stats[char] instanceof StatsBlock)) {
+                stats[char] = new StatsBlock(stats[char]);
             }
         }
     }
@@ -258,9 +258,9 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
 
     charsToProcess.forEach(char => {
         if (!resultingStats[char]) {
-            resultingStats[char] = new StatBlock();
-        } else if (!(resultingStats[char] instanceof StatBlock)) {
-            resultingStats[char] = new StatBlock(resultingStats[char]);
+            resultingStats[char] = new StatsBlock();
+        } else if (!(resultingStats[char] instanceof StatsBlock)) {
+            resultingStats[char] = new StatsBlock(resultingStats[char]);
         }
         activeStats.forEach(statKey => {
             if (!resultingStats[char].hasOwnProperty(statKey)) {

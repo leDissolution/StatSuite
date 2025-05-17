@@ -2,7 +2,7 @@
 import { generateExportPrompt } from './prompts.js';
 import { chat } from '../../../../script.js';
 import { ExtensionSettings } from './settings.js';
-import { Characters } from './characters_registry.js';
+import { Characters } from './characters/characters_registry.js';
 
 /**
  * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
