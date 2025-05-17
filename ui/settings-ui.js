@@ -6,7 +6,7 @@ import { renderCharactersList } from './characters-list.js';
 import { renderStatsList } from './stats-list.js';
 import { loadMovingUIState } from '../../../../../scripts/power-user.js';
 import { dragElement } from '../../../../../scripts/RossAscends-mods.js';
-import { StatsRegistry } from '../stats/stats_registry.js';
+import { Stats } from '../stats/stats_registry.js';
 import { chat_metadata } from '../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../extensions.js';
 

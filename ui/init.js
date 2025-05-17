@@ -5,7 +5,7 @@ import { doPopout } from './settings-ui.js';
 import { exportChat } from '../export.js';
 import { onChatChanged } from '../events.js';
 import { Characters } from '../characters/characters_registry.js';
-import { StatsRegistry } from '../stats/stats_registry.js';
+import { Stats } from '../stats/stats_registry.js';
 
 /**
  * Initializes the UI module, binds event listeners.
@@ -16,7 +16,7 @@ export function initializeUI() {
         return;
     }
 
-    bindSettingsUI(Characters, StatsRegistry);
+    bindSettingsUI(Characters, Stats);
 
     // Bind main UI event listeners (previously in index.js jQuery init)
     // Use event delegation on document for dynamically added elements if necessary

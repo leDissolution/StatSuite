@@ -1,13 +1,12 @@
 // StatSuite - Core logic for stats definition, generation, and processing
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../../script.js';
-import { evaluateMacros } from '../../../../macros.js';
 
 import { ExtensionSettings } from '../settings.js';
 import { generateStat } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
 import { Characters } from '../characters/characters_registry.js';
 import { statsToStringFull } from '../export.js';
-import { StatsRegistry } from './stats_registry.js';
+import { Stats } from './stats_registry.js';
 import { StatsBlock } from './stat_block.js';
 
 /**
@@ -17,7 +16,7 @@ import { StatsBlock } from './stat_block.js';
  * @returns {boolean} True if added, false if already exists or invalid.
  */
 export function addCustomStat(statKey, config) {
-    return StatsRegistry.addStat(statKey, config);
+    return Stats.addStat(statKey, config);
 }
 
 /**
@@ -36,7 +35,7 @@ export function parseStatsString(statsString) {
     for (const match of matches) {
         const [_, key, value] = match;
         if (key !== 'character') {
-            if (StatsRegistry.hasStat(key.toLowerCase())) {
+            if (Stats.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
             } else {
                 console.warn(`StatSuite: Ignoring unsupported stat key "${key}" during parsing.`);
@@ -114,20 +113,25 @@ export function getRecentMessages(specificMessageIndex = null) {
     }
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
-        if (previousMessage) Characters.addCharacter(previousMessage.name);
-        Characters.addCharacter(currentMessage.name);
+        if (previousMessage) Characters.addCharacter(previousMessage.name, previousMessage.is_user);
+        Characters.addCharacter(currentMessage.name, currentMessage.is_user);
     }
 
     const finalPreviousStats = {};
     const sourcePreviousStats = previousMessage ? previousMessage.stats || {} : {};
-    const allStats = StatsRegistry.getAllStats();
+    const activeStats = Stats.getActiveStats();
 
-    Characters.getTrackedCharacters().forEach(char => {
-        finalPreviousStats[char] = {};
-        const charSourceStats = sourcePreviousStats[char] || {};
-        allStats.forEach(stat => {
-            finalPreviousStats[char][stat] = charSourceStats[stat] || StatsRegistry.getStatConfig(stat).defaultValue;
-        });
+    Characters.listTrackedCharacterNames().forEach(char => {
+        if (!sourcePreviousStats.hasOwnProperty(char)) {
+            finalPreviousStats[char] = null;
+        } else {
+            const charSourceStats = sourcePreviousStats[char] || {};
+            const statsObj = {};
+            activeStats.forEach(stat => {
+                statsObj[stat] = charSourceStats[stat] || Stats.getStatConfig(stat).defaultValue;
+            });
+            finalPreviousStats[char] = new StatsBlock(statsObj);
+        }
     });
 
     return {
@@ -150,7 +154,7 @@ export function getRecentMessages(specificMessageIndex = null) {
 export function getRequiredStats(targetStat) {
     const required = new Set();
     function addDependencies(stat) {
-        const statConfig = StatsRegistry.getStatConfig(stat);
+        const statConfig = Stats.getStatConfig(stat);
         if (!statConfig || !statConfig.dependencies) {
             console.error(`StatSuite Error: Invalid stat or missing dependencies in StatConfig for "${stat}"`);
             return;
@@ -163,14 +167,14 @@ export function getRequiredStats(targetStat) {
         });
         required.add(stat);
     }
-    if (StatsRegistry.hasStat(targetStat)) {
+    if (Stats.hasStat(targetStat)) {
         addDependencies(targetStat);
     } else {
         console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
     }
     return Array.from(required).sort((a, b) => {
-        const orderA = StatsRegistry.getStatConfig(a)?.order ?? Infinity;
-        const orderB = StatsRegistry.getStatConfig(b)?.order ?? Infinity;
+        const orderA = Stats.getStatConfig(a)?.order ?? Infinity;
+        const orderB = Stats.getStatConfig(b)?.order ?? Infinity;
         return orderA - orderB;
     });
 }
@@ -191,7 +195,6 @@ export function setMessageStats(stats, messageIndex) {
         return;
     }
 
-    // Convert old stats to StatBlock instances
     if (stats && typeof stats === 'object') {
         for (const char of Object.keys(stats)) {
             if (!(stats[char] instanceof StatsBlock)) {
@@ -247,14 +250,14 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    const charsToProcess = specificChar ? [specificChar] : Characters.getTrackedCharacters();
+    const charsToProcess = specificChar ? [specificChar] : Characters.listTrackedCharacterNames();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
         return;
     }
 
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
-    const activeStats = StatsRegistry.getActiveStats();
+    const activeStats = Stats.getActiveStats();
 
     charsToProcess.forEach(char => {
         if (!resultingStats[char]) {
@@ -264,7 +267,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         }
         activeStats.forEach(statKey => {
             if (!resultingStats[char].hasOwnProperty(statKey)) {
-                resultingStats[char][statKey] = StatsRegistry.getStatConfig(statKey).defaultValue;
+                resultingStats[char][statKey] = Stats.getStatConfig(statKey).defaultValue;
             }
         });
     });
@@ -275,12 +278,12 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         const statsToGenerateForChar = specificStat
             ? getRequiredStats(specificStat)
             : activeStats;
-        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => StatsRegistry.getStatConfig(a).order - StatsRegistry.getStatConfig(b).order);
+        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatConfig(a).order - Stats.getStatConfig(b).order);
 
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
         for (const stat of sortedStatsToGenerate) {
-            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === StatsRegistry.getStatConfig(stat).defaultValue)) {
+            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatConfig(stat).defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
                     char,

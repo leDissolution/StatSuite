@@ -2,9 +2,9 @@
 
 import { setMessageStats, getRecentMessages, makeStats } from '../stats/stats_logic.js';
 import { exportSingleMessage } from '../export.js';
-import { chat } from '../../../../../script.js';
+import { chat, saveChatConditional } from '../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
-import { StatsRegistry } from '../stats/stats_registry.js';
+import { Stats } from '../stats/stats_registry.js';
 
 /**
  * Batch regenerate stats for a set of messages.
@@ -97,7 +97,6 @@ export function displayStats(messageId, stats) {
     headerRow.append($('<th></th>'));
     characters.forEach(char => {
         const th = $('<th></th>');
-        // Column regen button (hidden by default, shown in edit mode)
         const colRegenBtn = $('<div class="fa-solid fa-rotate stats-col-regenerate" title="Regenerate all stats for this character\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages"></div>')
             .css({ cursor: 'pointer', marginRight: '5px', opacity: '0.3', display: 'none', verticalAlign: 'middle' })
             .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); })
@@ -130,8 +129,8 @@ export function displayStats(messageId, stats) {
         return acc;
     }, []);
     presentStats.sort((a, b) => {
-        const aConfig = StatsRegistry.getStatConfig(a) || {};
-        const bConfig = StatsRegistry.getStatConfig(b) || {};
+        const aConfig = Stats.getStatConfig(a) || {};
+        const bConfig = Stats.getStatConfig(b) || {};
         const aOrder = aConfig.order || 0;
         const bOrder = bConfig.order || 0;
         return aOrder - bOrder;
@@ -159,7 +158,7 @@ export function displayStats(messageId, stats) {
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
         row.append(statLabelTd);
         characters.forEach(char => {
-            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (StatsRegistry.getStatConfig(stat)?.defaultValue || 'unspecified');
+            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (Stats.getStatConfig(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
                 .text(statValue)
                 .attr('data-character', char)
@@ -229,6 +228,8 @@ export function displayStats(messageId, stats) {
                             }
                             container.removeClass('editing');
                             editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
+
+                            saveChatConditional();
                         });
                     th.append(removeBtn);
                 }

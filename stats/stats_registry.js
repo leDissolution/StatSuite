@@ -159,4 +159,4 @@ export class StatRegistry {
     }
 }
 
-export const StatsRegistry = new StatRegistry();
+export const Stats = new StatRegistry();

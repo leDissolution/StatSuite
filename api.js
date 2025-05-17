@@ -3,7 +3,7 @@
 import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
-import { StatsRegistry } from './stats/stats_registry.js';
+import { Stats } from './stats/stats_registry.js';
 
 const API_URL = '{0}/v1/completions';
 const LIST_MODELS_URL = '{0}/v1/models';
@@ -41,7 +41,7 @@ export async function fetchAvailableModels() {
  * @returns {Promise<string>} The generated stat value or an error string (e.g., 'error', 'error_missing_url').
  */
 export async function generateStat(stat, char, messages, existingStats = {}, greedy = true) {
-    const statConfig = StatsRegistry.getStatConfig(stat);
+    const statConfig = Stats.getStatConfig(stat);
     if (!statConfig) {
         console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);
         return 'error_invalid_config';
@@ -56,9 +56,6 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
         });
     }
 
-    const safePreviousStats = messages.previousStats && typeof messages.previousStats === 'object' ? messages.previousStats : {};
-    const previousStatsString = statsToStringFull(safePreviousStats);
-
     const statPrompt = generateStatPrompt(
         stat,
         char,
@@ -66,7 +63,7 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
         messages.previousMessage,
         messages.newName,
         messages.newMessage,
-        previousStatsString,
+        statsToStringFull(messages.previousStats),
         dependencies
     );
     console.log(`Generating ${stat} for ${char}:`, statPrompt);
