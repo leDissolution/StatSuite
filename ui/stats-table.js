@@ -88,7 +88,8 @@ export function displayStats(messageId, stats) {
     const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages"></div>');
     const editButton = $('<div class="stats-edit-button fa-solid fa-pencil" title="Edit stats"></div>');
     const exportButton = $('<div class="stats-export-button fa-solid fa-copy" title="Copy message export format"></div>');
-    buttonContainer.append(regenerateButton, editButton, exportButton);
+    const deleteButton = $('<div class="stats-delete-button fa-solid fa-trash" title="Delete stats from message(s)"></div>');
+    buttonContainer.append(regenerateButton, editButton, exportButton, deleteButton);
     buttonContainer.on('mouseenter', '.fa-solid', function () { $(this).css('opacity', '1'); })
                    .on('mouseleave', '.fa-solid', function () { $(this).css('opacity', '0.3'); });
     container.append(buttonContainer);
@@ -188,6 +189,29 @@ export function displayStats(messageId, stats) {
         }
         console.log(`StatSuite: Regenerating stats for ${description}`);
         await regenerateStatsBatch(indices, { greedy, toastMessage });
+    });
+    deleteButton.on('click', function(e) {
+        e.stopPropagation();
+        const { indices, description } = getRegenerationIndices(messageId, e);
+        let confirmMsg = '';
+        if (indices.length > 1) {
+            confirmMsg = `Are you sure you want to delete stats from ${indices.length} messages (${description})?`;
+        } else {
+            confirmMsg = `Are you sure you want to delete stats from message ${messageId}?`;
+        }
+        if (!confirm(confirmMsg)) return;
+        let changed = false;
+        for (const idx of indices) {
+            if (chat[idx] && chat[idx].stats) {
+                delete chat[idx].stats;
+                changed = true;
+                // Remove the stats-table-container from the DOM if present
+                $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
+            }
+        }
+        if (changed) {
+            saveChatConditional();
+        }
     });
     editButton.on('click', function () {
         const isEditing = container.hasClass('editing');

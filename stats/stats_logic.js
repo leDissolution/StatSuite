@@ -291,10 +291,10 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                     resultingStats[char],
                     greedy
                 );
-                statsActuallyGenerated = true;
 
                 if (typeof generatedValue === 'string' && !generatedValue.startsWith('error')) {
                     resultingStats[char][stat] = generatedValue;
+                    statsActuallyGenerated = true;
                 } else {
                     console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats[char][stat]}"`);
                 }

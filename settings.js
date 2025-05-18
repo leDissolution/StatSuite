@@ -16,7 +16,7 @@ export class SuiteSettings {
     }
 }
 
-export const ExtensionSettings = extension_settings[extensionName] || new SuiteSettings();
+export const ExtensionSettings = extension_settings[extensionName] ??= new SuiteSettings();
 const defaultSettings = new SuiteSettings();
 
 /**

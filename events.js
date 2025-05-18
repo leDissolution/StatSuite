@@ -67,7 +67,7 @@ function onMessageRendered(message_id) {
     if (ExtensionSettings.autoTrackMessageAuthors === true) {
         const characterName = chat[message_id].name;
         if (characterName) {
-            addCharacter(characterName);
+            Characters.addCharacter(characterName, chat[message_id].is_user);
         }
     }
     if (typeof addPasteButton === 'function') {
