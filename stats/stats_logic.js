@@ -312,6 +312,15 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
 }
 
 export async function injectStatsFromMessage(messageId) {
+    const ctx = SillyTavern.getContext();
+
+    ctx.setExtensionPrompt(
+        "StatSuite",
+        "",
+        extension_prompt_types.IN_CHAT,
+        0
+    )
+
     const message = chat[messageId];
     if (!message.stats || Object.keys(message.stats).length === 0) {
         if (ExtensionSettings.enableAutoRequestStats) {
@@ -328,8 +337,6 @@ export async function injectStatsFromMessage(messageId) {
 
     const statsString = statsToStringFull(message.stats);
     const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]`;
-
-    const ctx = SillyTavern.getContext();
 
     ctx.setExtensionPrompt(
         "StatSuite",

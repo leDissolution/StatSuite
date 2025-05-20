@@ -6,6 +6,7 @@ import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
 import { Characters } from './characters/characters_registry.js';
 import { Stats } from './stats/stats_registry.js';
+import { renderCharactersList } from './ui/characters-list.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -29,6 +30,8 @@ export function onChatChanged() {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
     }
+    Characters.characters.clear();
+    renderCharactersList(Characters);
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
 
