@@ -2,7 +2,7 @@
 import { chat, saveChatConditional, extension_prompt_types } from '../../../../../script.js';
 
 import { ExtensionSettings } from '../settings.js';
-import { generateStat } from '../api.js';
+import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
 import { Characters } from '../characters/characters_registry.js';
 import { statsToStringFull } from '../export.js';
@@ -200,6 +200,14 @@ export function setMessageStats(stats, messageIndex) {
             if (!(stats[char] instanceof StatsBlock)) {
                 stats[char] = new StatsBlock(stats[char]);
             }
+
+            // make sure that bodystate and mood are lowercase
+            if (stats[char].hasOwnProperty('bodyState')) {
+                stats[char].bodyState = stats[char].bodyState.toLowerCase();
+            }
+            if (stats[char].hasOwnProperty('mood')) {
+                stats[char].mood = stats[char].mood.toLowerCase();
+            }
         }
     }
 
@@ -215,11 +223,6 @@ export function setMessageStats(stats, messageIndex) {
 
     if (statsChanged) {
         saveChatConditional();
-    }
-
-    if (messageIndex === chat.length - 1) {
-        const chat = $("#chat");
-        chat.scrollTop(chat[0].scrollHeight);
     }
 }
 
@@ -240,6 +243,12 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
+    // Quick check for connection issues before starting generation
+    if (shouldSkipApiCalls()) {
+        console.log("StatSuite: Skipping stat generation due to recent connection failures. Call resetConnectionFailure() to retry.");
+        return;
+    }
+
     const messages = getRecentMessages(specificMessageIndex);
     if (!messages) {
         return;
@@ -256,6 +265,16 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
+    // If this is an automatic generation (not specific), do a quick connection test
+    if (specificMessageIndex === null && specificChar === null && specificStat === null) {
+        console.log("StatSuite: Testing API connection before automatic stat generation...");
+        const connectionOk = await checkApiConnection();
+        if (!connectionOk) {
+            console.log("StatSuite: API connection test failed. Skipping automatic stat generation.");
+            return;
+        }
+    }
+
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
     const activeStats = Stats.getActiveStats();
 
@@ -270,11 +289,15 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                 resultingStats[char][statKey] = Stats.getStatConfig(statKey).defaultValue;
             }
         });
-    });
-
-    let statsActuallyGenerated = false;
+    });    let statsActuallyGenerated = false;
 
     for (const char of charsToProcess) {
+        // Bail out early if we've detected connection issues
+        if (shouldSkipApiCalls()) {
+            console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to character "${char}".`);
+            break;
+        }
+
         const statsToGenerateForChar = specificStat
             ? getRequiredStats(specificStat)
             : activeStats;
@@ -283,6 +306,20 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
         for (const stat of sortedStatsToGenerate) {
+            // Check again before each stat generation in case connection was lost
+            if (shouldSkipApiCalls()) {
+                console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to stat "${stat}" for character "${char}".`);
+                break;
+            }
+
+            // TEMP HACK: Copy previous bodyState instead of generating it
+            // if (stat === 'bodyState' || stat === 'mood') {
+            //     if (messages.previousStats && messages.previousStats[char] && messages.previousStats[char][stat] !== undefined) {
+            //         resultingStats[char][stat] = messages.previousStats[char][stat].toLowerCase();
+            //         statsActuallyGenerated = true;
+            //         continue;
+            //     }
+            // }
             if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatConfig(stat).defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
@@ -297,8 +334,19 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                     statsActuallyGenerated = true;
                 } else {
                     console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats[char][stat]}"`);
+                    
+                    // If this is a network/connection error, bail out early
+                    if (generatedValue === 'error_network_or_cors' || generatedValue === 'error_api_call_failed') {
+                        console.log(`StatSuite: Detected connection issue. Stopping further stat generation.`);
+                        break;
+                    }
                 }
             }
+        }
+        
+        // If we broke out of the inner loop due to connection issues, break out of outer loop too
+        if (shouldSkipApiCalls()) {
+            break;
         }
     }
 
@@ -309,6 +357,15 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     }
 
     console.log("StatSuite: Generation mutex released.");
+}
+
+/**
+ * Resets the connection failure state to allow retrying stat generation.
+ * Call this when you want to retry after a connection failure.
+ */
+export function retryStatGeneration() {
+    resetConnectionFailure();
+    console.log("StatSuite: Connection failure state reset. Stat generation will be attempted again.");
 }
 
 export async function injectStatsFromMessage(messageId) {

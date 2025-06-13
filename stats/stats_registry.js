@@ -48,6 +48,17 @@ export class StatRegistry {
         if (Array.isArray(storedStats) && storedStats.length > 0) {
             storedStats.forEach(stat => this.addStatEntry(stat));
 
+            // sync settings for default stats with hardcoded values
+            DEFAULT_STATS.forEach(defaultStat => {
+                const existing = this._stats[defaultStat.name];
+                if (existing) {
+                    existing.dependencies = [...defaultStat.dependencies];
+                    existing.order = defaultStat.order;
+                    existing.defaultValue = defaultStat.defaultValue;
+                    // isCustom and isActive are preserved from metadata
+                }
+            });
+
             // if any of the default stats are missing, add them as inactive
             const missingDefaultStats =
                 this._stats.length > 0 ?

@@ -68,9 +68,6 @@ export function displayStats(messageId, stats) {
         $("details.stats-details").removeAttr('open');
     }
     const container = $('<details class="stats-details"></details>');
-    if (ExtensionSettings && ExtensionSettings.showStats) {
-        container.attr('open', true);
-    }
     if (messageId === chat.length - 1) {
         container.on('toggle', function () {
             if (this.open) {
@@ -80,6 +77,9 @@ export function displayStats(messageId, stats) {
                 }, 0);
             }
         });
+    }
+    if (ExtensionSettings && ExtensionSettings.showStats) {
+        container.attr('open', true);
     }
     const summary = $('<summary class="stats-summary">Stats</summary>');
     container.append(summary);

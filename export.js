@@ -46,7 +46,7 @@ export async function exportChat() {
             i === 0 ? statsToStringFull(previousStats) : previousStats,
             currentStats
         );
-        exports.push(`\\-------${i + 1}--------\n` + exportPrompt);
+        exports.push(`\\\\-------${i + 1}--------\n` + exportPrompt);
     }
     const exportString = exports.join('\n\n');
     const blob = new Blob([exportString], { type: 'text/plain' });
@@ -122,7 +122,11 @@ export function characterDescription(name) {
         description = substituteParams("{{persona}}");
     }
     else {
-        description = substituteParams("{{description}}");
+        const char = substituteParams(`{{char}}`);
+
+        if (char.includes(name)) {
+            description = substituteParams("{{description}}");
+        }
     }
 
     description = `<character name="${name}" description="${description}" />\n`;
@@ -138,7 +142,7 @@ export function characterDescription(name) {
 export function statsToStringFull(stats) {
     return Object.entries(stats)
         .map(([charName, charStats]) => {
-            if (charStats instanceof StatsBlock) {
+            if (charStats) {
                 return statsToString(charName, charStats);
             }
             else {
