@@ -49,7 +49,8 @@ export class ChatManager {
      * @param {number} index 
      * @param {boolean} useProxy - Whether to return a proxy with transparent stats access
      * @returns {object|null}
-     */    getMessage(index, useProxy = false) {
+     */    
+    getMessage(index, useProxy = false) {
         const chatArray = this.getCurrentChat();
         if (index < 0 || index >= chatArray.length) return null;
         
@@ -115,7 +116,8 @@ export class ChatManager {
      * @param {number} messageIndex 
      * @param {object} stats 
      * @returns {boolean} Success
-     */    setMessageStats(messageIndex, stats) {
+     */    
+    setMessageStats(messageIndex, stats) {
         if (!this.isValidMessageForStats(messageIndex)) return false;
         
         const message = this.getMessage(messageIndex);
@@ -251,25 +253,10 @@ export class ChatManager {
      * @param {boolean} includeFollowing 
      * @returns {number[]}
      */
-    getRegenerationIndices(startIndex, includeFollowing = false) {
-        const chatArray = this.getCurrentChat();
-        const indices = [];
-
-        if (includeFollowing) {
-            // Include all messages from startIndex to end
-            for (let i = startIndex; i < chatArray.length; i++) {
-                if (this.isValidMessageForStats(i)) {
-                    indices.push(i);
-                }
-            }
-        } else {
-            // Just the specific message
-            if (this.isValidMessageForStats(startIndex)) {
-                indices.push(startIndex);
-            }
-        }
-
-        return indices;
+    getMessagesFrom(startIndex, count = 1) {
+        return this.getStatEligibleMessages(true)
+            .filter(({ index }) => index >= startIndex)
+            .slice(0, count);
     }
     
     /**

@@ -92,6 +92,15 @@ export class CharacterRegistry {
     }
 
     /**
+     * Gets the index of a character by name.
+     * @param {string} name - The character name to retrieve.
+     * @returns {number} The index of the character, or -1 if not found.
+     */
+    getCharacterIx(name) {
+        return Array.from(this.characters).findIndex(char => char.name === name);
+    }
+
+    /**
      * Checks if a character is a player character.
      * @param {string} name - The character name to check.
      * @returns {boolean}

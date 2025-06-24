@@ -6,6 +6,7 @@ import { saveChatConditional } from '../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
 import { Stats } from '../stats/stats-registry.js';
 import { Chat } from '../chat/chat-manager.js';
+import { Characters } from '../characters/characters-registry.js';
 
 /**
  * Batch regenerate stats for a set of messages.
@@ -33,23 +34,20 @@ async function regenerateStatsBatch(messageIndices, { char = null, stat = null, 
  * @returns {{indices: number[], description: string}}
  */
 function getRegenerationIndices(startIndex, e) {
-    let indices = [];
+    let count = 1;
     let description = '';
     if (e.shiftKey) {
-        indices = Chat.getMessages().slice(startIndex)
-            .map((msg, idx) => startIndex + idx)
-            .filter(idx => !Chat.getMessage(idx).is_system);
+        count = 9999;
         description = `all messages from ${startIndex}`;
     } else if (e.ctrlKey) {
-        indices = Chat.getMessages().slice(startIndex)
-            .map((msg, idx) => startIndex + idx)
-            .filter(idx => !Chat.getMessage(idx).is_system)
-            .slice(0, 5);
+        count = 5;
         description = `next 5 messages from ${startIndex}`;
     } else {
-        indices = [startIndex];
+        count = 1;
         description = `message ${startIndex}`;
     }
+
+    const indices = Chat.getMessagesFrom(startIndex, count).map(msg => msg.index);
     return { indices, description };
 }
 
@@ -217,8 +215,8 @@ function renderStatsTableControls(messageId, container, table, stats) {
         if (!confirm(confirmMsg)) return;
         let changed = false;
         for (const idx of indices) {
-            if (Chat.getMessage(idx) && Chat.getMessage(idx).stats) {
-                delete Chat.getMessage(idx).stats;
+            if (Chat.getMessage(idx) && Chat.getMessageStats(idx)) {
+                delete Chat.getMessageStats(idx);
                 changed = true;
                 $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
             }
@@ -268,13 +266,13 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                         if (e.shiftKey) {
                             const confirmDelete = confirm(`Are you sure you want to remove ${charName} from ALL messages?`);
                             if (!confirmDelete) return;
-                            messagesToDelete = Chat.getMessages().slice(messageId)
+                            messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
                                 .filter(({ msg }) => !msg.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove ${charName} from next 5 messages?`);
                             if (!confirmDelete) return;
-                            messagesToDelete = Chat.getMessages().slice(messageId)
+                            messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
                                 .filter(({ msg }) => !msg.is_system)
                                 .slice(0, 5);
@@ -282,7 +280,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                             messagesToDelete = [{ idx: messageId }];
                         }
                         for (const { idx } of messagesToDelete) {
-                            const currentStats = Chat.getMessage(idx).stats;
+                            const currentStats = Chat.getMessageStats(idx);
                             if (currentStats) {
                                 delete currentStats[charName];
                                 setMessageStats(currentStats, idx);
@@ -310,13 +308,13 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                         if (e.shiftKey) {
                             const confirmDelete = confirm(`Are you sure you want to remove stat '${statName}' from ALL messages?`);
                             if (!confirmDelete) return;
-                            messagesToDelete = Chat.getMessages().slice(messageId)
+                            messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
                                 .filter(({ msg }) => !msg.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove stat '${statName}' from next 5 messages?`);
                             if (!confirmDelete) return;
-                            messagesToDelete = Chat.getMessages().slice(messageId)
+                            messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
                                 .filter(({ msg }) => !msg.is_system)
                                 .slice(0, 5);
@@ -324,7 +322,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                             messagesToDelete = [{ idx: messageId }];
                         }
                         for (const { idx } of messagesToDelete) {
-                            const currentStats = Chat.getMessage(idx).stats;
+                            const currentStats = Chat.getMessageStats(idx);
                             if (currentStats) {
                                 for (const char in currentStats) {
                                     if (currentStats[char] && currentStats[char][statKey] !== undefined) {
@@ -404,6 +402,13 @@ export function displayStats(messageId, stats) {
     messageDiv.find('.stats-table-container').remove();
     const characters = Object.keys(stats);
     if (characters.length === 0) return;
+
+    const registryChars = characters.filter(c => Characters.getCharacterIx(c) !== -1);
+    const unknownChars = characters.filter(c => Characters.getCharacterIx(c) === -1);
+    registryChars.sort((a, b) => Characters.getCharacterIx(a) - Characters.getCharacterIx(b));
+    unknownChars.sort((a, b) => a.localeCompare(b));
+    const sortedCharacters = [...registryChars, ...unknownChars];
+
     const parentDiv = $('<div class="stats-table-container"></div>');
     if (ExtensionSettings && ExtensionSettings.collapseOldStats) {
         $("details.stats-details").removeAttr('open');
@@ -427,9 +432,9 @@ export function displayStats(messageId, stats) {
     parentDiv.append(container);
     // Use new helpers for header, body, and controls
     const table = $('<table class="stats-table"></table>');
-    table.append(renderStatsTableHeader(characters, messageId));
-    const presentStats = getPresentStats(characters, stats);
-    renderStatsTableBody(presentStats, characters, stats, messageId).forEach(row => table.append(row));
+    table.append(renderStatsTableHeader(sortedCharacters, messageId));
+    const presentStats = getPresentStats(sortedCharacters, stats);
+    renderStatsTableBody(presentStats, sortedCharacters, stats, messageId).forEach(row => table.append(row));
     container.append(renderStatsTableControls(messageId, container, table, stats));
     container.append(table);
     messageDiv.find('.mes_text').first().after(parentDiv);

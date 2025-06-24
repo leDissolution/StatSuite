@@ -16,7 +16,7 @@ export function renderCharactersList(registryInstance) {
     }
     container.empty();
     console.log("StatSuite UI: Rendering character list.");
-    registryInstance.listTrackedCharacters().sort((a, b) => a.name.localeCompare(b.name)).forEach(char => {
+    registryInstance.listTrackedCharacters().forEach(char => {
         const charElement = $(`
             <div class="tracked-character">
                 <span>${char.name}</span>
