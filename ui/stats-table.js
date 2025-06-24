@@ -11,10 +11,10 @@ import { Stats } from '../stats/stats_registry.js';
  * @param {Array<number>} messageIndices - Indices of messages to process.
  * @param {Object} options - { char, stat, greedy, toastMessage }
  */
-async function regenerateStatsBatch(messageIndices, { char = null, stat = null, greedy = true, toastMessage = '' } = {}) {
+async function regenerateStatsBatch(messageIndices, { char = null, stat = null, greedy = true, toastMessage = '', copyOver = false } = {}) {
     try {
         for (const idx of messageIndices) {
-            await makeStats(idx, char, stat, greedy);
+            await makeStats(idx, char, stat, greedy, copyOver);
         }
         if (messageIndices.length > 1 && toastMessage) {
             toastr.success(toastMessage);
@@ -85,7 +85,7 @@ export function displayStats(messageId, stats) {
     container.append(summary);
     parentDiv.append(container);
     const buttonContainer = $('<div class="stats-button-container"></div>');
-    const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages"></div>');
+    const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages\nRight Click: Copy stats from previous message(s)"></div>');
     const editButton = $('<div class="stats-edit-button fa-solid fa-pencil" title="Edit stats"></div>');
     const exportButton = $('<div class="stats-export-button fa-solid fa-copy" title="Copy message export format"></div>');
     const deleteButton = $('<div class="stats-delete-button fa-solid fa-trash" title="Delete stats from message(s)"></div>');
@@ -98,11 +98,13 @@ export function displayStats(messageId, stats) {
     headerRow.append($('<th></th>'));
     characters.forEach(char => {
         const th = $('<th></th>');
-        const colRegenBtn = $('<div class="fa-solid fa-rotate stats-col-regenerate" title="Regenerate all stats for this character\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages"></div>')
+        const colRegenBtn = $('<div class="fa-solid fa-rotate stats-col-regenerate" title="Regenerate all stats for this character\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages\nRight Click: Copy from previous message(s)"></div>')
             .css({ cursor: 'pointer', marginRight: '5px', opacity: '0.3', display: 'none', verticalAlign: 'middle' })
             .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); })
-            .on('click', async function(e) {
+            .on('mousedown', async function(e) {
                 e.stopPropagation();
+                const copyOver = e.button === 2;
+                if (copyOver) e.preventDefault();
                 const { indices, description } = getRegenerationIndices(messageId, e);
                 const greedy = e.altKey !== true;
                 let toastMessage = '';
@@ -111,8 +113,8 @@ export function displayStats(messageId, stats) {
                 } else {
                     toastMessage = `Regenerated all stats for ${char} in ${description}`;
                 }
-                console.log(`StatSuite: Regenerating all stats for ${char} in ${description}`);
-                await regenerateStatsBatch(indices, { char, greedy, toastMessage });
+                console.log(`StatSuite: Regenerating all stats for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
+                await regenerateStatsBatch(indices, { char, greedy, toastMessage, copyOver });
             });
         th.append(colRegenBtn, $('<span></span>').text(char));
         headerRow.append(th);
@@ -139,11 +141,13 @@ export function displayStats(messageId, stats) {
     presentStats.forEach(stat => {
         const row = $('<tr></tr>');
         // Row regen button (hidden by default, shown in edit mode)
-        const rowRegenBtn = $('<div class="fa-solid fa-rotate stats-row-regenerate" title="Regenerate this stat for all characters\nAlt+Click: More randomness\nShift+Click: All later messages\nCtrl+Click: Next 5 messages"></div>')
+        const rowRegenBtn = $('<div class="fa-solid fa-rotate stats-row-regenerate" title="Regenerate this stat for all characters\nAlt+Click: More randomness\nShift+Click: Regenerate in all later messages\nCtrl+Click: Next 5 messages\nRight Click: Copy from previous message(s)"></div>')
             .css({ cursor: 'pointer', marginRight: '5px', opacity: '0.3', display: 'none', verticalAlign: 'middle' })
             .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.3'); })
-            .on('click', async function(e) {
+            .on('mousedown', async function(e) {
                 e.stopPropagation();
+                const copyOver = e.button === 2;
+                if (copyOver) e.preventDefault();
                 const { indices, description } = getRegenerationIndices(messageId, e);
                 const greedy = e.altKey !== true;
                 let toastMessage = '';
@@ -152,10 +156,10 @@ export function displayStats(messageId, stats) {
                 } else {
                     toastMessage = `Regenerated ${stat} for all characters in ${description}`;
                 }
-                console.log(`StatSuite: Regenerating ${stat} for all characters in ${description}`);
-                await regenerateStatsBatch(indices, { stat, greedy, toastMessage });
+                console.log(`StatSuite: Regenerating ${stat} for all characters in ${description}${copyOver ? ' (copyOver)' : ''}`);
+                await regenerateStatsBatch(indices, { stat, greedy, toastMessage, copyOver });
             });
-        const statLabelTd = $('<td></td>').addClass('stat-label');
+        const statLabelTd = $('<td></td>').addClass('stat-label').attr('data-stat-key', stat);
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
         row.append(statLabelTd);
         characters.forEach(char => {
@@ -178,7 +182,10 @@ export function displayStats(messageId, stats) {
             toastr.error("StatSuite: Could not retrieve message context for export.");
         }
     });
-    regenerateButton.on('click', async function (e) {
+    regenerateButton.on('mousedown', async function (e) {
+        e.stopPropagation();
+        const copyOver = e.button === 2;
+        if (copyOver) e.preventDefault();
         const { indices, description } = getRegenerationIndices(messageId, e);
         const greedy = e.altKey !== true;
         let toastMessage = '';
@@ -187,8 +194,8 @@ export function displayStats(messageId, stats) {
         } else {
             toastMessage = `Regenerated stats for ${description}`;
         }
-        console.log(`StatSuite: Regenerating stats for ${description}`);
-        await regenerateStatsBatch(indices, { greedy, toastMessage });
+        console.log(`StatSuite: Regenerating stats for ${description}${copyOver ? ' (copyOver)' : ''}`);
+        await regenerateStatsBatch(indices, { greedy, toastMessage, copyOver });
     });
     deleteButton.on('click', function(e) {
         e.stopPropagation();
@@ -252,10 +259,55 @@ export function displayStats(messageId, stats) {
                             }
                             container.removeClass('editing');
                             editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
-
                             saveChatConditional();
                         });
                     th.append(removeBtn);
+                }
+            });
+            // Add remove stat button to each stat row label
+            table.find('td.stat-label').each(function () {
+                const td = $(this);
+                if (td.find('.remove-stat-btn').length === 0) {
+                    const statKey = td.attr('data-stat-key');
+                    const statName = td.find('span').text().trim();
+                    const removeStatBtn = $('<i class="fas fa-times remove-stat-btn" title="Remove stat"></i>')
+                        .css({ cursor: 'pointer', marginLeft: '5px', opacity: '0.7' })
+                        .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.7'); })
+                        .on('click', function(e) {
+                            e.stopPropagation();
+                            var messagesToDelete = [];
+                            if (e.shiftKey) {
+                                const confirmDelete = confirm(`Are you sure you want to remove stat '${statName}' from ALL messages?`);
+                                if (!confirmDelete) return;
+                                messagesToDelete = chat.slice(messageId)
+                                                        .map((msg, idx) => ({ msg, idx: messageId + idx }))
+                                                        .filter(({ msg }) => !msg.is_system);
+                            } else if (e.ctrlKey) {
+                                const confirmDelete = confirm(`Remove stat '${statName}' from next 5 messages?`);
+                                if (!confirmDelete) return;
+                                messagesToDelete = chat.slice(messageId)
+                                                        .map((msg, idx) => ({ msg, idx: messageId + idx }))
+                                                        .filter(({ msg }) => !msg.is_system)
+                                                        .slice(0, 5);
+                            } else {
+                                messagesToDelete = [{ idx: messageId }];
+                            }
+                            for (const { idx } of messagesToDelete) {
+                                const currentStats = chat[idx].stats;
+                                if (currentStats) {
+                                    for (const char in currentStats) {
+                                        if (currentStats[char] && currentStats[char][statKey] !== undefined) {
+                                            delete currentStats[char][statKey];
+                                        }
+                                    }
+                                    setMessageStats(currentStats, idx);
+                                }
+                            }
+                            container.removeClass('editing');
+                            editButton.removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit stats');
+                            saveChatConditional();
+                        });
+                    td.append(removeStatBtn);
                 }
             });
             table.find('td[data-character]').each(function () {
@@ -263,9 +315,11 @@ export function displayStats(messageId, stats) {
                 const value = cell.text();
                 const inputContainer = $('<div>').addClass('stat-input-container');
                 const input = $('<input type="text">').val(value).addClass('stat-input');
-                const statRegenerateButton = $('<div class="fa-solid fa-rotate" title="Click: Regenerate this stat\nAlt+Click: More randomness\nShift+Click: Regenerate in all later messages\nCtrl+Click: Regenerate in next 5 messages"></div>').addClass('stats-regenerate-button stat-cell-regenerate');
-                statRegenerateButton.on('click', async function (e) {
+                const statRegenerateButton = $('<div class="fa-solid fa-rotate" title="Click: Regenerate this stat\nAlt+Click: More randomness\nShift+Click: Regenerate in all later messages\nCtrl+Click: Regenerate in next 5 messages\nRight Click: Copy from previous message(s)"></div>').addClass('stats-regenerate-button stat-cell-regenerate');
+                statRegenerateButton.on('mousedown', async function (e) {
                     e.stopPropagation();
+                    const copyOver = e.button === 2;
+                    if (copyOver) e.preventDefault();
                     const char = cell.attr('data-character');
                     const stat = cell.attr('data-stat');
                     const { indices, description } = getRegenerationIndices(messageId, e);
@@ -276,8 +330,8 @@ export function displayStats(messageId, stats) {
                     } else {
                         toastMessage = `Regenerated ${stat} for ${char} in ${description}`;
                     }
-                    console.log(`StatSuite: Regenerating ${stat} for ${char} in ${description}`);
-                    await regenerateStatsBatch(indices, { char, stat, greedy, toastMessage });
+                    console.log(`StatSuite: Regenerating ${stat} for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
+                    await regenerateStatsBatch(indices, { char, stat, greedy, toastMessage, copyOver });
                 });
                 inputContainer.append(statRegenerateButton, input);
                 cell.empty().append(inputContainer);

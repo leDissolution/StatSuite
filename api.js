@@ -140,19 +140,24 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
                 model: ExtensionSettings.modelName,
                 prompt: statPrompt,
                 temperature: greedy ? 0 : 1,
-                top_p: 1,
-                stop: ['"']
+                top_p: 1
             })
         });
 
         if (response && response.choices && response.choices.length > 0 && typeof response.choices[0].text === 'string') {
             const text = response.choices[0].text;
-            const quoteIndex = text.indexOf('"');
-            return quoteIndex !== -1 ? text.substring(0, quoteIndex).trim() : text.trim();
+
+            const quoteMatch = text.match(/(?<!\\)"/);
+            const quoteIndex = quoteMatch ? quoteMatch.index : -1;
+            let result = quoteIndex !== -1 ? text.substring(0, quoteIndex).trim() : text.trim();
+            // unescape quotes and backslashes
+            result = result.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            return result;
         } else {
             console.error(`Error generating ${stat} for ${char}: Invalid API response structure`, response);
             return 'error_invalid_response';
-        }    } catch (error) {
+        }
+    } catch (error) {
         console.error(`Error generating ${stat} for ${char}:`, error);
         
         // Mark connection as failed for quick bailout in subsequent calls

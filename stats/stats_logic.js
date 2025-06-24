@@ -233,7 +233,7 @@ export function setMessageStats(stats, messageIndex) {
  * @param {string | null} specificStat Stat name, or null for all supported.
  * @param {boolean} greedy Use greedy sampling for API call.
  */
-export async function makeStats(specificMessageIndex = null, specificChar = null, specificStat = null, greedy = true) {
+export async function makeStats(specificMessageIndex = null, specificChar = null, specificStat = null, greedy = true, copyOver = false) {
     if (!Characters) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return;
@@ -243,7 +243,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    // Quick check for connection issues before starting generation
     if (shouldSkipApiCalls()) {
         console.log("StatSuite: Skipping stat generation due to recent connection failures. Call resetConnectionFailure() to retry.");
         return;
@@ -265,7 +264,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    // If this is an automatic generation (not specific), do a quick connection test
     if (specificMessageIndex === null && specificChar === null && specificStat === null) {
         console.log("StatSuite: Testing API connection before automatic stat generation...");
         const connectionOk = await checkApiConnection();
@@ -292,7 +290,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     });    let statsActuallyGenerated = false;
 
     for (const char of charsToProcess) {
-        // Bail out early if we've detected connection issues
         if (shouldSkipApiCalls()) {
             console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to character "${char}".`);
             break;
@@ -306,20 +303,17 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
         for (const stat of sortedStatsToGenerate) {
-            // Check again before each stat generation in case connection was lost
             if (shouldSkipApiCalls()) {
                 console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to stat "${stat}" for character "${char}".`);
                 break;
             }
 
-            // TEMP HACK: Copy previous bodyState instead of generating it
-            // if (stat === 'bodyState' || stat === 'mood') {
-            //     if (messages.previousStats && messages.previousStats[char] && messages.previousStats[char][stat] !== undefined) {
-            //         resultingStats[char][stat] = messages.previousStats[char][stat].toLowerCase();
-            //         statsActuallyGenerated = true;
-            //         continue;
-            //     }
-            // }
+            if (copyOver && messages.previousStats && messages.previousStats[char] && messages.previousStats[char][stat] !== undefined) {
+                resultingStats[char][stat] = messages.previousStats[char][stat];
+                statsActuallyGenerated = true;
+                continue;
+            }
+
             if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatConfig(stat).defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
@@ -334,8 +328,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                     statsActuallyGenerated = true;
                 } else {
                     console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats[char][stat]}"`);
-                    
-                    // If this is a network/connection error, bail out early
                     if (generatedValue === 'error_network_or_cors' || generatedValue === 'error_api_call_failed') {
                         console.log(`StatSuite: Detected connection issue. Stopping further stat generation.`);
                         break;
@@ -343,8 +335,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                 }
             }
         }
-        
-        // If we broke out of the inner loop due to connection issues, break out of outer loop too
         if (shouldSkipApiCalls()) {
             break;
         }
@@ -393,7 +383,7 @@ export async function injectStatsFromMessage(messageId) {
     }
 
     const statsString = statsToStringFull(message.stats);
-    const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]`;
+    const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE. JUST USE THEM FOR REFERENCE.`;
 
     ctx.setExtensionPrompt(
         "StatSuite",

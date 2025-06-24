@@ -32,19 +32,29 @@ export async function exportChat() {
             previousMessage = allMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = previousMessage.stats ? statsToStringFull(previousMessage.stats) : '';
+            previousStats = previousMessage.stats ? { ...previousMessage.stats } : {};
         }
-        const currentStats = currentMessage.stats ? statsToStringFull(currentMessage.stats) : '';
-        
-        if (!previousStats && !currentStats) continue;
-        
+        const currentStats = currentMessage.stats ? { ...currentMessage.stats } : {};
+
+        // Add missing characters from currentStats to previousStats with null value
+        for (const charName of Object.keys(currentStats)) {
+            if (!(charName in previousStats)) {
+                previousStats[charName] = null;
+            }
+        }
+
+        const prevStatsString = statsToStringFull(previousStats);
+        const currStatsString = statsToStringFull(currentStats);
+
+        if (!prevStatsString && !currStatsString) continue;
+
         const exportPrompt = generateExportPrompt(
             previousName,
             previousMes,
             currentMessage.name,
             currentMessage.mes,
-            i === 0 ? statsToStringFull(previousStats) : previousStats,
-            currentStats
+            prevStatsString,
+            currStatsString
         );
         exports.push(`\\\\-------${i + 1}--------\n` + exportPrompt);
     }
@@ -66,13 +76,21 @@ export async function exportChat() {
  */
 export async function exportSingleMessage(messages) {
     if (!messages) return;
+    let previousStats = messages.previousStats ? { ...messages.previousStats } : {};
+    let newStats = messages.newStats ? { ...messages.newStats } : {};
+
+    let filteredPreviousStats = {};
+    for (const charName of Object.keys(newStats)) {
+        filteredPreviousStats[charName] = previousStats[charName] !== undefined ? previousStats[charName] : null;
+    }
+
     let exportPrompt = generateExportPrompt(
         messages.previousName,
         messages.previousMessage,
         messages.newName,
         messages.newMessage,
-        messages.previousStats ? statsToStringFull(messages.previousStats) : '',
-        messages.newStats ? statsToStringFull(messages.newStats) : ''
+        statsToStringFull(filteredPreviousStats),
+        statsToStringFull(newStats)
     );
 
     if (ExtensionSettings.anonymizeClipboardExport) {
@@ -80,7 +98,6 @@ export async function exportSingleMessage(messages) {
         Characters.listTrackedCharacterNames().forEach((name, index) => {
             characterMap[name] = `Character${index + 1}`;
         });
-        
         for (const [originalName, newName] of Object.entries(characterMap)) {
             exportPrompt = exportPrompt.replace(new RegExp(originalName, 'g'), newName);
         }
@@ -104,7 +121,12 @@ export function statsToString(name, stats) {
     if (!stats) return '';
     
     const attributes = Object.entries(stats)
-        .map(([key, value]) => `${key.toLowerCase()}="${value}"`)
+        .map(([key, value]) => {
+            let strValue = String(value)
+                .replace(/\\/g, "\\\\")
+                .replace(/"/g, '\\"');
+            return `${key.toLowerCase()}="${strValue}"`;
+        })
         .join(' ');
 
     return `<stats character="${name}" ${attributes} />`;
@@ -129,7 +151,7 @@ export function characterDescription(name) {
         }
     }
 
-    description = `<character name="${name}" description="${description}" />\n`;
+    description = `\n<character name="${name}" description="${description}" />`;
 
     return description;
 }
