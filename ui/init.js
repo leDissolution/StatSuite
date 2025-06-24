@@ -4,8 +4,8 @@ import { bindSettingsUI } from './settings-ui.js';
 import { doPopout } from './settings-ui.js';
 import { exportChat } from '../export.js';
 import { onChatChanged } from '../events.js';
-import { Characters } from '../characters/characters_registry.js';
-import { Stats } from '../stats/stats_registry.js';
+import { Characters } from '../characters/characters-registry.js';
+import { Stats } from '../stats/stats-registry.js';
 
 /**
  * Initializes the UI module, binds event listeners.
@@ -18,22 +18,14 @@ export function initializeUI() {
 
     bindSettingsUI(Characters, Stats);
 
-    // Bind main UI event listeners (previously in index.js jQuery init)
-    // Use event delegation on document for dynamically added elements if necessary
     $(document)
         .off('click.statSuite', '#requestStats')
         .on('click.statSuite', '#requestStats', function() {
-            // Use the local onRequestStatsClick if present, otherwise fallback
-            if (typeof onRequestStatsClick === 'function') {
-                onRequestStatsClick();
+            const firstMessageWithoutStats = chat.findIndex(message => !message.is_system && !message.stats);
+            if (firstMessageWithoutStats >= 0) {
+                makeStats(firstMessageWithoutStats);
             } else {
-                // fallback: find the first message without stats and trigger makeStats for it
-                const firstMessageWithoutStats = chat.findIndex(message => !message.is_system && !message.stats);
-                if (firstMessageWithoutStats >= 0) {
-                    makeStats(firstMessageWithoutStats);
-                } else {
-                    toastr.info("All messages appear to have stats already.");
-                }
+                toastr.info("All messages appear to have stats already.");
             }
         });
     $(document)
@@ -48,5 +40,6 @@ export function initializeUI() {
             doPopout(e);
             e.stopPropagation();
         });
+
     console.log("StatSuite UI: Initialization complete.");
 }

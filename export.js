@@ -1,19 +1,18 @@
 // StatSuite - Export utilities for chat and stats
 import { generateExportPrompt } from './prompts.js';
-import { chat } from '../../../../script.js';
 import { ExtensionSettings } from './settings.js';
-import { Characters } from './characters/characters_registry.js';
-import { StatsBlock } from './stats/stat_block.js';
-import { Stats } from './stats/stats_registry.js';
+import { Characters } from './characters/characters-registry.js';
+import { StatsBlock } from './stats/stat-block.js';
+import { Stats } from './stats/stats-registry.js';
 import { substituteParams } from '../../../../script.js';
-import { chatManager } from './chat/chat_manager.js';
+import { Chat } from './chat/chat-manager.js';
 
 /**
  * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
  * @returns {Promise<void>}
  */
 export async function exportChat() {
-    const exportableMessages = chatManager.getStatEligibleMessages();
+    const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
     
     for (let i = 0; i < exportableMessages.length; i++) {
@@ -26,7 +25,7 @@ export async function exportChat() {
             previousMes = '';
             previousStats = {};
             
-            const currentStats = chatManager.getMessageStats(currentIndex);
+            const currentStats = Chat.getMessageStats(currentIndex);
             if (currentStats && typeof currentStats === 'object') {
                 Object.keys(currentStats).forEach(charName => {
                     previousStats[charName] = null;
@@ -38,10 +37,10 @@ export async function exportChat() {
             const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = chatManager.getMessageStats(previousIndex) || {};
+            previousStats = Chat.getMessageStats(previousIndex) || {};
         }
 
-        const currentStats = chatManager.getMessageStats(currentIndex) || {};
+        const currentStats = Chat.getMessageStats(currentIndex) || {};
 
         // Add missing characters from currentStats to previousStats with null value
         for (const charName of Object.keys(currentStats)) {
@@ -121,13 +120,13 @@ export async function exportSingleMessage(messages) {
 
 /**
  * Converts a StatsBlock into string.
- * @param {StatsBlock} stats - The stats object.
+ * @param {StatsBlock} statsBlock - The stats object.
  * @returns {string} The formatted stats string.
  */
-export function statsToString(name, stats) {
-    if (!stats) return '';
-    
-    const attributes = Object.entries(stats)
+export function statsToString(name, statsBlock) {
+    if (!statsBlock) return '';
+
+    const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
             let strValue = String(value)
                 .replace(/\\/g, "\\\\")
@@ -165,27 +164,25 @@ export function characterDescription(name) {
 
 /**
  * Converts a stats object to a string in the export format.
- * @param {object} stats - The stats object.
+ * @param {Object<string, StatsBlock|null>} stats - The stats object.
  * @returns {string} The formatted stats string.
  */
 export function statsToStringFull(stats) {
     return Object.entries(stats)
-        .map(([charName, charStats]) => {
-            if (charStats) {
-                return statsToString(charName, charStats);
-            }
-            else {
+        .map(([charName, statsBlock]) => {
+            if (statsBlock) {
+                return statsToString(charName, statsBlock);
+            } else {
                 const description = characterDescription(charName);
-                const defaultStats = new StatsBlock();
+                const statsBlock = new StatsBlock();
                 Stats.getActiveStats().forEach(stat => {
-                    if (charStats?.[stat] !== undefined) {
-                        defaultStats.set(stat, charStats[stat]);
-                    }
-                    else {
-                        defaultStats.set(stat, Stats.getStatConfig(stat).defaultValue);
+                    if (statsBlock?.[stat] !== undefined) {
+                        statsBlock.set(stat, statsBlock[stat]);
+                    } else {
+                        statsBlock.set(stat, Stats.getStatConfig(stat).defaultValue);
                     }
                 });
-                return statsToString(charName, defaultStats) + description;
+                return statsToString(charName, statsBlock) + description;
             }
         })
         .join('\n');

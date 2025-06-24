@@ -309,4 +309,4 @@ export class ChatManager {
 }
 
 // Singleton instance
-export const chatManager = new ChatManager();
+export const Chat = new ChatManager();

@@ -1,5 +1,5 @@
 // Handles rendering and management of the tracked character list
-import { CharacterRegistry } from '../characters/characters_registry.js';
+import { CharacterRegistry } from '../characters/characters-registry.js';
 
 /**
  * Renders the list of tracked characters in the settings UI.

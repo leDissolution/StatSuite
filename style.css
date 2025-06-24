@@ -38,7 +38,8 @@
 .stats-regenerate-button,
 .stats-edit-button,
 .stats-export-button,
-.stats-delete-button {
+.stats-delete-button,
+.stats-discard-button {
     cursor: pointer;
     padding: 1px 5px;
     opacity: 0.3;
@@ -48,7 +49,8 @@
 .stats-regenerate-button:hover,
 .stats-edit-button:hover,
 .stats-export-button:hover,
-.stats-delete-button:hover {
+.stats-delete-button:hover,
+.stats-discard-button:hover {
     opacity: 1;
 }
 

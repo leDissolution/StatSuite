@@ -1,14 +1,14 @@
 // StatSuite - Core logic for stats definition, generation, and processing
-import { chat, saveChatConditional, extension_prompt_types } from '../../../../../script.js';
+import { chat, extension_prompt_types } from '../../../../../script.js';
 
 import { ExtensionSettings } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
-import { Characters } from '../characters/characters_registry.js';
+import { Characters } from '../characters/characters-registry.js';
 import { statsToStringFull } from '../export.js';
-import { Stats } from './stats_registry.js';
-import { StatsBlock } from './stat_block.js';
-import { chatManager } from '../chat/chat_manager.js';
+import { Stats } from './stats-registry.js';
+import { StatsBlock } from './stat-block.js';
+import { Chat } from '../chat/chat-manager.js';
 
 /**
  * Adds a custom stat to StatSuite at runtime.
@@ -61,18 +61,18 @@ export function getRecentMessages(specificMessageIndex = null) {
         return null;
     }
 
-    const messageIndex = specificMessageIndex ?? chatManager.getLatestMessage()?.index;
+    const messageIndex = specificMessageIndex ?? Chat.getLatestMessage()?.index;
     if (messageIndex === undefined) return null;
 
-    const context = chatManager.getMessageContext(messageIndex);
+    const context = Chat.getMessageContext(messageIndex);
     if (!context) return null;
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
         if (context.previousName) {
-            const previousMessage = chatManager.getMessage(context.previousIndex);
+            const previousMessage = Chat.getMessage(context.previousIndex);
             Characters.addCharacter(context.previousName, previousMessage?.is_user || false);
         }
-        const currentMessage = chatManager.getMessage(context.newIndex);
+        const currentMessage = Chat.getMessage(context.newIndex);
         Characters.addCharacter(context.newName, currentMessage?.is_user || false);
     }
 
@@ -85,11 +85,11 @@ export function getRecentMessages(specificMessageIndex = null) {
             finalPreviousStats[char] = null;
         } else {
             const charSourceStats = sourcePreviousStats[char] || {};
-            const statsObj = {};
+            const statsBlock = {};
             activeStats.forEach(stat => {
-                statsObj[stat] = charSourceStats[stat] || Stats.getStatConfig(stat).defaultValue;
+                statsBlock[stat] = charSourceStats[stat] || Stats.getStatConfig(stat).defaultValue;
             });
-            finalPreviousStats[char] = new StatsBlock(statsObj);
+            finalPreviousStats[char] = new StatsBlock(statsBlock);
         }
     });
 
@@ -138,7 +138,7 @@ export function getRequiredStats(targetStat) {
  * @param {number} messageIndex The index of the message in the chat array.
  */
 export function setMessageStats(stats, messageIndex) {
-    if (!chatManager.isValidMessageForStats(messageIndex)) {
+    if (!Chat.isValidMessageForStats(messageIndex)) {
         console.error(`StatSuite Error: Invalid messageIndex ${messageIndex} in setMessageStats.`);
         return;
     }
@@ -146,26 +146,28 @@ export function setMessageStats(stats, messageIndex) {
     if (stats && typeof stats === 'object') {
         // Process stats (convert to StatsBlock, normalize values, etc.)
         for (const char of Object.keys(stats)) {
-            if (!(stats[char] instanceof StatsBlock)) {
-                stats[char] = new StatsBlock(stats[char]);
+            /** @type {StatsBlock} */
+            let statsBlock = stats[char];
+            if (!(statsBlock instanceof StatsBlock)) {
+                statsBlock = new StatsBlock(statsBlock);
+                stats[char] = statsBlock;
             }
-
             // Normalize specific stat values
-            if (stats[char].hasOwnProperty('bodyState')) {
-                stats[char].bodyState = stats[char].bodyState.toLowerCase();
+            if (statsBlock.hasOwnProperty('bodyState')) {
+                statsBlock.bodyState = statsBlock.bodyState.toLowerCase();
             }
-            if (stats[char].hasOwnProperty('mood')) {
-                stats[char].mood = stats[char].mood.toLowerCase();
+            if (statsBlock.hasOwnProperty('mood')) {
+                statsBlock.mood = statsBlock.mood.toLowerCase();
             }
         }
     }
 
     // Get current stats for comparison
-    const currentStats = chatManager.getMessageStats(messageIndex);
+    const currentStats = Chat.getMessageStats(messageIndex);
     const statsChanged = JSON.stringify(currentStats) !== JSON.stringify(stats);
 
     // Store stats using chat manager
-    chatManager.setMessageStats(messageIndex, stats);
+    Chat.setMessageStats(messageIndex, stats);
 
     // Update UI
     if (typeof displayStats === 'function') {
@@ -176,7 +178,7 @@ export function setMessageStats(stats, messageIndex) {
 
     // Save if changed
     if (statsChanged) {
-        chatManager.saveChat();
+        Chat.saveChat();
     }
 }
 
@@ -322,7 +324,7 @@ export async function injectStatsFromMessage(messageId) {
         0
     )
 
-    const message = chat[messageId];
+    const message = Chat.getMessage(messageId);
     if (!message.stats || Object.keys(message.stats).length === 0) {
         if (ExtensionSettings.enableAutoRequestStats) {
             await makeStats(messageId);
@@ -337,12 +339,12 @@ export async function injectStatsFromMessage(messageId) {
     }
 
     const statsString = statsToStringFull(message.stats);
-    const injection = `\n[[CURRENT STATE]]${statsString}[[/CURRENT STATE]]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE. JUST USE THEM FOR REFERENCE.`;
+    const injection = `\n[current state]${statsString}[/current state]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE.`;
 
     ctx.setExtensionPrompt(
         "StatSuite",
         injection,
         extension_prompt_types.IN_CHAT,
-        0
+        1
     )
 }

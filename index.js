@@ -7,9 +7,10 @@ import { saveMetadataDebounced } from "../../../extensions.js";
 
 //#region Local Imports
 import { initializeSettings } from './settings.js';
-import { injectStatsFromMessage } from './stats/stats_logic.js';
+import { injectStatsFromMessage } from './stats/stats-logic.js';
 import { initializeUI } from './ui/init.js';
 import { initializeEventListeners, onChatChanged } from './events.js';
+import { Chat } from './chat/chat-manager.js';
 //#endregion
 
 export const extensionName = "StatSuite";
@@ -23,7 +24,7 @@ export async function injectStats(chat, _ctx, abort, type) {
     }
 
     var messageId = chat.length - 1;
-    while (messageId >= 0 && chat[messageId].is_system) {
+    while (messageId >= 0 && Chat.getMessage(messageId).is_system) {
         messageId--;
     }
 

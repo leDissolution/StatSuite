@@ -1,13 +1,13 @@
 // StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../script.js';
 import { ExtensionSettings } from './settings.js';
-import { makeStats } from './stats/stats_logic.js';
+import { makeStats } from './stats/stats-logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
-import { Characters } from './characters/characters_registry.js';
-import { Stats } from './stats/stats_registry.js';
+import { Characters } from './characters/characters-registry.js';
+import { Stats } from './stats/stats-registry.js';
 import { renderCharactersList } from './ui/characters-list.js';
-import { chatManager } from './chat/chat_manager.js';
+import { Chat } from './chat/chat-manager.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -23,11 +23,8 @@ export function onChatChanged() {
     if (!ExtensionInitialized) {
         return;
     }
-    chatManager.clearCache();
+    Chat.clearCache();
 
-    if (!Characters) {
-        Characters = new CharacterRegistry();
-    }
     if (!Characters) {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
@@ -37,9 +34,9 @@ export function onChatChanged() {
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
 
-    const messages = chatManager.getStatEligibleMessages();
+    const messages = Chat.getStatEligibleMessages();
     messages.forEach(({ index }) => {
-        const stats = chatManager.getMessageStats(index);
+        const stats = Chat.getMessageStats(index);
         if (stats && Object.keys(stats).length > 0) {
             if (typeof displayStats === 'function') {
                 displayStats(index, stats);
@@ -62,7 +59,7 @@ export function onChatChanged() {
  */
 function onMessageRendered(message_id) {
     // Use centralized validation instead of individual checks
-    if (!chatManager.isValidMessageForStats(message_id)) return;
+    if (!Chat.isValidMessageForStats(message_id)) return;
     
     if (!generating) {
         if (ExtensionSettings.enableAutoRequestStats === true) {
@@ -70,7 +67,7 @@ function onMessageRendered(message_id) {
         }
     }
     if (ExtensionSettings.autoTrackMessageAuthors === true) {
-        const message = chatManager.getMessage(message_id);
+        const message = Chat.getMessage(message_id);
         if (message && message.name) {
             Characters.addCharacter(message.name, message.is_user);
         }
@@ -90,10 +87,10 @@ function onSwipeChanged(messageId) {
     if (!ExtensionInitialized) return;
     
     // Validate that this is a stat-eligible message
-    if (!chatManager.isValidMessageForStats(messageId)) return;
+    if (!Chat.isValidMessageForStats(messageId)) return;
     
     // Get stats for the new swipe and re-render
-    const stats = chatManager.getMessageStats(messageId);
+    const stats = Chat.getMessageStats(messageId);
     if (stats && Object.keys(stats).length > 0) {
         if (typeof displayStats === 'function') {
             displayStats(messageId, stats);
