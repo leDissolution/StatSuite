@@ -8,6 +8,7 @@ import { Characters } from '../characters/characters_registry.js';
 import { statsToStringFull } from '../export.js';
 import { Stats } from './stats_registry.js';
 import { StatsBlock } from './stat_block.js';
+import { chatManager } from '../chat/chat_manager.js';
 
 /**
  * Adds a custom stat to StatSuite at runtime.
@@ -59,66 +60,24 @@ export function getRecentMessages(specificMessageIndex = null) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return null;
     }
-    if (!chat || chat.length === 0) return null;
 
-    let currentMessage;
-    let previousMessage;
-    let currentIndex;
-    let previousIndex;
+    const messageIndex = specificMessageIndex ?? chatManager.getLatestMessage()?.index;
+    if (messageIndex === undefined) return null;
 
-    if (specificMessageIndex !== null) {
-        if (specificMessageIndex < 0 || specificMessageIndex >= chat.length) {
-            console.warn(`StatSuite: getRecentMessages called with invalid index ${specificMessageIndex}`);
-            return null;
-        }
-        currentIndex = specificMessageIndex;
-        currentMessage = chat[currentIndex];
-
-        if (currentMessage.is_system || /^\[.*\]$/.test(currentMessage.mes)) return null;
-
-        if (currentIndex === 0) {
-            previousMessage = null;
-            previousIndex = -1;
-        } else {
-            previousIndex = -1;
-            for (let i = currentIndex - 1; i >= 0; i--) {
-                if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
-                    previousMessage = chat[i];
-                    previousIndex = i;
-                    break;
-                }
-            }
-            if (!previousMessage) {
-                previousMessage = null;
-                previousIndex = -1;
-            }
-        }
-    } else {
-        currentIndex = -1;
-        previousIndex = -1;
-        for (let i = chat.length - 1; i >= 0; i--) {
-            if (!chat[i].is_system && !/^\[.*\]$/.test(chat[i].mes)) {
-                if (currentIndex === -1) {
-                    currentIndex = i;
-                    currentMessage = chat[i];
-                } else {
-                    previousIndex = i;
-                    previousMessage = chat[i];
-                    break;
-                }
-            }
-        }
-        if (!currentMessage) return null;
-        if (!previousMessage) previousIndex = -1;
-    }
+    const context = chatManager.getMessageContext(messageIndex);
+    if (!context) return null;
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
-        if (previousMessage) Characters.addCharacter(previousMessage.name, previousMessage.is_user);
-        Characters.addCharacter(currentMessage.name, currentMessage.is_user);
+        if (context.previousName) {
+            const previousMessage = chatManager.getMessage(context.previousIndex);
+            Characters.addCharacter(context.previousName, previousMessage?.is_user || false);
+        }
+        const currentMessage = chatManager.getMessage(context.newIndex);
+        Characters.addCharacter(context.newName, currentMessage?.is_user || false);
     }
 
     const finalPreviousStats = {};
-    const sourcePreviousStats = previousMessage ? previousMessage.stats || {} : {};
+    const sourcePreviousStats = context.previousStats || {};
     const activeStats = Stats.getActiveStats();
 
     Characters.listTrackedCharacterNames().forEach(char => {
@@ -135,14 +94,8 @@ export function getRecentMessages(specificMessageIndex = null) {
     });
 
     return {
-        previousName: previousMessage ? previousMessage.name : null,
-        previousMessage: previousMessage ? previousMessage.mes : "",
-        previousStats: finalPreviousStats,
-        previousIndex: previousIndex,
-        newName: currentMessage.name,
-        newMessage: currentMessage.mes,
-        newStats: currentMessage.stats,
-        newIndex: currentIndex
+        ...context,
+        previousStats: finalPreviousStats
     };
 }
 
@@ -185,23 +138,19 @@ export function getRequiredStats(targetStat) {
  * @param {number} messageIndex The index of the message in the chat array.
  */
 export function setMessageStats(stats, messageIndex) {
-    if (messageIndex < 0 || messageIndex >= chat.length) {
+    if (!chatManager.isValidMessageForStats(messageIndex)) {
         console.error(`StatSuite Error: Invalid messageIndex ${messageIndex} in setMessageStats.`);
-        return;
-    }
-    const message = chat[messageIndex];
-    if (!message || message.is_system) {
-        console.error(`StatSuite Error: Attempted to set stats on invalid or system message at index ${messageIndex}.`);
         return;
     }
 
     if (stats && typeof stats === 'object') {
+        // Process stats (convert to StatsBlock, normalize values, etc.)
         for (const char of Object.keys(stats)) {
             if (!(stats[char] instanceof StatsBlock)) {
                 stats[char] = new StatsBlock(stats[char]);
             }
 
-            // make sure that bodystate and mood are lowercase
+            // Normalize specific stat values
             if (stats[char].hasOwnProperty('bodyState')) {
                 stats[char].bodyState = stats[char].bodyState.toLowerCase();
             }
@@ -211,18 +160,23 @@ export function setMessageStats(stats, messageIndex) {
         }
     }
 
-    const statsChanged = JSON.stringify(message.stats) !== JSON.stringify(stats);
+    // Get current stats for comparison
+    const currentStats = chatManager.getMessageStats(messageIndex);
+    const statsChanged = JSON.stringify(currentStats) !== JSON.stringify(stats);
 
-    message.stats = stats;
+    // Store stats using chat manager
+    chatManager.setMessageStats(messageIndex, stats);
 
+    // Update UI
     if (typeof displayStats === 'function') {
         displayStats(messageIndex, stats);
     } else {
         console.warn("StatSuite Warning: displayStats function not available in stats_logic.");
     }
 
+    // Save if changed
     if (statsChanged) {
-        saveChatConditional();
+        chatManager.saveChat();
     }
 }
 

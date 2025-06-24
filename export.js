@@ -6,35 +6,42 @@ import { Characters } from './characters/characters_registry.js';
 import { StatsBlock } from './stats/stat_block.js';
 import { Stats } from './stats/stats_registry.js';
 import { substituteParams } from '../../../../script.js';
+import { chatManager } from './chat/chat_manager.js';
 
 /**
  * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
  * @returns {Promise<void>}
  */
 export async function exportChat() {
-    const allMessages = chat.filter(c => !c.is_system && !/^\[.*\]$/.test(c.mes));
+    const exportableMessages = chatManager.getStatEligibleMessages();
     const exports = [];
-    for (let i = 0; i < allMessages.length; i++) {
-        let previousMessage, currentMessage, previousName, previousMes, previousStats;
-        currentMessage = allMessages[i];
+    
+    for (let i = 0; i < exportableMessages.length; i++) {
+        const { message: currentMessage, index: currentIndex } = exportableMessages[i];
+        
+        let previousName, previousMes, previousStats;
+        
         if (i === 0) {
             previousName = currentMessage.name;
             previousMes = '';
             previousStats = {};
-            if (currentMessage.stats && typeof currentMessage.stats === 'object') {
-                Object.keys(currentMessage.stats).forEach(charName => {
+            
+            const currentStats = chatManager.getMessageStats(currentIndex);
+            if (currentStats && typeof currentStats === 'object') {
+                Object.keys(currentStats).forEach(charName => {
                     previousStats[charName] = null;
                 });
             } else {
                 previousStats[currentMessage.name] = null;
             }
         } else {
-            previousMessage = allMessages[i - 1];
+            const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = previousMessage.stats ? { ...previousMessage.stats } : {};
+            previousStats = chatManager.getMessageStats(previousIndex) || {};
         }
-        const currentStats = currentMessage.stats ? { ...currentMessage.stats } : {};
+
+        const currentStats = chatManager.getMessageStats(currentIndex) || {};
 
         // Add missing characters from currentStats to previousStats with null value
         for (const charName of Object.keys(currentStats)) {

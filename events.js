@@ -7,6 +7,7 @@ import { addPasteButton } from './ui/message-buttons.js';
 import { Characters } from './characters/characters_registry.js';
 import { Stats } from './stats/stats_registry.js';
 import { renderCharactersList } from './ui/characters-list.js';
+import { chatManager } from './chat/chat_manager.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -22,6 +23,7 @@ export function onChatChanged() {
     if (!ExtensionInitialized) {
         return;
     }
+    chatManager.clearCache();
 
     if (!Characters) {
         Characters = new CharacterRegistry();
@@ -35,24 +37,22 @@ export function onChatChanged() {
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
 
-    if (chat && Array.isArray(chat)) {
-        chat.forEach((message, index) => {
-            if (!message.is_system) {
-                if (message.stats) {
-                    if (typeof displayStats === 'function') {
-                        displayStats(index, message.stats);
-                    } else {
-                        console.warn("StatSuite Events Warning: displayStats function not available.");
-                    }
-                }
-                if (typeof addPasteButton === 'function') {
-                    addPasteButton(index);
-                } else {
-                    console.warn("StatSuite Events Warning: addPasteButton function not available.");
-                }
+    const messages = chatManager.getStatEligibleMessages();
+    messages.forEach(({ index }) => {
+        const stats = chatManager.getMessageStats(index);
+        if (stats && Object.keys(stats).length > 0) {
+            if (typeof displayStats === 'function') {
+                displayStats(index, stats);
+            } else {
+                console.warn("StatSuite Events Warning: displayStats function not available.");
             }
-        });
-    }
+        }
+        if (typeof addPasteButton === 'function') {
+            addPasteButton(index);
+        } else {
+            console.warn("StatSuite Events Warning: addPasteButton function not available.");
+        }
+    });
 }
 
 /**
@@ -61,22 +61,50 @@ export function onChatChanged() {
  * @param {number} message_id
  */
 function onMessageRendered(message_id) {
-    if (chat[message_id].is_system) return;
+    // Use centralized validation instead of individual checks
+    if (!chatManager.isValidMessageForStats(message_id)) return;
+    
     if (!generating) {
         if (ExtensionSettings.enableAutoRequestStats === true) {
             makeStats(message_id);
         }
     }
     if (ExtensionSettings.autoTrackMessageAuthors === true) {
-        const characterName = chat[message_id].name;
-        if (characterName) {
-            Characters.addCharacter(characterName, chat[message_id].is_user);
+        const message = chatManager.getMessage(message_id);
+        if (message && message.name) {
+            Characters.addCharacter(message.name, message.is_user);
         }
     }
     if (typeof addPasteButton === 'function') {
         addPasteButton(message_id);
     } else {
         console.warn("StatSuite Events Warning: addPasteButton function not available.");
+    }
+}
+
+/**
+ * Handles MESSAGE_SWIPED event. Re-renders stats for the swiped message.
+ * @param {number} messageId - The index of the message that was swiped
+ */
+function onSwipeChanged(messageId) {
+    if (!ExtensionInitialized) return;
+    
+    // Validate that this is a stat-eligible message
+    if (!chatManager.isValidMessageForStats(messageId)) return;
+    
+    // Get stats for the new swipe and re-render
+    const stats = chatManager.getMessageStats(messageId);
+    if (stats && Object.keys(stats).length > 0) {
+        if (typeof displayStats === 'function') {
+            displayStats(messageId, stats);
+        } else {
+            console.warn("StatSuite Events Warning: displayStats function not available for swipe update.");
+        }
+    } else {
+        // Clear stats display if no stats for this swipe
+        if (typeof displayStats === 'function') {
+            displayStats(messageId, {});
+        }
     }
 }
 
@@ -95,6 +123,7 @@ export function initializeEventListeners() {
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);
     eventSource.on(event_types.GENERATION_STARTED, () => { generating = true; });
     eventSource.on(event_types.GENERATION_ENDED, () => { generating = false; });
+    eventSource.on(event_types.MESSAGE_SWIPED, onSwipeChanged);
     console.log("StatSuite Events: Event listeners initialized.");
 
     ExtensionInitialized = true;

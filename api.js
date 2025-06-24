@@ -10,7 +10,7 @@ const LIST_MODELS_URL = '{0}/v1/models';
 
 let connectionFailureDetected = false;
 let lastConnectionCheck = 0;
-const CONNECTION_CHECK_INTERVAL = 600000; // 10 minutes
+const CONNECTION_CHECK_INTERVAL = 10000; // 10 seconds
 
 /**
  * Quickly tests if the API connection is available.
