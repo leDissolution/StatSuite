@@ -324,8 +324,8 @@ export async function injectStatsFromMessage(messageId) {
         0
     )
 
-    const message = Chat.getMessage(messageId);
-    if (!message.stats || Object.keys(message.stats).length === 0) {
+    const stats = Chat.getMessageStats(messageId);
+    if (!stats || Object.keys(stats).length === 0) {
         if (ExtensionSettings.enableAutoRequestStats) {
             await makeStats(messageId);
         }
@@ -333,12 +333,13 @@ export async function injectStatsFromMessage(messageId) {
         console.log("StatSuite: Stats already present in the last message. No action taken.");
     }
 
-    if (!message.stats) {
+    const finalStats = Chat.getMessageStats(messageId);
+    if (!finalStats) {
         console.warn("StatSuite: No stats found in the last message.");
         return;
     }
 
-    const statsString = statsToStringFull(message.stats);
+    const statsString = statsToStringFull(finalStats);
     const injection = `\n[current state]${statsString}[/current state]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE.`;
 
     ctx.setExtensionPrompt(

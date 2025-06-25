@@ -19,16 +19,6 @@ export function initializeUI() {
     bindSettingsUI(Characters, Stats);
 
     $(document)
-        .off('click.statSuite', '#requestStats')
-        .on('click.statSuite', '#requestStats', function() {
-            const firstMessageWithoutStats = chat.findIndex(message => !message.is_system && !message.stats);
-            if (firstMessageWithoutStats >= 0) {
-                makeStats(firstMessageWithoutStats);
-            } else {
-                toastr.info("All messages appear to have stats already.");
-            }
-        });
-    $(document)
         .off('click.statSuite', '#exportStats')
         .on('click.statSuite', '#exportStats', exportChat);
     $(document)

@@ -19,28 +19,27 @@ export async function exportChat() {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i];
         
         let previousName, previousMes, previousStats;
-        
+
+        const currentStats = Chat.getMessageStats(currentIndex);
+
+        if (!currentStats || typeof currentStats !== 'object') {
+            continue; // Skip if no stats or invalid stats
+        }
+
         if (i === 0) {
             previousName = currentMessage.name;
             previousMes = '';
             previousStats = {};
             
-            const currentStats = Chat.getMessageStats(currentIndex);
-            if (currentStats && typeof currentStats === 'object') {
-                Object.keys(currentStats).forEach(charName => {
-                    previousStats[charName] = null;
-                });
-            } else {
-                previousStats[currentMessage.name] = null;
-            }
+            Object.keys(currentStats).forEach(charName => {
+                previousStats[charName] = null;
+            });
         } else {
             const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
             previousStats = Chat.getMessageStats(previousIndex) || {};
         }
-
-        const currentStats = Chat.getMessageStats(currentIndex) || {};
 
         // Add missing characters from currentStats to previousStats with null value
         for (const charName of Object.keys(currentStats)) {
@@ -124,8 +123,6 @@ export async function exportSingleMessage(messages) {
  * @returns {string} The formatted stats string.
  */
 export function statsToString(name, statsBlock) {
-    if (!statsBlock) return '';
-
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
             let strValue = String(value)

@@ -2,29 +2,21 @@
 import { chat, saveChatConditional } from '../../../../../script.js';
 
 /**
- * Migrates stats from old format (message.stats) to new format (message.swipe_info[swipe_id].stats)
- * Only applies to AI messages - user messages keep using message.stats directly
+ * Universal stats storage: message.stats is now an object keyed by swipe_id (or 0 if null/undefined)
+ * All messages (user and AI) use this system
  * @param {object} message - The message object to migrate
  */
 function migrateMessageStats(message) {
-    if (!message.stats || message.is_user) return; // Don't migrate user messages
-      console.log(`StatSuite: Migrating AI message stats from old format to swipe-specific format`);
-    
-    // Ensure swipe_info structure exists (array of objects)
-    if (!message.swipe_info) message.swipe_info = [];
-    if (!message.swipe_info[message.swipe_id]) {
-        message.swipe_info[message.swipe_id] = {};
+    if (!message.stats) return;
+    // If already in new format, skip
+    if (typeof message.stats === 'object' && !Array.isArray(message.stats) && Object.keys(message.stats).some(k => typeof message.stats[k] === 'object')) {
+        return;
     }
-    
-    // Move stats to current swipe if not already there
-    if (!message.swipe_info[message.swipe_id].stats) {
-        message.swipe_info[message.swipe_id].stats = message.stats;
-    }
-    
-    // Remove old format (AI messages only)
-    delete message.stats;
-    
-    // Save immediately since this is an implicit migration
+    // Migrate old flat stats to new format
+    const swipeId = message.swipe_id ?? 0;
+    const newStats = {};
+    newStats[swipeId] = message.stats;
+    message.stats = newStats;
     if (typeof saveChatConditional === 'function') {
         saveChatConditional();
     }
@@ -88,57 +80,54 @@ export class ChatManager {
     
     /**
      * Gets stats for a specific message
-     * Handles both user messages (message.stats) and AI messages (swipe-specific stats)
+     * Universal: message.stats is an object keyed by swipe_id (or 0)
      * @param {number} messageIndex 
      * @returns {object}
      */
     getMessageStats(messageIndex) {
         const message = this.getMessage(messageIndex);
-        if (!message) return {};
-
-        // User messages: always use direct stats
-        if (message.is_user) {
-            return message.stats || {};
-        }
-
-        // AI messages: use swipe-specific stats
-        // Check for old format and migrate if needed (AI messages only)
-        if (message.stats && !message.swipe_info?.[message.swipe_id]?.stats) {
+        if (!message) return null;
+        const swipeId = message.swipe_id ?? 0;
+        // Improved migration: if stats is a plain object but keys are not all numbers, treat as flat and migrate
+        if (message.stats && typeof message.stats === 'object' && !Array.isArray(message.stats)) {
+            const keys = Object.keys(message.stats);
+            const allNumeric = keys.length > 0 && keys.every(k => !isNaN(Number(k)));
+            if (!allNumeric) {
+                // Flat object, migrate
+                const flatStats = message.stats;
+                message.stats = {};
+                message.stats[swipeId] = flatStats;
+            }
+        } else if (message.stats && (typeof message.stats !== 'object' || Array.isArray(message.stats))) {
             migrateMessageStats(message);
         }
-        
-        return message.swipe_info?.[message.swipe_id]?.stats || {};
-    }    
-    
+        // Main lookup
+        let stats = message.stats?.[swipeId] || null;
+        // TEMPORARY FALLBACK: If not found, check swipe_info (legacy)
+        if (!stats && message.swipe_info && message.swipe_info[swipeId]?.stats) {
+            stats = message.swipe_info[swipeId].stats;
+            if (!message.stats || typeof message.stats !== 'object' || Array.isArray(message.stats)) {
+                message.stats = {};
+            }
+            message.stats[swipeId] = stats;
+        }
+        return stats;
+    }
     /**
      * Sets stats for a specific message
-     * Handles both user messages (message.stats) and AI messages (swipe-specific stats)
+     * Universal: message.stats is an object keyed by swipe_id (or 0)
      * @param {number} messageIndex 
      * @param {object} stats 
      * @returns {boolean} Success
-     */    
+     */
     setMessageStats(messageIndex, stats) {
         if (!this.isValidMessageForStats(messageIndex)) return false;
-        
         const message = this.getMessage(messageIndex);
-
-        // User messages: always set direct stats
-        if (message.is_user) {
-            message.stats = stats;
-            return true;
-        }// AI messages: set swipe-specific stats
-        if (!message.swipe_info) message.swipe_info = [];
-        if (!message.swipe_info[message.swipe_id]) {
-            message.swipe_info[message.swipe_id] = {};
+        const swipeId = message.swipe_id ?? 0;
+        if (!message.stats || typeof message.stats !== 'object' || Array.isArray(message.stats)) {
+            message.stats = {};
         }
-
-        message.swipe_info[message.swipe_id].stats = stats;
-        
-        // Clean up old format if it exists (AI messages only)
-        if (message.hasOwnProperty('stats')) {
-            delete message.stats;
-        }
-        
+        message.stats[swipeId] = stats;
         return true;
     }
 
