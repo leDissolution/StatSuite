@@ -1,7 +1,7 @@
 // Handles settings UI binding and popout for StatSuite
 
 import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
-import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED } from '../events.js';
+import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
 import { renderCharactersList } from './characters-list.js';
 import { renderStatsList } from './stats-list.js';
 import { loadMovingUIState } from '../../../../../scripts/power-user.js';
@@ -120,6 +120,7 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
 
     _statsRegistryInstance.addEventListener(EVENT_STAT_ADDED, () => renderStatsList(_statsRegistryInstance));
     _statsRegistryInstance.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList(_statsRegistryInstance));
+    _statsRegistryInstance.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList(_statsRegistryInstance));
 
     renderCharactersList(_characterRegistryInstance);
     renderStatsList(_statsRegistryInstance);

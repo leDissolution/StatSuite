@@ -99,7 +99,7 @@ export async function fetchAvailableModels() {
  * @returns {Promise<string>} The generated stat value or an error string (e.g., 'error', 'error_missing_url').
  */
 export async function generateStat(stat, char, messages, existingStats = {}, greedy = true) {
-    const statConfig = Stats.getStatConfig(stat);
+    const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
         console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);
         return 'error_invalid_config';

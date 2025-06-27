@@ -86,8 +86,8 @@ export function getRecentMessages(specificMessageIndex = null) {
         } else {
             const charSourceStats = sourcePreviousStats[char] || {};
             const statsBlock = {};
-            activeStats.forEach(stat => {
-                statsBlock[stat] = charSourceStats[stat] || Stats.getStatConfig(stat).defaultValue;
+            activeStats.forEach(statEntry => {
+                statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
             finalPreviousStats[char] = new StatsBlock(statsBlock);
         }
@@ -107,7 +107,7 @@ export function getRecentMessages(specificMessageIndex = null) {
 export function getRequiredStats(targetStat) {
     const required = new Set();
     function addDependencies(stat) {
-        const statConfig = Stats.getStatConfig(stat);
+        const statConfig = Stats.getStatEntry(stat);
         if (!statConfig || !statConfig.dependencies) {
             console.error(`StatSuite Error: Invalid stat or missing dependencies in StatConfig for "${stat}"`);
             return;
@@ -126,8 +126,8 @@ export function getRequiredStats(targetStat) {
         console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
     }
     return Array.from(required).sort((a, b) => {
-        const orderA = Stats.getStatConfig(a)?.order ?? Infinity;
-        const orderB = Stats.getStatConfig(b)?.order ?? Infinity;
+        const orderA = Stats.getStatEntry(a)?.order ?? Infinity;
+        const orderB = Stats.getStatEntry(b)?.order ?? Infinity;
         return orderA - orderB;
     });
 }
@@ -238,12 +238,26 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         } else if (!(resultingStats[char] instanceof StatsBlock)) {
             resultingStats[char] = new StatsBlock(resultingStats[char]);
         }
-        activeStats.forEach(statKey => {
-            if (!resultingStats[char].hasOwnProperty(statKey)) {
-                resultingStats[char][statKey] = Stats.getStatConfig(statKey).defaultValue;
+        activeStats.forEach(statEntry => {
+            if (!resultingStats[char].hasOwnProperty(statEntry.name)) {
+                if (statEntry.isManual) {
+                    if (messages.previousStats && messages.previousStats[char] && messages.previousStats[char][statEntry.name] !== undefined) {
+                        resultingStats[char][statEntry.name] = messages.previousStats[char][statEntry.name];
+                    } else {
+                        resultingStats[char][statEntry.name] = statEntry.defaultValue;
+                    }
+                } else {
+                    resultingStats[char][statEntry.name] = statEntry.defaultValue;
+                }
             }
         });
-    });    let statsActuallyGenerated = false;
+    });    
+    
+    let statsActuallyGenerated = false;
+
+    const statsToGenerate = Array.isArray(activeStats)
+        ? activeStats.filter(s => !s.isManual).map(s => s.name)
+        : [];
 
     for (const char of charsToProcess) {
         if (shouldSkipApiCalls()) {
@@ -252,9 +266,9 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         }
 
         const statsToGenerateForChar = specificStat
-            ? getRequiredStats(specificStat)
-            : activeStats;
-        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatConfig(a).order - Stats.getStatConfig(b).order);
+            ? getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual)
+            : statsToGenerate;
+        const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatEntry(a).order - Stats.getStatEntry(b).order);
 
         console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
 
@@ -270,7 +284,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                 continue;
             }
 
-            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatConfig(stat).defaultValue)) {
+            if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatEntry(stat).defaultValue)) {
                 const generatedValue = await generateStat(
                     stat,
                     char,

@@ -13,6 +13,7 @@ export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
 export const EVENT_STAT_ADDED = 'stat-added';
 export const EVENT_STAT_REMOVED = 'stat-removed';
+export const EVENT_STATS_BATCH_LOADED = 'stats-batch-loaded';
 
 export var ExtensionInitialized = false;
 

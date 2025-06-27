@@ -172,11 +172,11 @@ export function statsToStringFull(stats) {
             } else {
                 const description = characterDescription(charName);
                 const statsBlock = new StatsBlock();
-                Stats.getActiveStats().forEach(stat => {
-                    if (statsBlock?.[stat] !== undefined) {
-                        statsBlock.set(stat, statsBlock[stat]);
+                Stats.getActiveStats().forEach(statEntry => {
+                    if (statsBlock?.[statEntry.name] !== undefined) {
+                        statsBlock.set(statEntry.name, statsBlock[statEntry.name]);
                     } else {
-                        statsBlock.set(stat, Stats.getStatConfig(stat).defaultValue);
+                        statsBlock.set(statEntry.name, statEntry.defaultValue);
                     }
                 });
                 return statsToString(charName, statsBlock) + description;

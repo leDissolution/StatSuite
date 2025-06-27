@@ -120,7 +120,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
         row.append(statLabelTd);
         characters.forEach(char => {
-            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (Stats.getStatConfig(stat)?.defaultValue || 'unspecified');
+            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
                 .text(statValue)
                 .attr('data-character', char)
@@ -150,8 +150,8 @@ function getPresentStats(characters, stats) {
         return acc;
     }, []);
     presentStats.sort((a, b) => {
-        const aConfig = Stats.getStatConfig(a) || {};
-        const bConfig = Stats.getStatConfig(b) || {};
+        const aConfig = Stats.getStatEntry(a) || {};
+        const bConfig = Stats.getStatEntry(b) || {};
         const aOrder = aConfig.order || 0;
         const bOrder = bConfig.order || 0;
         return aOrder - bOrder;

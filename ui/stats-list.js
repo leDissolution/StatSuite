@@ -1,3 +1,8 @@
+/**
+ * Renders the list of stats in the UI, including toggles for isActive and isManual.
+ * @param {import('../stats/stats-registry.js').StatRegistry} registryInstance - The StatRegistry instance to render.
+ * @returns {void}
+ */
 export function renderStatsList(registryInstance) {
     if (!registryInstance) {
         console.error("StatSuite UI Error: StatsRegistry instance not available for renderStatsList.");
@@ -6,33 +11,68 @@ export function renderStatsList(registryInstance) {
 
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = Object.values(registryInstance._stats)
-        .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const allStats = registryInstance.getAllStats();
+    
     if (!allStats || allStats.length === 0) {
         $list.append('<div class="empty">No stats defined.</div>');
         return;
     }
+
+    const $table = $('<table style="width:100%; border-collapse:collapse; background:none;"></table>');
+    const $thead = $(`
+        <thead>
+            <tr style="border:none; background:none;">
+                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Enable</th>
+                <th style="padding: 6px 0; border:none; background:none; text-align:left;">Stat</th>
+                <th style="padding: 6px 0; border:none; background:none; text-align:left;">Default</th>
+                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Manual</th>
+                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:right;"></th>
+            </tr>
+        </thead>
+    `);
+    $table.append($thead);
+    const $tbody = $('<tbody></tbody>');
     allStats.forEach(stat => {
         const isCustom = !!stat.isCustom;
         const checked = stat.isActive ? 'checked' : '';
+        const manualChecked = stat.isManual ? 'checked' : '';
         const $row = $(`
-            <div class="tracked-character" style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" class="toggle-stat-active" data-key="${stat.name}" ${checked} style="vertical-align: middle; margin: 0 6px 0 0;" />
-                    <b>${stat.name}</b> (default: <i>${stat.defaultValue}</i>)
-                </span>
-                <div class="character-actions">
+            <tr style="border:none; background:none;">
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                    <input type="checkbox" class="toggle-stat-active" data-key="${stat.name}" ${checked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                    <b>${stat.name}</b>
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle; color:#888; font-size:0.95em;">
+                    <i>${stat.defaultValue}</i>
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                    <input type="checkbox" class="toggle-stat-manual" data-key="${stat.name}" ${manualChecked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
                     ${isCustom ? `<i class="fa-solid fa-xmark remove-custom-stat" title="Remove" data-key="${stat.name}"></i>` : ''}
-                </div>
-            </div>
+                </td>
+            </tr>
         `);
-        $list.append($row);
+        $tbody.append($row);
     });
+    $table.append($tbody);
+    $list.append($table);
+
     $('.toggle-stat-active').off('change.statSuite').on('change.statSuite', function() {
         const key = $(this).data('key');
-        const stat = registryInstance.getStatConfig(key);
+        const stat = registryInstance.getStatEntry(key);
         if (stat) {
-            stat.isActive = this.checked;
+            stat.isActive = $(this).prop('checked');
+            registryInstance.saveToMetadata();
+        }
+    });
+    $('.toggle-stat-manual').off('change.statSuite').on('change.statSuite', function() {
+        const key = $(this).data('key');
+        const stat = registryInstance.getStatEntry(key);
+        if (stat) {
+            stat.isManual = $(this).prop('checked');
             registryInstance.saveToMetadata();
         }
     });
