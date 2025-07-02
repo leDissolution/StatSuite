@@ -20,7 +20,7 @@ How is it different from the already existing Tracker? Well, it does not use you
 As usual, start with adding the extension through the ST's `Install Extension`.
 
 Now comes the tricky part. In order to use the extension without the main model, you need, well, some other model. Dont worry, I got you covered:
-[StatSuite_G2B_Alpha (HF hub)](https://huggingface.co/LeDissolution/StatSuite_G2B_Alpha)
+[StatSuite_G2B_Alpha (HF hub)](https://huggingface.co/LeDissolution/StatSuite_G2B_Alpha_GGUF)
 
 It is small enough to be ran on CPU at good speed, especially in Q4 (I do recommend using Q8 if possible tho), and will be blazing fast if you got spare VRAM.
 
