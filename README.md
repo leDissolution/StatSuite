@@ -49,9 +49,15 @@ Mood is turned off by default. I can see it potentially being useful, but it is 
 
 ### Usage
 
-Just start playing, and it will take care of itself!
+Just start playing, and it will take care of itself...
 
 ![image](https://github.com/user-attachments/assets/52098649-8f13-482d-bde5-99e688e6f89b)
+
+...by injecting the stats into the prompt @Depth 1 (0 is too strong, and adding it higher up leads to model confusing what is up do date)
+
+![image](https://github.com/user-attachments/assets/b4cbfc38-1e8c-490b-94dc-94eb093c073a)
+
+Only the latest stat block is being sent to the model to not pollute the prompt.
 
 It is a good idea to "seed" the stats that were not explicitly specified in char card/first message by either providing an OOC note (recommended) or, if that fails, editing stats directly
 ![image](https://github.com/user-attachments/assets/3168e28f-c087-4076-a2d6-fb25ce033f79)
