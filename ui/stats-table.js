@@ -216,9 +216,10 @@ function renderStatsTableControls(messageId, container, table, stats) {
         let changed = false;
         for (const idx of indices) {
             if (Chat.getMessage(idx) && Chat.getMessageStats(idx)) {
-                delete Chat.getMessageStats(idx);
-                changed = true;
-                $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
+                if (Chat.deleteMessageStats(idx)) {
+                    changed = true;
+                    $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
+                }
             }
         }
         if (changed) {
