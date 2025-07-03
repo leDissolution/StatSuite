@@ -32,7 +32,7 @@ Put it up with any local inference engine you like - I myself prefer Koboldcpp, 
 ### Settings
 
 #### Characters
-![image](https://github.com/user-attachments/assets/5663ed87-ffca-4902-a6e2-f13ea0f73ef6)
+![image](https://github.com/user-attachments/assets/8a2d291e-a8eb-4516-842e-4c2a785680a2)
 
 List of characters that are being tracked _at the moment_. You can freely modify it - remove characters that left the scene, and add character that entered the scene. It will not affect stat history, only what is being requested for new messages.
 By default, it will treat each message author as a character (works with group chats!). If you are using some kind of narrator card, you should disable that and keep track manually. For now, at least - I hope to devise a way to narratively track the characters one day.
@@ -40,7 +40,7 @@ By default, it will treat each message author as a character (works with group c
 Checkbox next to the character name is whether it is player or not. For now, it only matters when the character enters the scene first time - it will try to read {{description}} for AI cards and {{persona}} for player, to try and initialize the stats when the character is seen first time.
 
 #### Stats
-![image](https://github.com/user-attachments/assets/99689f9c-d5be-4184-a1a7-640f4e028b99)
+![image](https://github.com/user-attachments/assets/3e2235e9-dfc5-44a3-9e86-e60669bd97cb)
 
 List of stats to track. You can disable ones you find not very useful for the playthrough (for example, exposure for non-ERP), or try adding custom ones. It will probably not work very well, but feel free to experiment!
 "manual" checkbox means that this field will not be requested from the model, but just copied over from previous message. You can store whatever you want that way - think of it as per-character author note @depth 1.
