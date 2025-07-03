@@ -54,25 +54,23 @@ export function onChatChanged() {
 }
 
 /**
- * Handles CHARACTER_MESSAGE_RENDERED and USER_MESSAGE_RENDERED events.
  * Triggers automatic stat generation if enabled and adds UI buttons.
  * @param {number} message_id
  */
-function onMessageRendered(message_id) {
-    // Use centralized validation instead of individual checks
+function onGenerationEnded(message_id) {
     if (!Chat.isValidMessageForStats(message_id)) return;
     
-    if (!generating) {
-        if (ExtensionSettings.enableAutoRequestStats === true) {
-            makeStats(message_id);
-        }
-    }
     if (ExtensionSettings.autoTrackMessageAuthors === true) {
         const message = Chat.getMessage(message_id);
         if (message && message.name) {
             Characters.addCharacter(message.name, message.is_user);
         }
     }
+
+    if (ExtensionSettings.enableAutoRequestStats === true) {
+        makeStats(message_id);
+    }
+
     if (typeof addPasteButton === 'function') {
         addPasteButton(message_id);
     } else {
@@ -106,7 +104,7 @@ function onSwipeChanged(messageId) {
     }
 }
 
-var generating = false;
+var latestMessageIndex = false;
 
 /**
  * Initializes the event listeners for StatSuite extension.
@@ -118,9 +116,14 @@ export function initializeEventListeners() {
     }
     console.log("StatSuite Events: Initializing event listeners...");
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onMessageRendered);
-    eventSource.on(event_types.GENERATION_STARTED, () => { generating = true; });
-    eventSource.on(event_types.GENERATION_ENDED, () => { generating = false; });
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (message_id) => {
+        latestMessageIndex = message_id;
+    });
+    
+    eventSource.on(event_types.GENERATION_ENDED, () => {
+        onGenerationEnded(latestMessageIndex);
+    });
+
     eventSource.on(event_types.MESSAGE_SWIPED, onSwipeChanged);
     console.log("StatSuite Events: Event listeners initialized.");
 
