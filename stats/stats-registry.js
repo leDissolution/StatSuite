@@ -1,11 +1,13 @@
 // StatSuite - StatRegistry: Manages stat definitions, dependencies, and persistence per chat
 import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
-import { chat_metadata } from '../../../../../script.js';
+import { chat_metadata, saveSettingsDebounced } from '../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../extensions.js';
+import { ExtensionSettings } from '../settings.js';
 
 /**
  * @typedef {Object} StatEntryOptions
- * @property {any} defaultValue - The default value for the stat
+ * @property {string} defaultValue - The default value for the stat
+ * @property {string} displayName - The display name for the stat
  * @property {string[]} dependencies - Array of stat names this stat depends on
  * @property {number} order - Display order for the stat
  * @property {boolean} [isCustom=false] - Whether this is a custom user-defined stat
@@ -17,7 +19,8 @@ import { saveMetadataDebounced } from '../../../../extensions.js';
  * @typedef {Object} StatConfig
  * @property {string[]} [dependencies] - Array of stat names this stat depends on
  * @property {number} [order] - Display order for the stat
- * @property {any} [defaultValue] - The default value for the stat
+ * @property {string} [defaultValue] - The default value for the stat
+ * @property {string} [displayName] - The display name for the stat
  * @property {boolean} [isCustom] - Whether this is a custom user-defined stat
  * @property {boolean} [isActive] - Whether this stat is currently active
  * @property {boolean} [isManual] - Whether this stat requires manual input
@@ -31,10 +34,12 @@ class StatEntry {
      * @param {string} name - The name of the stat
      * @param {StatEntryOptions} options - Configuration options for the stat
      */
-    constructor(name, { defaultValue, dependencies, order, isCustom = false, isActive = true, isManual = false }) {
+    constructor(name, { defaultValue, displayName, dependencies, order, isCustom = false, isActive = true, isManual = false }) {
         /** @type {string} */
         this.name = name;
-        /** @type {any} */
+        /** @type {string} */
+        this.displayName = (!displayName || displayName.trim() === '') ? name : displayName;
+        /** @type {string} */
         this.defaultValue = defaultValue;
         /** @type {string[]} */
         this.dependencies = dependencies;
@@ -116,7 +121,15 @@ export class StatRegistry {
             // Load default stats without triggering events for each one
             DEFAULT_STATS.forEach(stat => this._addStatEntryInternal(stat));
         }
-        
+
+        DEFAULT_STATS.forEach(stat => {
+            if (ExtensionSettings.statDisplayNames && ExtensionSettings.statDisplayNames[stat.name]) {
+                if (this._stats[stat.name]) {
+                    this._stats[stat.name].displayName = ExtensionSettings.statDisplayNames[stat.name];
+                }
+            }
+        });
+
         // Save once after all stats are loaded and dispatch a single batch event
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STATS_BATCH_LOADED, { 
@@ -131,6 +144,17 @@ export class StatRegistry {
     saveToMetadata() {
         if (!chat_metadata.StatSuite) chat_metadata.StatSuite = {};
         chat_metadata.StatSuite.statsRegistry = Object.values(this._stats);
+
+        //save displayNames of default stats to global settings
+        if (ExtensionSettings.statDisplayNames) {
+            for (const stat of Object.values(this._stats)) {
+                if (stat.isCustom || !stat.displayName || stat.displayName.trim() === '') continue;
+                ExtensionSettings.statDisplayNames[stat.name] = stat.displayName;
+            }
+
+            saveSettingsDebounced();
+        }
+
         if (saveMetadataDebounced) saveMetadataDebounced();
     }
 
@@ -179,6 +203,7 @@ export class StatRegistry {
             dependencies: Array.isArray(config.dependencies) ? config.dependencies : [],
             order: typeof config.order === 'number' ? config.order : Object.keys(this._stats).length,
             defaultValue: config.defaultValue !== undefined ? config.defaultValue : 'unspecified',
+            displayName: (!config.displayName || config.displayName.trim() === '') ? name : config.displayName,
             isCustom: config.isCustom !== undefined ? !!config.isCustom : true,
             isActive: config.isActive !== undefined ? !!config.isActive : true
         });
@@ -302,6 +327,7 @@ export class StatRegistry {
                 dependencies: Array.isArray(entry.dependencies) ? entry.dependencies : [],
                 order: typeof entry.order === 'number' ? entry.order : Object.keys(this._stats).length,
                 defaultValue: entry.defaultValue !== undefined ? entry.defaultValue : 'unspecified',
+                displayName: (!entry.displayName || entry.displayName.trim() === '') ? name : entry.displayName,
                 isCustom: entry.isCustom !== undefined ? !!entry.isCustom : true,
                 isActive: entry.isActive !== undefined ? !!entry.isActive : true,
                 isManual: entry.isManual !== undefined ? !!entry.isManual : false

@@ -13,6 +13,7 @@ export class SuiteSettings {
         this.showStats = true;
         this.collapseOldStats = true;
         this.anonymizeClipboardExport = true;
+        this.statDisplayNames = {}
     }
 }
 
