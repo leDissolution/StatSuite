@@ -11,16 +11,6 @@ import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
 
 /**
- * Adds a custom stat to StatSuite at runtime.
- * @param {string} statKey - The unique key for the stat (lowercase, no spaces).
- * @param {object} config - The config object: { dependencies: [], order: number, defaultValue: any }
- * @returns {boolean} True if added, false if already exists or invalid.
- */
-export function addCustomStat(statKey, config) {
-    return Stats.addStat(statKey, config);
-}
-
-/**
  * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
  * @param {string} statsString
  * @returns {object | null} Parsed stats object or null if invalid.
@@ -80,7 +70,7 @@ export function getRecentMessages(specificMessageIndex = null) {
     const sourcePreviousStats = context.previousStats || {};
     const activeStats = Stats.getActiveStats();
 
-    Characters.listTrackedCharacterNames().forEach(char => {
+    Characters.listActiveCharacterNames().forEach(char => {
         if (!sourcePreviousStats.hasOwnProperty(char)) {
             finalPreviousStats[char] = null;
         } else {
@@ -214,7 +204,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    const charsToProcess = specificChar ? [specificChar] : Characters.listTrackedCharacterNames();
+    const charsToProcess = specificChar ? [specificChar] : Characters.listActiveCharacterNames();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
         return;

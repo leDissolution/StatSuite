@@ -117,7 +117,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
                 await regenerateStatsBatch(indices, { stat, greedy, toastMessage, copyOver });
             });
         const statLabelTd = $('<td></td>').addClass('stat-label').attr('data-stat-key', stat);
-        statLabelTd.append(rowRegenBtn, $('<span></span>').text(stat.toLowerCase()));
+        statLabelTd.append(rowRegenBtn, $('<span></span>').text(Stats.getStatEntry(stat)?.displayName || stat));
         row.append(statLabelTd);
         characters.forEach(char => {
             const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
@@ -216,9 +216,10 @@ function renderStatsTableControls(messageId, container, table, stats) {
         let changed = false;
         for (const idx of indices) {
             if (Chat.getMessage(idx) && Chat.getMessageStats(idx)) {
-                delete Chat.getMessageStats(idx);
-                changed = true;
-                $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
+                if (Chat.deleteMessageStats(idx)) {
+                    changed = true;
+                    $(`[mesid="${idx}"]`).find('.stats-table-container').remove();
+                }
             }
         }
         if (changed) {

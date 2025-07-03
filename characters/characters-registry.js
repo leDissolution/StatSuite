@@ -23,7 +23,7 @@ export class CharacterRegistry {
             if (char instanceof Character) {
                 this.attachCharacter(char);
             } else if (typeof char === 'object' && char !== null && 'name' in char) {
-                const rehydrated = new Character(char.name, char.isPlayer);
+                const rehydrated = new Character(char.name, char.isPlayer, char.isActive);
                 this.attachCharacter(rehydrated);
             } else if (typeof char === 'string') {
                 this.addCharacter(char, false);
@@ -118,6 +118,13 @@ export class CharacterRegistry {
      */
     listTrackedCharacterNames() {
         return Array.from(this.characters)
+            .map(charObj => charObj.name)
+            .sort();
+    }
+
+    listActiveCharacterNames() {
+        return Array.from(this.characters)
+            .filter(charObj => charObj.isActive)
             .map(charObj => charObj.name)
             .sort();
     }

@@ -113,6 +113,7 @@ export class ChatManager {
         }
         return stats;
     }
+
     /**
      * Sets stats for a specific message
      * Universal: message.stats is an object keyed by swipe_id (or 0)
@@ -128,6 +129,36 @@ export class ChatManager {
             message.stats = {};
         }
         message.stats[swipeId] = stats;
+        return true;
+    }
+
+    /**
+     * Deletes stats for a specific message, handling all known formats and swipes
+     * @param {number} messageIndex
+     * @returns {boolean} Success
+     */
+    deleteMessageStats(messageIndex) {
+        const message = this.getMessage(messageIndex);
+        if (!message) return false;
+
+        const swipeId = message.swipe_id ?? 0;
+        if (message.stats && typeof message.stats === 'object' && !Array.isArray(message.stats)) {
+            if (Object.prototype.hasOwnProperty.call(message.stats, swipeId)) {
+                delete message.stats[swipeId];
+            }
+        }
+
+        // Remove from legacy format
+        else if (message.stats) {
+            delete message.stats;
+        }
+
+        if (message.swipe_info && typeof message.swipe_info === 'object') {
+            if (message.swipe_info[swipeId] && message.swipe_info[swipeId].stats) {
+                delete message.swipe_info[swipeId].stats;
+            }
+        }
+        this.clearCache();
         return true;
     }
 

@@ -122,3 +122,31 @@ table.stats-table {
     white-space: nowrap;
     width: 1px;;
 }
+
+/* Display name editing styles for stats list */
+.display-name-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.display-name-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.edit-display-name-icon {
+    margin-left: 5px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    font-size: 0.8em;
+}
+
+.edit-display-name-icon:hover {
+    opacity: 1;
+}
+
+.display-name-input {
+    flex: 1;
+}
