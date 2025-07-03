@@ -16,18 +16,39 @@ export function renderCharactersList(registryInstance) {
     }
     container.empty();
     console.log("StatSuite UI: Rendering character list.");
+    
+    const table = $(`
+        <table class="character-table" style="width:100%; table-layout:fixed;">
+            <thead>
+                <tr>
+                    <th style="width:60%; text-align:left;">Name</th>
+                    <th style="width:20%; text-align:center;">Player</th>
+                    <th style="width:20%; text-align:center;">Active</th>
+                    <th style="width:20%; text-align:center;"></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    `);
+    const tbody = table.find('tbody');
     registryInstance.listTrackedCharacters().forEach(char => {
-        const charElement = $(`
-            <div class="tracked-character">
-                <span>${char.name}</span>
-                <input type="checkbox" class="player-checkbox" data-character="${char.name}" ${char.isPlayer ? 'checked' : ''} title="Is Player?" />
-                <div class="character-actions">
+        const row = $(`
+            <tr class="tracked-character-row">
+                <td>${char.name}</td>
+                <td style="text-align:center;">
+                    <input type="checkbox" class="player-checkbox" data-character="${char.name}" ${char.isPlayer ? 'checked' : ''} title="Is Player?" style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                </td>
+                <td style="text-align:center;">
+                    <input type="checkbox" class="active-checkbox" data-character="${char.name}" ${char.isActive ? 'checked' : ''} title="Is Active?" style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                </td>
+                <td style="text-align:center;">
                     <i class="fas fa-times remove-character" data-character="${char.name}" title="Remove ${char.name}"></i>
-                </div>
-            </div>
+                </td>
+            </tr>
         `);
-        container.append(charElement);
+        tbody.append(row);
     });
+    container.append(table);
     container.off('click.statSuite', '.remove-character').on('click.statSuite', '.remove-character', function() {
         const char = $(this).data('character');
         if (registryInstance) {
@@ -35,20 +56,27 @@ export function renderCharactersList(registryInstance) {
             renderCharactersList(registryInstance);
         }
     });
-    // Handle checkbox change
+
     container.off('change.statSuite', '.player-checkbox').on('change.statSuite', '.player-checkbox', function() {
         const charName = $(this).data('character');
         const isPlayer = $(this).is(':checked');
-        if (registryInstance && typeof registryInstance.setPlayerStatus === 'function') {
-            registryInstance.setPlayerStatus(charName, isPlayer);
-        } else {
-            // fallback: set property directly if possible
-            const charObj = registryInstance.characters && Array.from(registryInstance.characters).find(c => c.name === charName);
-            if (charObj) {
-                charObj.isPlayer = isPlayer;
-                if (typeof registryInstance.saveToMetadata === 'function') {
-                    registryInstance.saveToMetadata();
-                }
+        const charObj = registryInstance.characters && Array.from(registryInstance.characters).find(c => c.name === charName);
+        if (charObj) {
+            charObj.isPlayer = isPlayer;
+            if (typeof registryInstance.saveToMetadata === 'function') {
+                registryInstance.saveToMetadata();
+            }
+        }
+    });
+
+    container.off('change.statSuite', '.active-checkbox').on('change.statSuite', '.active-checkbox', function() {
+        const charName = $(this).data('character');
+        const isActive = $(this).is(':checked');
+        const charObj = registryInstance.characters && Array.from(registryInstance.characters).find(c => c.name === charName);
+        if (charObj) {
+            charObj.isActive = isActive;
+            if (typeof registryInstance.saveToMetadata === 'function') {
+                registryInstance.saveToMetadata();
             }
         }
     });

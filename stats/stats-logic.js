@@ -70,7 +70,7 @@ export function getRecentMessages(specificMessageIndex = null) {
     const sourcePreviousStats = context.previousStats || {};
     const activeStats = Stats.getActiveStats();
 
-    Characters.listTrackedCharacterNames().forEach(char => {
+    Characters.listActiveCharacterNames().forEach(char => {
         if (!sourcePreviousStats.hasOwnProperty(char)) {
             finalPreviousStats[char] = null;
         } else {
@@ -204,7 +204,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         return;
     }
 
-    const charsToProcess = specificChar ? [specificChar] : Characters.listTrackedCharacterNames();
+    const charsToProcess = specificChar ? [specificChar] : Characters.listActiveCharacterNames();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
         return;
