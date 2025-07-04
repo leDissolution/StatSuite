@@ -57,8 +57,9 @@ export function onChatChanged() {
  * Triggers automatic stat generation if enabled and adds UI buttons.
  * @param {number} message_id
  */
-function onGenerationEnded(message_id) {
+function processMessageForStats(message_id) {
     if (!Chat.isValidMessageForStats(message_id)) return;
+    if (generating) return;
     
     if (ExtensionSettings.autoTrackMessageAuthors === true) {
         const message = Chat.getMessage(message_id);
@@ -71,11 +72,9 @@ function onGenerationEnded(message_id) {
         makeStats(message_id);
     }
 
-    if (typeof addPasteButton === 'function') {
-        addPasteButton(message_id);
-    } else {
-        console.warn("StatSuite Events Warning: addPasteButton function not available.");
-    }
+    addPasteButton(message_id);
+
+    latestMessageIndex = -1;
 }
 
 /**
@@ -104,7 +103,8 @@ function onSwipeChanged(messageId) {
     }
 }
 
-var latestMessageIndex = false;
+var latestMessageIndex = -1;
+var generating = false;
 
 /**
  * Initializes the event listeners for StatSuite extension.
@@ -117,11 +117,25 @@ export function initializeEventListeners() {
     console.log("StatSuite Events: Initializing event listeners...");
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (message_id) => {
-        latestMessageIndex = message_id;
+        if (!Chat.isValidMessageForStats(message_id)) return;
+
+        if (generating) {
+            latestMessageIndex = message_id;
+        } else {
+            processMessageForStats(message_id);
+        }
     });
     
+    eventSource.on(event_types.GENERATION_STARTED, () => {
+        generating = true;
+    });
+
     eventSource.on(event_types.GENERATION_ENDED, () => {
-        onGenerationEnded(latestMessageIndex);
+        generating = false;
+
+        if (latestMessageIndex > -1) {
+            processMessageForStats(latestMessageIndex);
+        }
     });
 
     eventSource.on(event_types.MESSAGE_SWIPED, onSwipeChanged);
