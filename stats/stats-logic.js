@@ -207,6 +207,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     const charsToProcess = specificChar ? [specificChar] : Characters.listActiveCharacterNames();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
+        toastr.error("StatSuite: No characters are being tracked. Please add characters to the registry.");
         return;
     }
 
@@ -220,6 +221,11 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     }
 
     const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
+
+    if (!messages.newStats) {
+        displayStats(messages.newIndex, {'...': {}});
+    }
+
     var activeStats = Stats.getActiveStats();
 
     if (ExtensionSettings.offlineMode) {
