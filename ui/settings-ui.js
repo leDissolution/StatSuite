@@ -79,6 +79,31 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
             console.error("StatSuite UI Error: Failed to fetch models.", error);
         }
     }).trigger("click.statSuite");
+
+    // Bind Offline Mode checkbox
+    $("#offlineMode").prop("checked", ExtensionSettings.offlineMode);
+    $("#offlineMode").off("input.statSuite").on("input.statSuite", function ()
+    {
+        const isOffline = $(this).prop("checked");
+        updateSetting('offlineMode', isOffline);
+        if (isOffline) {
+            $("#modelSettings").hide();
+            $("#offlineExplanation").show();
+        } else {
+            $("#modelSettings").show();
+            $("#offlineExplanation").hide();
+        }
+    });
+
+    // Show or hide offline explanation based on current setting    
+    if (ExtensionSettings.offlineMode) {
+        $("#modelSettings").hide();
+        $("#offlineExplanation").show();
+    } else {
+        $("#modelSettings").show();
+        $("#offlineExplanation").hide();
+    }
+
     // Bind Character Management UI
     $('#add-character-btn').off('click.statSuite').on('click.statSuite', function() {
         const charName = $('#new-character-input').val().trim();

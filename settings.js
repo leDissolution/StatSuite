@@ -6,6 +6,7 @@ const extensionName = "StatSuite";
 
 export class SuiteSettings {
     constructor() {
+        this.offlineMode = false;
         this.modelUrl = '';
         this.modelName = '';
         this.autoTrackMessageAuthors = true;
@@ -58,7 +59,8 @@ export async function initializeSettings() {
             }
         }
     }
-    if (ExtensionSettings.modelUrl && ExtensionSettings.modelUrl !== defaultSettings.modelUrl) {
+
+    if (ExtensionSettings.modelUrl && ExtensionSettings.modelUrl !== defaultSettings.modelUrl && !ExtensionSettings.offlineMode) {
         const models = await tryGetModels();
         if (models.length > 0) {
             if (!ExtensionSettings.modelName || !models.includes(ExtensionSettings.modelName)) {
@@ -71,6 +73,7 @@ export async function initializeSettings() {
             toastr.error("StatSuite: Failed to connect to the API. Please check your settings.");
         }
     }
+
     if (settingsChanged) {
         saveSettingsDebounced();
     }

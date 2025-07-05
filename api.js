@@ -14,20 +14,23 @@ const CONNECTION_CHECK_INTERVAL = 10000; // 10 seconds
 
 /**
  * Quickly tests if the API connection is available.
- * @returns {Promise<boolean>} True if connection is working, false otherwise.
+ * @returns {Promise<boolean>} True if connection is working, false otherwise (or offline).
  */
 export async function checkApiConnection() {
+    if (ExtensionSettings.offlineMode) {
+        return false;
+    }
+
     if (!ExtensionSettings.modelUrl) {
         console.error('StatSuite API Error: Model URL is not set in settings.');
         return false;
     }
 
     try {
-        // Use a quick HEAD request or simple GET with timeout
         const response = await $.ajax({
             url: LIST_MODELS_URL.replace('{0}', ExtensionSettings.modelUrl),
             method: 'GET',
-            timeout: 1000,
+            timeout: 500,
             dataType: 'json'
         });
         
@@ -51,13 +54,16 @@ export function resetConnectionFailure() {
 }
 
 /**
- * Checks if we should skip API calls due to recent connection failures.
+ * Checks if we should skip API calls due to recent connection failures or offline mode.
  * @returns {boolean} True if we should skip API calls.
  */
 export function shouldSkipApiCalls() {
+    if (ExtensionSettings.offlineMode) {
+        return true;
+    }
+
     const now = Date.now();
     
-    // If we haven't checked recently, don't skip based on old data
     if (now - lastConnectionCheck > CONNECTION_CHECK_INTERVAL) {
         connectionFailureDetected = false;
         return false;
