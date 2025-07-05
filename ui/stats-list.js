@@ -14,12 +14,8 @@ export function renderStatsList(registryInstance) {
     const $list = $('#custom-stats-list');
     $list.empty();
     const allStats = registryInstance.getAllStats();
-    
-    if (!allStats || allStats.length === 0) {
-        $list.append('<div class="empty">No stats defined.</div>');
-        return;
-    }
 
+    // Always show the table, even if empty, to allow adding custom stats
     const $table = $('<table style="width:100%; border-collapse:collapse; background:none;"></table>');
     const $thead = $(`
         <thead>
@@ -27,11 +23,15 @@ export function renderStatsList(registryInstance) {
                 <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Enable</th>
                 <th style="padding: 6px 0; border:none; background:none; text-align:left;">Stat</th>
                 <th style="padding: 6px 0; border:none; background:none; text-align:left;">
-                    Display Name
-                    <i class="fa-solid fa-pencil edit-all-display-names" title="Edit all display names" style="margin-left: 8px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
-                    <i class="fa-solid fa-times discard-display-name-changes" title="Discard changes" style="margin-left: 5px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
+                    <i class="fa-solid fa-pencil edit-all-display-names" title="Edit all display names" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
+                    <i class="fa-solid fa-times discard-display-name-changes" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
+                    Display
                 </th>
-                <th style="padding: 6px 0; border:none; background:none; text-align:left;">Default</th>
+                <th style="padding: 6px 0; border:none; background:none; text-align:left;">
+                    <i class="fa-solid fa-pencil edit-default-values-btn" title="Edit defaults for custom stats" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
+                    <i class="fa-solid fa-times discard-default-value-changes-btn" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
+                    Default
+                </th>
                 <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Manual</th>
                 <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:right;"></th>
             </tr>
@@ -39,38 +39,75 @@ export function renderStatsList(registryInstance) {
     `);
     $table.append($thead);
     const $tbody = $('<tbody></tbody>');
-    allStats.forEach(stat => {
-        const isCustom = !!stat.isCustom;
-        const checked = stat.isActive ? 'checked' : '';
-        const manualChecked = stat.isManual ? 'checked' : '';
-        const $row = $(`
-            <tr style="border:none; background:none;">
-                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
-                    <input type="checkbox" class="toggle-stat-active" data-key="${stat.name}" ${checked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
-                </td>
-                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
-                    <b>${stat.name}</b>
-                </td>
-                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
-                    <div class="display-name-container" data-key="${stat.name}">
-                        <span class="display-name-text">${stat.displayName || stat.name}</span>
-                    </div>
-                </td>
-                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle; color:#888; font-size:0.95em;">
-                    <i>${stat.defaultValue}</i>
-                </td>
-                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
-                    <input type="checkbox" class="toggle-stat-manual" data-key="${stat.name}" ${manualChecked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
-                </td>
-                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
-                    ${isCustom ? `<i class=\"fa-solid fa-xmark remove-custom-stat\" title=\"Remove\" data-key=\"${stat.name}\"></i>` : ''}
-                </td>
-            </tr>
-        `);
-        $tbody.append($row);
-    });
+
+    if (!allStats || allStats.length === 0) {
+        // No stats, just show the add row
+    } else {
+        allStats.forEach(stat => {
+            const isCustom = !!stat.isCustom;
+            const checked = stat.isActive ? 'checked' : '';
+            const manualChecked = stat.isManual ? 'checked' : '';
+            let defaultCell;
+            if (isCustom && isDefaultEditMode) {
+                defaultCell = `<input type="text" class="text_pole default-value-input" data-key="${stat.name}" value="${stat.defaultValue}" style="width:90%;font-size:0.95em;" />`;
+            } else {
+                defaultCell = `<i>${stat.defaultValue}</i>`;
+            }
+            const $row = $(`
+                <tr style="border:none; background:none;">
+                    <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                        <input type="checkbox" class="toggle-stat-active" data-key="${stat.name}" ${checked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                    </td>
+                    <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                        <b>${stat.name}</b>
+                    </td>
+                    <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                        <div class="display-name-container" data-key="${stat.name}">
+                            <span class="display-name-text">${stat.displayName || stat.name}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 6px 0; border:none; background:none; vertical-align:middle; color:#888; font-size:0.95em;">
+                        ${defaultCell}
+                    </td>
+                    <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                        <input type="checkbox" class="toggle-stat-manual" data-key="${stat.name}" ${manualChecked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                    </td>
+                    <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
+                        ${isCustom ? `<i class=\"fa-solid fa-xmark remove-custom-stat\" title=\"Remove\" data-key=\"${stat.name}\"></i>` : ''}
+                    </td>
+                </tr>
+            `);
+            $tbody.append($row);
+        });
+    }
+    // Add custom stat creation row always at the end
+    const $addRow = $(`
+        <tr style="border:none; background:none;">
+            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                <input type="checkbox" checked disabled style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto; opacity:0.5;" />
+            </td>
+            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                <input id="customStatName" class="text_pole" type="text" placeholder="Stat name" style="width: 100%;" />
+            </td>
+            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                <input id="customStatDisplayName" class="text_pole" type="text" placeholder="Display name (optional)" style="width: 100%;" />
+            </td>
+            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                <input id="customStatValue" class="text_pole" type="text" placeholder="Default value" style="width: 100%;" />
+            </td>
+            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                <input id="customStatManual" type="checkbox" style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+            </td>
+            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
+                <i id="add-custom-stat-btn" class="fa-solid fa-plus add-custom-stat" title="Add" style="cursor:pointer; opacity:0.7;"></i>
+            </td>
+        </tr>
+    `);
+    $tbody.append($addRow);
     $table.append($tbody);
     $list.append($table);
+    // Attach handler for adding custom stat
+    attachAddCustomStatHandler(registryInstance);
 
     $('.toggle-stat-active').off('change.statSuite').on('change.statSuite', function() {
         const key = $(this).data('key');
@@ -145,7 +182,69 @@ export function renderStatsList(registryInstance) {
         $(this).hide();
     });
 
-    $('.edit-all-display-names, .discard-display-name-changes').hover(
+    // Edit mode for custom stat default values (in-place, like display names)
+    $('.edit-default-values-btn').off('click.statSuite').on('click.statSuite', function() {
+        const isEditMode = $(this).hasClass('fa-check');
+        if (isEditMode) {
+            // Save changes
+            $('.default-value-input').each(function() {
+                const key = $(this).data('key');
+                const val = $(this).val();
+                const stat = registryInstance.getStatEntry(key);
+                if (stat) stat.defaultValue = val;
+                const newCell = $('<i></i>').text(val);
+                $(this).replaceWith(newCell);
+            });
+            registryInstance.saveToMetadata();
+            onChatChanged();
+            $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
+            $('.discard-default-value-changes-btn').hide();
+        } else {
+            // Enter edit mode: swap <i> for <input> for custom stats
+            $('.default-value-input').each(function() {
+                // Already in edit mode, skip
+                return;
+            });
+            $('.display-name-container').each(function() {
+                // Only custom stats
+                const key = $(this).data('key');
+                const stat = registryInstance.getStatEntry(key);
+                if (!stat || !stat.isCustom) return;
+                const cell = $(this).closest('tr').find('td').eq(3);
+                const val = stat.defaultValue;
+                const input = $('<input type="text" class="text_pole default-value-input">')
+                    .val(val)
+                    .attr('data-key', key)
+                    .css({ width: '90%', 'font-size': '0.95em' });
+                cell.find('i').replaceWith(input);
+            });
+            // Cache current values
+            defaultEditCache = {};
+            allStats.forEach(stat => {
+                if (stat.isCustom) defaultEditCache[stat.name] = stat.defaultValue;
+            });
+            $(this).removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save all default values');
+            $('.discard-default-value-changes-btn').show();
+        }
+    });
+    $('.discard-default-value-changes-btn').off('click.statSuite').on('click.statSuite', function() {
+        // Restore cached values
+        Object.entries(defaultEditCache).forEach(([key, val]) => {
+            const stat = registryInstance.getStatEntry(key);
+            if (!stat) return;
+            stat.defaultValue = val;
+            // Replace input with <i>
+            const row = $(
+                `.display-name-container[data-key="${key}"]`
+            ).closest('tr');
+            const cell = row.find('td').eq(3);
+            cell.find('input.default-value-input').replaceWith($('<i></i>').text(val));
+        });
+        isDefaultEditMode = false;
+        $('.edit-default-values-btn').removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
+        $(this).hide();
+    });
+    $('.edit-default-values-btn, .discard-default-value-changes-btn').hover(
         function() { $(this).css('opacity', '1'); },
         function() { $(this).css('opacity', '0.6'); }
     );
@@ -155,4 +254,44 @@ export function renderStatsList(registryInstance) {
             registryInstance.removeStat(key);
         }
     });
+}
+
+let isDefaultEditMode = false;
+let defaultEditCache = {};
+
+// Helper to attach handler for custom stat creation
+function attachAddCustomStatHandler(registryInstance) {
+    $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
+        const name = $('#customStatName').val().trim();
+        const displayName = $('#customStatDisplayName').val().trim();
+        const value = $('#customStatValue').val().trim();
+        const isManual = $('#customStatManual').prop('checked');
+        if (!name) {
+            alert('Please enter a stat name.');
+            return;
+        }
+        if (registryInstance.getStatEntry(name)) {
+            alert('A stat with this name already exists.');
+            return;
+        }
+        registryInstance.addStat(name, {
+            defaultValue: value || 'unspecified',
+            displayName: displayName || name,
+            dependencies: [],
+            order: registryInstance.getAllStats().length,
+            isCustom: true,
+            isActive: true,
+            isManual: isManual
+        });
+        // Clear inputs
+        $('#customStatName').val('');
+        $('#customStatDisplayName').val('');
+        $('#customStatValue').val('');
+        $('#customStatManual').prop('checked', false);
+    });
+    // Add hover effect for consistency
+    $('#add-custom-stat-btn').hover(
+        function() { $(this).css('opacity', '1'); },
+        function() { $(this).css('opacity', '0.7'); }
+    );
 }

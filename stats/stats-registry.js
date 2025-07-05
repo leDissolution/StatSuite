@@ -205,7 +205,8 @@ export class StatRegistry {
             defaultValue: config.defaultValue !== undefined ? config.defaultValue : 'unspecified',
             displayName: (!config.displayName || config.displayName.trim() === '') ? name : config.displayName,
             isCustom: config.isCustom !== undefined ? !!config.isCustom : true,
-            isActive: config.isActive !== undefined ? !!config.isActive : true
+            isActive: config.isActive !== undefined ? !!config.isActive : true,
+            isManual: config.isManual !== undefined ? !!config.isManual : false
         });
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STAT_ADDED, { detail: name }));

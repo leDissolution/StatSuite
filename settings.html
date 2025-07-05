@@ -12,12 +12,16 @@
                 <!-- Model Settings Section -->
                 <div class="drawer-section">
                     <h4>Model Settings</h4>
-                    <input type="text" name="modelUrl" id="modelUrl" class="text_pole" style="width: 90%;" placeholder="Enter model URL" value="" />
-                    <div id="retryConnection" class="fa-solid fa-rotate" style="padding-left: 5px; cursor: pointer;"></div>
-                    <div id="modelStatus" class="online_status">
-                        <div class="online_status_indicator_stat_suite"></div>
-                        <div class="online_status_text_stat_suite">No connection...</div>
+                    <label for="offlineMode" class="checkbox_label"><input type="checkbox" id="offlineMode" />Offline Mode</label>
+                    <div id="modelSettings" class="flex-container alignitemscenter">
+                        <input type="text" name="modelUrl" id="modelUrl" class="text_pole" style="width: 90%;" placeholder="Enter model URL" value="" />
+                        <div id="retryConnection" class="fa-solid fa-rotate" style="padding-left: 5px; cursor: pointer;"></div>
+                        <div id="modelStatus" class="online_status">
+                            <div class="online_status_indicator_stat_suite"></div>
+                            <div class="online_status_text_stat_suite">No connection...</div>
+                        </div>
                     </div>
+                    <small id="offlineExplanation" class="text-muted" style="display: none;">Offline mode is enabled. Only stats marked as manual will be processed (copied over into the next message).</small>
                 </div>
 
                 <div class="drawer-section">
@@ -63,14 +67,8 @@
                 <details>
                     <summary>Stats</summary>
                     <div class="drawer-section">
-                        <h4>Custom stats</h4>
-                        <div class="flex-container flex-column">
-                            <input id="customStatName" class="text_pole" type="text" placeholder="Stat name" />
-                            <input id="customStatValue" class="text_pole" type="text" placeholder="Default value" />
-                            <input id="add-custom-stat-btn" class="menu_button" type="submit" value="Add custom stat" />
-                        </div>
                         <div id="custom-stats-list" class="mt-2">
-                            <!-- Custom stats will be populated here -->
+                            <!-- Stats table will be populated here -->
                         </div>
                     </div>
                 </details>
