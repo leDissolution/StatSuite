@@ -84,22 +84,13 @@ function processMessageForStats(message_id) {
 function onSwipeChanged(messageId) {
     if (!ExtensionInitialized) return;
     
-    // Validate that this is a stat-eligible message
     if (!Chat.isValidMessageForStats(messageId)) return;
     
-    // Get stats for the new swipe and re-render
     const stats = Chat.getMessageStats(messageId);
     if (stats && Object.keys(stats).length > 0) {
-        if (typeof displayStats === 'function') {
-            displayStats(messageId, stats);
-        } else {
-            console.warn("StatSuite Events Warning: displayStats function not available for swipe update.");
-        }
+        displayStats(messageId, stats);
     } else {
-        // Clear stats display if no stats for this swipe
-        if (typeof displayStats === 'function') {
-            displayStats(messageId, {});
-        }
+        makeStats(messageId);
     }
 }
 
