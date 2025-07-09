@@ -3,6 +3,7 @@ import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '
 import { chat_metadata, saveSettingsDebounced } from '../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../extensions.js';
 import { ExtensionSettings } from '../settings.js';
+export { StatsPreset } from './presets.js';
 
 /**
  * @typedef {Object} StatEntryOptions
@@ -82,44 +83,21 @@ export class StatRegistry {
      * @returns {void}
      */
     initializeFromMetadata() {
-        /** @type {StatEntry[] | null} */
-        const storedStats = chat_metadata.StatSuite?.statsRegistry || null;
         this._stats = {};
-        
-        if (Array.isArray(storedStats) && storedStats.length > 0) {
-            // Load stored stats without triggering events for each one
-            storedStats.forEach(stat => this._addStatEntryInternal(stat));
+        DEFAULT_STATS.forEach(stat => this._addStatEntryInternal(stat));
 
-            // sync settings for default stats with hardcoded values
-            DEFAULT_STATS.forEach(defaultStat => {
-                const existing = this._stats[defaultStat.name];
-                if (existing) {
-                    existing.dependencies = [...defaultStat.dependencies];
-                    existing.order = defaultStat.order;
-                    existing.defaultValue = defaultStat.defaultValue;
-                    // isCustom and isActive are preserved from metadata
+        const storedStats = chat_metadata.StatSuite?.statsRegistry || null;
+        if (Array.isArray(storedStats) && storedStats.length > 0) {
+            storedStats.filter(stat => stat.isCustom).forEach(stat => this._addStatEntryInternal(stat));
+        }
+
+        const customStats = ExtensionSettings.statsSettings?.customStats || [];
+        if (Array.isArray(customStats) && customStats.length > 0) {
+            customStats.forEach(stat => {
+                if (!this._stats[stat.name]) {
+                    this._addStatEntryInternal(stat);
                 }
             });
-
-            // if any of the default stats are missing, add them as inactive
-            /** @type {StatEntry[]} */
-            const missingDefaultStats =
-                Object.keys(this._stats).length > 0 ?
-                    DEFAULT_STATS.filter(defaultStat => !Object.values(this._stats).some(stat => stat.name === defaultStat.name)) :
-                    DEFAULT_STATS;
-            missingDefaultStats.forEach(stat => {
-                this._addStatEntryInternal(new StatEntry(stat.name, {
-                    dependencies: stat.dependencies,
-                    order: stat.order,
-                    defaultValue: stat.defaultValue,
-                    isCustom: false,
-                    isActive: false,
-                    isManual: false
-                }));
-            });
-        } else {
-            // Load default stats without triggering events for each one
-            DEFAULT_STATS.forEach(stat => this._addStatEntryInternal(stat));
         }
 
         DEFAULT_STATS.forEach(stat => {
@@ -130,10 +108,12 @@ export class StatRegistry {
             }
         });
 
-        // Save once after all stats are loaded and dispatch a single batch event
         this.saveToMetadata();
-        this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STATS_BATCH_LOADED, { 
-            detail: { statNames: Object.keys(this._stats) } 
+
+        delete chat_metadata.StatSuite?.statsRegistry;
+
+        this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STATS_BATCH_LOADED, {
+            detail: { statNames: Object.keys(this._stats) }
         }));
     }
 
@@ -142,16 +122,22 @@ export class StatRegistry {
      * @returns {void}
      */
     saveToMetadata() {
-        if (!chat_metadata.StatSuite) chat_metadata.StatSuite = {};
-        chat_metadata.StatSuite.statsRegistry = Object.values(this._stats);
+        if (!ExtensionSettings.statsSettings) ExtensionSettings.statsSettings = {};
 
-        //save displayNames of default stats to global settings
+        Object.values(this._stats).filter(stat => stat.isCustom).forEach(stat => {
+            if (!ExtensionSettings.statsSettings.customStats) {
+                ExtensionSettings.statsSettings.customStats = [];
+            }
+            if (!ExtensionSettings.statsSettings.customStats.some(existing => existing.name === stat.name)) {
+                ExtensionSettings.statsSettings.customStats.push(stat);
+            }
+        });
+
         if (ExtensionSettings.statDisplayNames) {
             for (const stat of Object.values(this._stats)) {
                 if (stat.isCustom || !stat.displayName || stat.displayName.trim() === '') continue;
                 ExtensionSettings.statDisplayNames[stat.name] = stat.displayName;
             }
-
             saveSettingsDebounced();
         }
 

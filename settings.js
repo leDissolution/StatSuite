@@ -15,6 +15,7 @@ export class SuiteSettings {
         this.collapseOldStats = true;
         this.anonymizeClipboardExport = true;
         this.statDisplayNames = {}
+        this.statsSettings = {}
     }
 }
 
