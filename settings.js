@@ -2,8 +2,28 @@ import { extension_settings } from "../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../script.js"
 import { fetchAvailableModels } from "./api.js"
 
-const extensionName = "StatSuite";
+/**
+ * @typedef {Object} StatsSettings
+ * @property {Object.<string, any>} stats
+ * @property {Object.<string, any>} presets
+ */
 
+/**
+ * @typedef {Object} SuiteSettings
+ * @property {boolean} offlineMode - Whether StatSuite operates in offline mode.
+ * @property {string} modelUrl - The URL of the stats model API.
+ * @property {string} modelName - The name or ID of the selected model.
+ * @property {boolean} autoTrackMessageAuthors - Whether to auto-track message authors.
+ * @property {boolean} enableAutoRequestStats - Whether to auto-request stats for messages.
+ * @property {boolean} showStats - Whether to show stats in the UI.
+ * @property {boolean} collapseOldStats - Whether to collapse old stats in the UI.
+ * @property {boolean} anonymizeClipboardExport - Whether to anonymize data when exporting to clipboard.
+ * @property {StatsSettings} stats - Custom stats settings per stat or group.
+ */
+
+/**
+ * @implements {SuiteSettings}
+ */
 export class SuiteSettings {
     constructor() {
         this.offlineMode = false;
@@ -14,11 +34,16 @@ export class SuiteSettings {
         this.showStats = true;
         this.collapseOldStats = true;
         this.anonymizeClipboardExport = true;
-        this.statDisplayNames = {}
-        this.statsSettings = {}
+        /** @type {StatsSettings} */
+        this.stats = { stats: {}, presets: {} };
     }
 }
 
+const extensionName = "StatSuite";
+/**
+ * Global settings registry for StatSuite.
+ * @type {SuiteSettings}
+ */
 export const ExtensionSettings = extension_settings[extensionName] ??= new SuiteSettings();
 const defaultSettings = new SuiteSettings();
 

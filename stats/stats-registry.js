@@ -1,9 +1,9 @@
 // StatSuite - StatRegistry: Manages stat definitions, dependencies, and persistence per chat
 import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../script.js';
+import { saveSettingsDebounced } from '../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../extensions.js';
 import { ExtensionSettings } from '../settings.js';
-export { StatsPreset } from './presets.js';
+import { Presets, StatPreset } from './presets-registry.js';
 
 /**
  * @typedef {Object} StatEntryOptions
@@ -83,34 +83,66 @@ export class StatRegistry {
      * @returns {void}
      */
     initializeFromMetadata() {
-        this._stats = {};
-        DEFAULT_STATS.forEach(stat => this._addStatEntryInternal(stat));
+        const preset = Presets.getActivePreset();
 
-        const storedStats = chat_metadata.StatSuite?.statsRegistry || null;
-        if (Array.isArray(storedStats) && storedStats.length > 0) {
-            storedStats.filter(stat => stat.isCustom).forEach(stat => this._addStatEntryInternal(stat));
-        }
+        if (ExtensionSettings.stats && ExtensionSettings.stats.stats) {
+            Object.entries(ExtensionSettings.stats.stats).forEach(([statName, stat]) => {
+                if (stat && statName && !this._stats[statName]) {
+                    let statPreset = preset.get(statName);
 
-        const customStats = ExtensionSettings.statsSettings?.customStats || [];
-        if (Array.isArray(customStats) && customStats.length > 0) {
-            customStats.forEach(stat => {
-                if (!this._stats[stat.name]) {
-                    this._addStatEntryInternal(stat);
+                    if (!statPreset) {
+                        if (!stat.isCustom) {
+                            const defaultStat = DEFAULT_STATS.find(s => s.name === statName);
+                            if (defaultStat) {
+                                statPreset = {
+                                    name: defaultStat.name,
+                                    displayName: defaultStat.displayName,
+                                    active: defaultStat.isActive,
+                                    manual: defaultStat.isManual,
+                                    defaultValue: defaultStat.defaultValue || 'unspecified'
+                                };
+                            }
+                        }
+
+                        if (!statPreset) {
+                            console.warn(`StatSuite Warning: Stat "${stat.name}" not found in presets. Using default configuration.`);
+                            statPreset = {
+                                name: stat.name,
+                                displayName: stat.name,
+                                active: false,
+                                manual: false,
+                                defaultValue: 'unspecified'
+                            };
+                        }
+                    }
+
+                    this._addStatEntryInternal({
+                        name: stat.name,
+                        dependencies: stat.dependencies || [],
+                        order: stat.order,
+                        isCustom: stat.isCustom,
+                        isActive: statPreset.active,
+                        isManual: statPreset.manual,
+                        defaultValue: statPreset.defaultValue || 'unspecified',
+                        displayName: statPreset.displayName || stat.name
+                    });
                 }
             });
         }
 
         DEFAULT_STATS.forEach(stat => {
-            if (ExtensionSettings.statDisplayNames && ExtensionSettings.statDisplayNames[stat.name]) {
-                if (this._stats[stat.name]) {
-                    this._stats[stat.name].displayName = ExtensionSettings.statDisplayNames[stat.name];
-                }
+            if (!this._stats[stat.name]) {
+                this._addStatEntryInternal(stat);
+            }
+
+            this._stats[stat.name].isCustom = false;
+            this._stats[stat.name].defaultValue = stat.defaultValue;
+
+            const statPreset = preset.get(stat.name);
+            if (statPreset) {
+                statPreset.defaultValue = stat.defaultValue;
             }
         });
-
-        this.saveToMetadata();
-
-        delete chat_metadata.StatSuite?.statsRegistry;
 
         this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STATS_BATCH_LOADED, {
             detail: { statNames: Object.keys(this._stats) }
@@ -122,24 +154,34 @@ export class StatRegistry {
      * @returns {void}
      */
     saveToMetadata() {
-        if (!ExtensionSettings.statsSettings) ExtensionSettings.statsSettings = {};
-
-        Object.values(this._stats).filter(stat => stat.isCustom).forEach(stat => {
-            if (!ExtensionSettings.statsSettings.customStats) {
-                ExtensionSettings.statsSettings.customStats = [];
-            }
-            if (!ExtensionSettings.statsSettings.customStats.some(existing => existing.name === stat.name)) {
-                ExtensionSettings.statsSettings.customStats.push(stat);
-            }
+        if (!ExtensionSettings.stats) ExtensionSettings.stats = {};
+        if (!ExtensionSettings.stats.stats) ExtensionSettings.stats.stats = {};
+        
+        // Save basic stat configuration (structure only)
+        ExtensionSettings.stats.stats = {};
+        this.getAllStats().forEach(stat => {
+            ExtensionSettings.stats.stats[stat.name] = {
+                name: stat.name,
+                dependencies: stat.dependencies,
+                order: stat.order,
+                isCustom: stat.isCustom
+            };
         });
 
-        if (ExtensionSettings.statDisplayNames) {
-            for (const stat of Object.values(this._stats)) {
-                if (stat.isCustom || !stat.displayName || stat.displayName.trim() === '') continue;
-                ExtensionSettings.statDisplayNames[stat.name] = stat.displayName;
-            }
-            saveSettingsDebounced();
-        }
+        // Save activation states and display settings to the active preset
+        const preset = Presets.getActivePreset();
+        this.getAllStats().forEach(stat => {
+            preset.set(new StatPreset({
+                name: stat.name,
+                displayName: stat.displayName,
+                active: stat.isActive,
+                manual: stat.isManual,
+                defaultValue: stat.defaultValue
+            }));
+        });
+
+        Presets.saveToMetadata();
+        saveSettingsDebounced();
 
         if (saveMetadataDebounced) saveMetadataDebounced();
     }
@@ -324,6 +366,34 @@ export class StatRegistry {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Applies a preset to all stats in the registry.
+     * @param {string} presetName - The name of the preset to apply
+     * @returns {void}
+     */
+    applyPreset(presetName) {
+        const preset = Presets.getPreset(presetName);
+        if (!preset) {
+            console.warn(`StatSuite Warning: Preset "${presetName}" not found.`);
+            return;
+        }
+        
+        this.getAllStats().forEach(stat => {
+            const statPreset = preset.get(stat.name);
+            if (statPreset) {
+                stat.isActive = statPreset.active;
+                stat.isManual = statPreset.manual;
+                stat.displayName = statPreset.displayName || stat.name;
+                stat.defaultValue = statPreset.defaultValue || stat.defaultValue;
+            }
+        });
+        
+        Presets.setActivePreset(presetName);
+        this.saveToMetadata();
+        
+        this._eventTarget.dispatchEvent(new CustomEvent('statsChanged'));
     }
 }
 

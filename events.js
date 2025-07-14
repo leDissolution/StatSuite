@@ -8,6 +8,7 @@ import { Characters } from './characters/characters-registry.js';
 import { Stats } from './stats/stats-registry.js';
 import { renderCharactersList } from './ui/characters-list.js';
 import { Chat } from './chat/chat-manager.js';
+import { Presets } from './stats/presets-registry.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -32,6 +33,7 @@ export function onChatChanged() {
     }
     Characters.characters.clear();
     renderCharactersList(Characters);
+    Presets.loadFromMetadata();
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
 

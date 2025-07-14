@@ -150,3 +150,36 @@ table.stats-table {
 .display-name-input {
     flex: 1;
 }
+
+/* Preset dropdown styling */
+.preset-container {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: var(--SmartThemeBlurTintColor);
+    border-radius: 4px;
+}
+
+.preset-container label {
+    font-weight: bold;
+    margin-right: 8px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.preset-container select {
+    min-width: 150px;
+    flex-grow: 1;
+}
+
+.preset-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.preset-actions button {
+    padding: 4px 8px;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
