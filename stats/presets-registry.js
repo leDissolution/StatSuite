@@ -1,6 +1,7 @@
 // StatSuite - Preset management for stat activation states
 import { ExtensionSettings } from '../settings.js';
-import { saveSettingsDebounced } from '../../../../../script.js';
+import { chat_metadata, saveSettingsDebounced } from '../../../../../script.js';
+import { saveMetadataDebounced } from '../../../../extensions.js';
 
 export class StatPreset {
     constructor({ name, displayName, active, manual, defaultValue }) {
@@ -95,6 +96,12 @@ export class PresetRegistry {
         if (!this.presets['default']) {
             this.presets['default'] = new StatsPreset('default', {});
         }
+
+        if (chat_metadata.StatSuite && chat_metadata.StatSuite.selectedPreset) {
+            this.selectedPreset = chat_metadata.StatSuite.selectedPreset;
+        } else {
+            this.selectedPreset = 'default';
+        }
     }
 
     saveToMetadata() {
@@ -110,6 +117,11 @@ export class PresetRegistry {
         
         ExtensionSettings.stats.presets = presetsData;
         saveSettingsDebounced();
+
+        chat_metadata.StatSuite = chat_metadata.StatSuite || {};
+        chat_metadata.StatSuite.selectedPreset = this.selectedPreset;
+
+        saveMetadataDebounced();
     }
 
 

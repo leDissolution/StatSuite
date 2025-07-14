@@ -130,6 +130,8 @@ export class StatRegistry {
             });
         }
 
+        this.applyPreset(preset.name);
+
         DEFAULT_STATS.forEach(stat => {
             if (!this._stats[stat.name]) {
                 this._addStatEntryInternal(stat);
