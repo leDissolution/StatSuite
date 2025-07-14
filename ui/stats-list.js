@@ -39,7 +39,20 @@ export function renderStatsList(registryInstance) {
     const $savePresetBtn = $('<button class="menu_button">Save As</button>');
     const $deletePresetBtn = $('<button class="menu_button">Delete</button>');
     
-    $presetActions.append($savePresetBtn, $deletePresetBtn);
+    const context = SillyTavern.getContext();
+    const currentCharacter = context?.characters[context.characterId]?.name;
+    const isPresetLockedToCharacter = currentCharacter && activePreset.characters.includes(currentCharacter);
+    
+    const lockIcon = isPresetLockedToCharacter ? 'fa-lock' : 'fa-unlock';
+    const lockColor = isPresetLockedToCharacter ? 'var(--active)' : '';
+    const $lockToCharacterBtn = $(`<button class="menu_button"><i class="icon fa-solid ${lockIcon} fa-fw" style="color: ${lockColor}; padding-right: 4px;"></i>Character</button>`);
+
+    $presetActions.append($savePresetBtn, $lockToCharacterBtn);
+
+    if (activePreset.name !== 'default') {
+        $presetActions.append($deletePresetBtn);
+    }
+
     $presetContainer.append($presetLabel, $presetSelect, $presetActions);
     $list.append($presetContainer);
 
@@ -227,9 +240,6 @@ export function renderStatsList(registryInstance) {
             $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
             $('.discard-default-value-changes-btn').hide();
         } else {
-            $('.default-value-input').each(function() {
-                return;
-            });
             $('.display-name-container').each(function() {
                 const key = $(this).data('key');
                 const stat = registryInstance.getStatEntry(key);
@@ -328,12 +338,33 @@ export function renderStatsList(registryInstance) {
             renderStatsList(registryInstance);
         }
     });
+
+    $lockToCharacterBtn.off('click.statSuite').on('click.statSuite', function() {
+        const context = SillyTavern.getContext();
+        const currentCharacter = context?.characters[context.characterId]?.name;
+        
+        if (!currentCharacter) {
+            alert('No character is currently selected.');
+            return;
+        }
+        
+        const activePreset = Presets.getActivePreset();
+        const isCurrentlyLocked = activePreset.characters.includes(currentCharacter);
+        
+        if (isCurrentlyLocked) {
+            activePreset.characters = activePreset.characters.filter(name => name !== currentCharacter);
+            Presets.saveToMetadata();
+            renderStatsList(registryInstance);
+        } else {
+            Presets.setPresetForCharacter(currentCharacter, activePreset.name);
+            renderStatsList(registryInstance);
+        }
+    });
 }
 
 let isDefaultEditMode = false;
 let defaultEditCache = {};
 
-// Helper to attach handler for custom stat creation
 function attachAddCustomStatHandler(registryInstance) {
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
         const name = $('#customStatName').val().trim();
@@ -357,13 +388,13 @@ function attachAddCustomStatHandler(registryInstance) {
             isActive: true,
             isManual: isManual
         });
-        // Clear inputs
+        
         $('#customStatName').val('');
         $('#customStatDisplayName').val('');
         $('#customStatValue').val('');
         $('#customStatManual').prop('checked', false);
     });
-    // Add hover effect for consistency
+    
     $('#add-custom-stat-btn').hover(
         function() { $(this).css('opacity', '1'); },
         function() { $(this).css('opacity', '0.7'); }

@@ -31,6 +31,9 @@ export class StatsPreset {
         this.name = name;
         /** @type {Object.<string, StatPreset>} */
         this.stats = stats;
+
+        /** @type {string[]} */
+        this.characters = [];
     }
 
     /**
@@ -80,6 +83,7 @@ export class PresetRegistry {
         if (ExtensionSettings.stats && ExtensionSettings.stats.presets) {
             Object.entries(ExtensionSettings.stats.presets).forEach(([presetName, presetData]) => {
                 const preset = new StatsPreset(presetName);
+                preset.characters = presetData.characters || [];
                 Object.entries(presetData.stats || {}).forEach(([statName, statData]) => {
                     preset.set(new StatPreset({
                         name: statName,
@@ -100,7 +104,14 @@ export class PresetRegistry {
         if (chat_metadata.StatSuite && chat_metadata.StatSuite.selectedPreset) {
             this.selectedPreset = chat_metadata.StatSuite.selectedPreset;
         } else {
-            this.selectedPreset = 'default';
+            const context = SillyTavern.getContext();
+            const currentCharacter = context?.characters[context.characterId]?.name;
+            const presetForCharacter = this.getPresetForCharacter(currentCharacter);
+            if (presetForCharacter) {
+                this.selectedPreset = presetForCharacter.name;
+            } else {
+                this.selectedPreset = 'default';
+            }
         }
     }
 
@@ -111,7 +122,8 @@ export class PresetRegistry {
         Object.entries(this.presets).forEach(([name, preset]) => {
             presetsData[name] = {
                 name: preset.name,
-                stats: preset.stats
+                stats: preset.stats,
+                characters: preset.characters,
             };
         });
         
@@ -179,6 +191,40 @@ export class PresetRegistry {
             delete this.presets[name];
             this.saveToMetadata();
         }
+    }
+
+    /**
+     * Get the preset that contains a specific character
+     * @param {string} characterName - The name of the character to search for
+     * @return {StatsPreset|null} The preset containing the character, or null if not found
+     */
+    getPresetForCharacter(characterName) {
+        if (!characterName) {
+            return null;
+        }
+
+        for (const preset of Object.values(this.presets)) {
+            if (preset.characters.includes(characterName)) {
+                return preset;
+            }
+        }
+
+        return null;
+    }
+
+    setPresetForCharacter(characterName, presetName) {
+        if (!this.presets[presetName]) {
+            console.warn(`Preset "${presetName}" does not exist.`);
+            return;
+        }
+
+        const preset = this.getPresetForCharacter(characterName);
+        if (preset) {
+            preset.characters = preset.characters.filter(name => name !== characterName);
+        }
+
+        this.presets[presetName].characters.push(characterName);
+        this.saveToMetadata();
     }
 }
 
