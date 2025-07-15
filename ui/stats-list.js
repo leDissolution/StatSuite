@@ -45,7 +45,7 @@ export function renderStatsList(registryInstance) {
     
     const lockIcon = isPresetLockedToCharacter ? 'fa-lock' : 'fa-unlock';
     const lockColor = isPresetLockedToCharacter ? 'var(--active)' : '';
-    const $lockToCharacterBtn = $(`<button class="menu_button"><i class="icon fa-solid ${lockIcon} fa-fw" style="color: ${lockColor}; padding-right: 4px;"></i>Character</button>`);
+    const $lockToCharacterBtn = $(`<button class="menu_button"><i class="icon fa-solid ${lockIcon} fa-fw" style="color: ${lockColor}; padding-right: 4px;" title="Lock preset to current character"></i>Character</button>`);
 
     $presetActions.append($savePresetBtn, $lockToCharacterBtn);
 
