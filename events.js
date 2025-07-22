@@ -85,7 +85,7 @@ function processMessageForStats(message_id) {
  */
 function onSwipeChanged(messageId) {
     if (!ExtensionInitialized) return;
-    
+    if (!ExtensionSettings.enableAutoRequestStats) return;
     if (!Chat.isValidMessageForStats(messageId)) return;
     
     const stats = Chat.getMessageStats(messageId);
