@@ -9,6 +9,24 @@ import { Chat } from '../chat/chat-manager.js';
 import { Characters } from '../characters/characters-registry.js';
 
 /**
+ * Sanitize stat input value before saving.
+ * @param {string} value
+ * @returns {string}
+ */
+function sanitizeStatInput(value) {
+    if (typeof value !== 'string') return value;
+
+    let sanitized = value.replace(/\t/g, '');
+    sanitized = sanitized.replace(/\s(a|an|the)\s+/i, ' ');
+    sanitized = sanitized.replace(/ {2,}/g, ' ');
+    sanitized = sanitized.replace(/ +,/g, ',');
+    sanitized = sanitized.trim();
+    sanitized = sanitized.replace(/^,|,$/g, '');
+
+    return sanitized;
+}
+
+/**
  * Batch regenerate stats for a set of messages.
  * @param {Array<number>} messageIndices - Indices of messages to process.
  * @param {Object} options - { char, stat, greedy, toastMessage }
@@ -375,7 +393,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
             const cell = $(this);
             const char = cell.attr('data-character');
             const stat = cell.attr('data-stat');
-            const newValue = cell.find('input').val();
+            const newValue = sanitizeStatInput(cell.find('input').val());
             if (newStats[char][stat] !== newValue) {
                 newStats[char][stat] = newValue;
                 changed = true;

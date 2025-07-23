@@ -6,7 +6,7 @@
     "js": "index.js",
     "css": "style.css",
     "author": "Le Dissolution",
-    "version": "0.0.2e",
+    "version": "0.0.3",
     "homePage": "",
     "generate_interceptor": "injectStats"
 }

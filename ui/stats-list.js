@@ -1,4 +1,5 @@
 import { onChatChanged } from '../events.js';
+import { Presets, StatsPreset, StatPreset } from '../stats/presets-registry.js';
 
 /**
  * Renders the list of stats in the UI, including toggles for isActive and isManual.
@@ -14,6 +15,46 @@ export function renderStatsList(registryInstance) {
     const $list = $('#custom-stats-list');
     $list.empty();
     const allStats = registryInstance.getAllStats();
+
+    const $presetContainer = $('<div class="preset-container"></div>');
+    const $presetLabel = $('<label>Preset:</label>');
+    const $presetSelect = $('<select id="preset-selector" class="text_pole"></select>');
+    
+    const allPresets = Presets.getAllPresets();
+    const activePreset = Presets.getActivePreset();
+    
+    Object.values(allPresets).forEach(preset => {
+        const $option = $('<option></option>')
+            .val(preset.name)
+            .text(preset.name);
+        
+        if (preset.name === activePreset.name) {
+            $option.prop('selected', true);
+        }
+        
+        $presetSelect.append($option);
+    });
+    
+    const $presetActions = $('<div class="preset-actions"></div>');
+    const $savePresetBtn = $('<button class="menu_button">Save As</button>');
+    const $deletePresetBtn = $('<button class="menu_button">Delete</button>');
+    
+    const context = SillyTavern.getContext();
+    const currentCharacter = context?.characters[context.characterId]?.name;
+    const isPresetLockedToCharacter = currentCharacter && activePreset.characters.includes(currentCharacter);
+    
+    const lockIcon = isPresetLockedToCharacter ? 'fa-lock' : 'fa-unlock';
+    const lockColor = isPresetLockedToCharacter ? 'var(--active)' : '';
+    const $lockToCharacterBtn = $(`<button class="menu_button"><i class="icon fa-solid ${lockIcon} fa-fw" style="color: ${lockColor}; padding-right: 4px;" title="Lock preset to current character"></i>Character</button>`);
+
+    $presetActions.append($savePresetBtn, $lockToCharacterBtn);
+
+    if (activePreset.name !== 'default') {
+        $presetActions.append($deletePresetBtn);
+    }
+
+    $presetContainer.append($presetLabel, $presetSelect, $presetActions);
+    $list.append($presetContainer);
 
     // Always show the table, even if empty, to allow adding custom stats
     const $table = $('<table style="width:100%; border-collapse:collapse; background:none;"></table>');
@@ -186,7 +227,6 @@ export function renderStatsList(registryInstance) {
     $('.edit-default-values-btn').off('click.statSuite').on('click.statSuite', function() {
         const isEditMode = $(this).hasClass('fa-check');
         if (isEditMode) {
-            // Save changes
             $('.default-value-input').each(function() {
                 const key = $(this).data('key');
                 const val = $(this).val();
@@ -200,13 +240,7 @@ export function renderStatsList(registryInstance) {
             $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
             $('.discard-default-value-changes-btn').hide();
         } else {
-            // Enter edit mode: swap <i> for <input> for custom stats
-            $('.default-value-input').each(function() {
-                // Already in edit mode, skip
-                return;
-            });
             $('.display-name-container').each(function() {
-                // Only custom stats
                 const key = $(this).data('key');
                 const stat = registryInstance.getStatEntry(key);
                 if (!stat || !stat.isCustom) return;
@@ -254,12 +288,83 @@ export function renderStatsList(registryInstance) {
             registryInstance.removeStat(key);
         }
     });
+
+    $('#preset-selector').off('change.statSuite').on('change.statSuite', function() {
+        const selectedPreset = $(this).val();
+        if (selectedPreset && selectedPreset !== Presets.getActivePreset().name) {
+            registryInstance.applyPreset(selectedPreset);
+            renderStatsList(registryInstance);
+        }
+    });
+
+    $savePresetBtn.off('click.statSuite').on('click.statSuite', function() {
+        const presetName = prompt('Enter a name for the preset:');
+        if (presetName && presetName.trim()) {
+            const trimmedName = presetName.trim();
+            if (Presets.getPreset(trimmedName)) {
+                if (!confirm(`Preset "${trimmedName}" already exists. Overwrite?`)) {
+                    return;
+                }
+            }
+            
+            const newPreset = new StatsPreset(trimmedName);
+            registryInstance.getAllStats().forEach(stat => {
+                newPreset.set(new StatPreset({
+                    name: stat.name,
+                    displayName: stat.displayName,
+                    active: stat.isActive,
+                    manual: stat.isManual,
+                    defaultValue: stat.defaultValue
+                }));
+            });
+            
+            Presets.addPreset(newPreset);
+            Presets.setActivePreset(trimmedName);
+            
+            renderStatsList(registryInstance);
+        }
+    });
+
+    $deletePresetBtn.off('click.statSuite').on('click.statSuite', function() {
+        const currentPreset = $('#preset-selector').val();
+        if (currentPreset === 'default') {
+            alert('Cannot delete the default preset.');
+            return;
+        }
+        
+        if (confirm(`Delete preset "${currentPreset}"? This cannot be undone.`)) {
+            Presets.deletePreset(currentPreset);
+            registryInstance.applyPreset('default');
+            renderStatsList(registryInstance);
+        }
+    });
+
+    $lockToCharacterBtn.off('click.statSuite').on('click.statSuite', function() {
+        const context = SillyTavern.getContext();
+        const currentCharacter = context?.characters[context.characterId]?.name;
+        
+        if (!currentCharacter) {
+            alert('No character is currently selected.');
+            return;
+        }
+        
+        const activePreset = Presets.getActivePreset();
+        const isCurrentlyLocked = activePreset.characters.includes(currentCharacter);
+        
+        if (isCurrentlyLocked) {
+            activePreset.characters = activePreset.characters.filter(name => name !== currentCharacter);
+            Presets.saveToMetadata();
+            renderStatsList(registryInstance);
+        } else {
+            Presets.setPresetForCharacter(currentCharacter, activePreset.name);
+            renderStatsList(registryInstance);
+        }
+    });
 }
 
 let isDefaultEditMode = false;
 let defaultEditCache = {};
 
-// Helper to attach handler for custom stat creation
 function attachAddCustomStatHandler(registryInstance) {
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
         const name = $('#customStatName').val().trim();
@@ -283,13 +388,13 @@ function attachAddCustomStatHandler(registryInstance) {
             isActive: true,
             isManual: isManual
         });
-        // Clear inputs
+        
         $('#customStatName').val('');
         $('#customStatDisplayName').val('');
         $('#customStatValue').val('');
         $('#customStatManual').prop('checked', false);
     });
-    // Add hover effect for consistency
+    
     $('#add-custom-stat-btn').hover(
         function() { $(this).css('opacity', '1'); },
         function() { $(this).css('opacity', '0.7'); }
