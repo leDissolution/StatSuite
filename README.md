@@ -40,7 +40,7 @@ By default, it will treat each message author as a character (works with group c
 Checkbox next to the character name is whether it is player or not. For now, it only matters when the character enters the scene first time - it will try to read {{description}} for AI cards and {{persona}} for player, to try and initialize the stats when the character is seen first time.
 
 #### Stats
-![image](https://github.com/user-attachments/assets/3e2235e9-dfc5-44a3-9e86-e60669bd97cb)
+![image](https://github.com/user-attachments/assets/279cae5a-ae3a-4311-888e-9a1af862b9d0)
 
 List of stats to track. You can disable ones you find not very useful for the playthrough (for example, exposure for non-ERP), or try adding custom ones. It will probably not work very well, but feel free to experiment!
 "manual" checkbox means that this field will not be requested from the model, but just copied over from previous message. You can store whatever you want that way - think of it as per-character author note @depth 1.
@@ -53,6 +53,9 @@ You can create presets of stats to quickly switch between them. It is useful for
 - Whether the stat is manual or not
 - Display name of the stat
 - Default value of the custom stats (default values for the built-in stats are set in the model, and cannot be changed)
+
+<img width="300" height="200" alt="image" src="https://github.com/user-attachments/assets/e609ee3d-1f3d-45d6-b040-045a300a617d" />
+<img width="300" height="200" alt="image" src="https://github.com/user-attachments/assets/3c958546-336a-45ad-8754-f28d098a99ba" />
 
 To make a preset, click the "Save As" button next to the preset selector, and give it a name. It will copy the current stats list, and you can then modify it as you like. You can also lock the preset to the current character, and it will be selected by default for all the new chats with that character.
 
