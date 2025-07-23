@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/alpha-0.2-orange)
+![Version](https://img.shields.io/badge/alpha-0.3-orange)
 
 # Stat Tracker (Open Alpha)
 
