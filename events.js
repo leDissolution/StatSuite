@@ -55,28 +55,42 @@ export function onChatChanged() {
     });
 }
 
+var messageLock = [];
+
 /**
  * Triggers automatic stat generation if enabled and adds UI buttons.
  * @param {number} message_id
  */
-function processMessageForStats(message_id) {
+async function processMessageForStats(message_id) {
     if (!Chat.isValidMessageForStats(message_id)) return;
     if (generating) return;
-    
-    if (ExtensionSettings.autoTrackMessageAuthors === true) {
-        const message = Chat.getMessage(message_id);
-        if (message && message.name) {
-            Characters.addCharacter(message.name, message.is_user);
+    if (messageLock[message_id]) {
+        console.warn(`StatSuite Warning: Message ${message_id} is already being processed.`);
+        return;
+    }
+
+    messageLock[message_id] = true;
+
+    try
+    {
+        if (ExtensionSettings.autoTrackMessageAuthors === true) {
+            const message = Chat.getMessage(message_id);
+            if (message && message.name) {
+                Characters.addCharacter(message.name, message.is_user);
+            }
         }
+
+        if (ExtensionSettings.enableAutoRequestStats === true) {
+            await makeStats(message_id);
+        }
+
+        addPasteButton(message_id);
     }
-
-    if (ExtensionSettings.enableAutoRequestStats === true) {
-        makeStats(message_id);
+    finally
+    {
+        latestMessageIndex = -1;
+        messageLock[message_id] = false;
     }
-
-    addPasteButton(message_id);
-
-    latestMessageIndex = -1;
 }
 
 /**
@@ -87,7 +101,12 @@ function onSwipeChanged(messageId) {
     if (!ExtensionInitialized) return;
     if (!ExtensionSettings.enableAutoRequestStats) return;
     if (!Chat.isValidMessageForStats(messageId)) return;
-    
+    if (chat[messageId].swipe_id >= chat[messageId].swipes.length) // swipe_id out of bounds means new swipe request before message is generated
+    {
+        displayStats(messageId, {'...': {}});
+        return;
+    } 
+
     const stats = Chat.getMessageStats(messageId);
     if (stats && Object.keys(stats).length > 0) {
         displayStats(messageId, stats);
