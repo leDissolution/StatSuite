@@ -36,6 +36,8 @@ export class SuiteSettings {
         this.anonymizeClipboardExport = true;
         /** @type {StatsSettings} */
         this.stats = { stats: {}, presets: {} };
+        /** @type {Array.<Template>} */
+        this.templates = [];
     }
 }
 

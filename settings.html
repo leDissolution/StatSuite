@@ -74,6 +74,15 @@
                 </details>
 
                 <details>
+                    <summary>Templates</summary>
+                    <div class="drawer-section">
+                        <div id="template-container" class="mt-2">
+                            <!-- Templates will be populated here -->
+                        </div>
+                    </div>
+                </details>
+
+                <details>
                     <summary>Dev mode</summary>
                     <div class="drawer-section">
                         <h4>Actions</h4>
@@ -162,5 +171,92 @@
 
 .menu_button {
     margin: 0;
+}
+
+/* Template Settings Styles */
+.template-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.template-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.template-selector-container label {
+    min-width: 80px;
+}
+
+.template-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.template-name-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--bg-color-alt);
+}
+
+.template-name-container label {
+    min-width: 120px;
+}
+
+.template-editor {
+    margin-bottom: 15px;
+}
+
+.template-editor label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.template-preview-container {
+    margin-top: 15px;
+}
+
+.template-preview-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.template-preview {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px;
+    background-color: var(--bg-color-alt);
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.template-preview pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.template-preview .error {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+.template-preview .text-muted {
+    color: var(--text-muted);
+    font-style: italic;
 }
 </style>
