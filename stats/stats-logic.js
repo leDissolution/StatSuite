@@ -1,5 +1,5 @@
 // StatSuite - Core logic for stats definition, generation, and processing
-import { chat, extension_prompt_types } from '../../../../../script.js';
+import { extension_prompt_types } from '../../../../../script.js';
 
 import { ExtensionSettings } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
@@ -134,7 +134,6 @@ export function setMessageStats(stats, messageIndex) {
     }
 
     if (stats && typeof stats === 'object') {
-        // Process stats (convert to StatsBlock, normalize values, etc.)
         for (const char of Object.keys(stats)) {
             /** @type {StatsBlock} */
             let statsBlock = stats[char];
@@ -142,31 +141,16 @@ export function setMessageStats(stats, messageIndex) {
                 statsBlock = new StatsBlock(statsBlock);
                 stats[char] = statsBlock;
             }
-            // Normalize specific stat values
-            if (statsBlock.hasOwnProperty('bodyState')) {
-                statsBlock.bodyState = statsBlock.bodyState.toLowerCase();
-            }
-            if (statsBlock.hasOwnProperty('mood')) {
-                statsBlock.mood = statsBlock.mood.toLowerCase();
-            }
         }
     }
 
-    // Get current stats for comparison
     const currentStats = Chat.getMessageStats(messageIndex);
     const statsChanged = JSON.stringify(currentStats) !== JSON.stringify(stats);
 
-    // Store stats using chat manager
     Chat.setMessageStats(messageIndex, stats);
 
-    // Update UI
-    if (typeof displayStats === 'function') {
-        displayStats(messageIndex, stats);
-    } else {
-        console.warn("StatSuite Warning: displayStats function not available in stats_logic.");
-    }
+    displayStats(messageIndex, stats);
 
-    // Save if changed
     if (statsChanged) {
         Chat.saveChat();
     }

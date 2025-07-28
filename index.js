@@ -16,8 +16,15 @@ import { Chat } from './chat/chat-manager.js';
 export const extensionName = "StatSuite";
 export const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
+// @ts-ignore
 window.saveMetadataDebounced = saveMetadataDebounced;
 
+/**
+ * @param {any[]} chat
+ * @param {any} _ctx
+ * @param {any} abort
+ * @param {string} type
+ */
 export async function injectStats(chat, _ctx, abort, type) {
     if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;

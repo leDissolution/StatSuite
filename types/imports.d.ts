@@ -3,6 +3,9 @@ declare module '*/script.js' {
     export const chat: any[];
     export function saveSettingsDebounced(): void;
     export function saveChatConditional(): void;
+    export const eventSource: any;
+    export const event_types: any;
+    export const extension_prompt_types: any;
 }
 
 declare module '*/scripts/power-user.js' {

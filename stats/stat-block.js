@@ -1,14 +1,19 @@
-// StatBlock class for per-character stats
-// Maintains compatibility with plain objects
 export class StatsBlock {
     constructor(initial = {}) {
         Object.assign(this, initial);
     }
 
+    /**
+     * @param {string} statKey
+     */
     get(statKey) {
         return this[statKey];
     }
 
+    /**
+     * @param {string} statKey
+     * @param {string} value
+     */
     set(statKey, value) {
         this[statKey] = value;
     }
@@ -22,6 +27,9 @@ export class StatsBlock {
         return obj;
     }
 
+    /**
+     * @param {any} obj
+     */
     static isStatBlock(obj) {
         return obj instanceof StatsBlock;
     }

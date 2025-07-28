@@ -88,12 +88,12 @@ export class ChatManager {
         const message = this.getMessage(messageIndex);
         if (!message) return null;
         const swipeId = message.swipe_id ?? 0;
-        // Improved migration: if stats is a plain object but keys are not all numbers, treat as flat and migrate
+
+        // If stats is a plain object but keys are not all numbers, treat as flat and migrate
         if (message.stats && typeof message.stats === 'object' && !Array.isArray(message.stats)) {
             const keys = Object.keys(message.stats);
             const allNumeric = keys.length > 0 && keys.every(k => !isNaN(Number(k)));
             if (!allNumeric) {
-                // Flat object, migrate
                 const flatStats = message.stats;
                 message.stats = {};
                 message.stats[swipeId] = flatStats;
@@ -101,16 +101,9 @@ export class ChatManager {
         } else if (message.stats && (typeof message.stats !== 'object' || Array.isArray(message.stats))) {
             migrateMessageStats(message);
         }
-        // Main lookup
+        
         let stats = message.stats?.[swipeId] || null;
-        // TEMPORARY FALLBACK: If not found, check swipe_info (legacy)
-        if (!stats && message.swipe_info && message.swipe_info[swipeId]?.stats) {
-            stats = message.swipe_info[swipeId].stats;
-            if (!message.stats || typeof message.stats !== 'object' || Array.isArray(message.stats)) {
-                message.stats = {};
-            }
-            message.stats[swipeId] = stats;
-        }
+
         return stats;
     }
 
@@ -209,10 +202,22 @@ export class ChatManager {
     }
     
     /**
+     * @typedef MessageContext
+     * @property {string|null} previousName - Name of the previous message sender
+     * @property {string} previousMessage - The text of the previous message
+     * @property {object} previousStats - Stats object for the previous message
+     * @property {number} previousIndex - Index of the previous message
+     * @property {string} newName - Name of the current message sender
+     * @property {string} newMessage - The text of the current message
+     * @property {object} newStats - Stats object for the current message
+     * @property {number} newIndex - Index of the current message
+     */
+
+    /**
      * Gets message context for stat generation (compatible with existing getRecentMessages)
      * @param {number} messageIndex 
      * @param {boolean} useProxy - Whether to return proxied messages
-     * @returns {object|null} Context with previous and current message details
+     * @returns {MessageContext|null} Context with previous and current message details
      */    
     getMessageContext(messageIndex, useProxy = false) {
         if (!this.isValidMessageForStats(messageIndex)) return null;

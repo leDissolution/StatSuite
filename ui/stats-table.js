@@ -168,8 +168,8 @@ function getPresentStats(characters, stats) {
         return acc;
     }, []);
     presentStats.sort((a, b) => {
-        const aConfig = Stats.getStatEntry(a) || {};
-        const bConfig = Stats.getStatEntry(b) || {};
+        const aConfig = Stats.getStatEntry(a);
+        const bConfig = Stats.getStatEntry(b);
         const aOrder = aConfig.order || 0;
         const bOrder = bConfig.order || 0;
         return aOrder - bOrder;
