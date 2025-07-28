@@ -9,16 +9,9 @@ import { fetchAvailableModels } from "./api.js"
  */
 
 /**
- * @typedef {Object} SuiteSettings
- * @property {boolean} offlineMode - Whether StatSuite operates in offline mode.
- * @property {string} modelUrl - The URL of the stats model API.
- * @property {string} modelName - The name or ID of the selected model.
- * @property {boolean} autoTrackMessageAuthors - Whether to auto-track message authors.
- * @property {boolean} enableAutoRequestStats - Whether to auto-request stats for messages.
- * @property {boolean} showStats - Whether to show stats in the UI.
- * @property {boolean} collapseOldStats - Whether to collapse old stats in the UI.
- * @property {boolean} anonymizeClipboardExport - Whether to anonymize data when exporting to clipboard.
- * @property {StatsSettings} stats - Custom stats settings per stat or group.
+ * @typedef {Object} TemplateSettings
+ * @property {string} name - The template's name
+ * @property {string} templateString - The template string to use
  */
 
 /**
@@ -26,17 +19,25 @@ import { fetchAvailableModels } from "./api.js"
  */
 export class SuiteSettings {
     constructor() {
+        /** @type {boolean} */
         this.offlineMode = false;
+        /** @type {string} */
         this.modelUrl = '';
+        /** @type {string} */
         this.modelName = '';
+        /** @type {boolean} */
         this.autoTrackMessageAuthors = true;
+        /** @type {boolean} */
         this.enableAutoRequestStats = true;
+        /** @type {boolean} */
         this.showStats = true;
+        /** @type {boolean} */
         this.collapseOldStats = true;
+        /** @type {boolean} */
         this.anonymizeClipboardExport = true;
         /** @type {StatsSettings} */
         this.stats = { stats: {}, presets: {} };
-        /** @type {Array.<Template>} */
+        /** @type {TemplateSettings[]} */
         this.templates = [];
     }
 }
@@ -58,7 +59,7 @@ export async function tryGetModels() {
         const models = await fetchAvailableModels();
         if (models.length === 0) {
             console.warn("StatSuite: No models available from the API.");
-            toast.error("StatSuite: No models available from the API.");
+            toastr.error("StatSuite: No models available from the API.");
             return [];
         }
         return models;

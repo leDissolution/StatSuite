@@ -2,7 +2,7 @@
 
 import { setMessageStats, getRecentMessages, makeStats } from '../stats/stats-logic.js';
 import { exportSingleMessage } from '../export.js';
-import { saveChatConditional } from '../../../../../script.js';
+import { chat, saveChatConditional } from '../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
 import { Stats } from '../stats/stats-registry.js';
 import { Chat } from '../chat/chat-manager.js';
@@ -48,7 +48,7 @@ async function regenerateStatsBatch(messageIndices, { char = null, stat = null, 
 /**
  * Utility to compute message indices for regeneration based on key modifiers.
  * @param {number} startIndex - The starting message index.
- * @param {KeyboardEvent} e - The event object (for key modifiers).
+ * @param {JQuery.MouseDownEvent} e - The event object (for key modifiers).
  * @returns {{indices: number[], description: string}}
  */
 function getRegenerationIndices(startIndex, e) {
@@ -65,7 +65,7 @@ function getRegenerationIndices(startIndex, e) {
         description = `message ${startIndex}`;
     }
 
-    const indices = Chat.getMessagesFrom(startIndex, count).map(msg => msg.index);
+    const indices = Chat.getMessagesFrom(startIndex, count);
     return { indices, description };
 }
 
@@ -221,7 +221,7 @@ function renderStatsTableControls(messageId, container, table, stats) {
         await regenerateStatsBatch(indices, { greedy, toastMessage, copyOver });
     });
     // Delete
-    deleteButton.on('click', function(e) {
+    deleteButton.on('mousedown', function(e) {
         e.stopPropagation();
         const { indices, description } = getRegenerationIndices(messageId, e);
         let confirmMsg = '';
@@ -435,7 +435,7 @@ export function displayStats(messageId, stats) {
     const container = $('<details class="stats-details"></details>');
     if (messageId === chat.length - 1) {
         container.on('toggle', function () {
-            if (this.open) {
+            if ((/** @type {HTMLDetailsElement} */ (this)).open) {
                 setTimeout(() => {
                     const chatDiv = $("#chat");
                     chatDiv.scrollTop(chatDiv[0].scrollHeight);
@@ -444,7 +444,7 @@ export function displayStats(messageId, stats) {
         });
     }
     if (ExtensionSettings && ExtensionSettings.showStats) {
-        container.attr('open', true);
+        container.attr('open', 'open');
     }
     const summary = $('<summary class="stats-summary">Stats</summary>');
     container.append(summary);

@@ -174,11 +174,11 @@ export function renderStatsList(registryInstance) {
             $('.display-name-input').each(function() {
                 const container = $(this).closest('.display-name-container');
                 const key = container.data('key');
-                const newVal = $(this).val();
+                const newVal = String($(this).val()).trim();
                 const stat = registryInstance.getStatEntry(key);
                 
                 if (stat) {
-                    stat.displayName = (newVal == null || newVal.trim() === '') ? stat.name : newVal;
+                    stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
                 }
                 
                 const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
@@ -229,7 +229,7 @@ export function renderStatsList(registryInstance) {
         if (isEditMode) {
             $('.default-value-input').each(function() {
                 const key = $(this).data('key');
-                const val = $(this).val();
+                const val = String($(this).val()).trim();
                 const stat = registryInstance.getStatEntry(key);
                 if (stat) stat.defaultValue = val;
                 const newCell = $('<i></i>').text(val);
@@ -290,7 +290,7 @@ export function renderStatsList(registryInstance) {
     });
 
     $('#preset-selector').off('change.statSuite').on('change.statSuite', function() {
-        const selectedPreset = $(this).val();
+        const selectedPreset = String($(this).val()).trim();
         if (selectedPreset && selectedPreset !== Presets.getActivePreset().name) {
             registryInstance.applyPreset(selectedPreset);
             renderStatsList(registryInstance);
@@ -326,7 +326,7 @@ export function renderStatsList(registryInstance) {
     });
 
     $deletePresetBtn.off('click.statSuite').on('click.statSuite', function() {
-        const currentPreset = $('#preset-selector').val();
+        const currentPreset = String($('#preset-selector').val()).trim();
         if (currentPreset === 'default') {
             alert('Cannot delete the default preset.');
             return;
@@ -367,9 +367,9 @@ let defaultEditCache = {};
 
 function attachAddCustomStatHandler(registryInstance) {
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
-        const name = $('#customStatName').val().trim();
-        const displayName = $('#customStatDisplayName').val().trim();
-        const value = $('#customStatValue').val().trim();
+        const name = String($('#customStatName').val()).trim();
+        const displayName = String($('#customStatDisplayName').val()).trim();
+        const value = String($('#customStatValue').val()).trim();
         const isManual = $('#customStatManual').prop('checked');
         if (!name) {
             alert('Please enter a stat name.');

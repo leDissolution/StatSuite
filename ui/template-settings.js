@@ -2,6 +2,7 @@ import { Templates } from "../templates/templates-registry.js";
 import { Characters } from "../characters/characters-registry.js";
 import { Template, TemplateData } from "../templates/template.js";
 import { Stats } from "../stats/stats-registry.js";
+import { StatsBlock } from "../stats/stat-block.js";
 
 /**
  * Renders the templates section in the settings UI.
@@ -64,7 +65,7 @@ function attachTemplateHandlers() {
     
     // Template selector change
     $('#template-selector').off('change.templateSettings').on('change.templateSettings', function() {
-        const selectedName = $(this).val();
+        const selectedName = String($(this).val());
         if (selectedName) {
             currentTemplate = Templates.getTemplate(selectedName);
             if (currentTemplate) {
@@ -94,7 +95,7 @@ function attachTemplateHandlers() {
     
     // Save template button
     $('#save-template-btn').off('click.templateSettings').on('click.templateSettings', function() {
-        const templateString = $('#template-text').val().trim();
+        const templateString = String($('#template-text').val()).trim();
         if (!templateString) {
             alert('Please enter a template string.');
             return;
@@ -159,7 +160,7 @@ function attachTemplateHandlers() {
     
     // Preview template button
     $('#preview-template-btn').off('click.templateSettings').on('click.templateSettings', function() {
-        const templateString = $('#template-text').val().trim();
+        const templateString = String($('#template-text').val()).trim();
         if (!templateString) {
             alert('Please enter a template string.');
             return;
@@ -193,18 +194,21 @@ function attachTemplateHandlers() {
  */
 function getSampleStatsData() {
     const allStats = Stats.getAllStats();
-    const allCharacters = Characters.listTrackedCharacters();
+    const allCharacters = Characters.listTrackedCharacterNames();
+    /** @type {Record<string, StatsBlock>} */
     const sampleCharacterStats = {};
     
     if (allCharacters.length === 0) {
-        allCharacters.push({ name: 'Sample Character' });
+        allCharacters.push('Sample Character');
     }
 
     allCharacters.forEach(character => {
-        sampleCharacterStats[character.name] = {};
+        /** @type {StatsBlock} */
+        const statsBlock = new StatsBlock();
         allStats.forEach(stat => {
-            sampleCharacterStats[character.name][stat.name] = stat.defaultValue;
+            statsBlock.set(stat.name, stat.defaultValue);
         });
+        sampleCharacterStats[character] = statsBlock;
     });
 
     return new TemplateData(sampleCharacterStats);

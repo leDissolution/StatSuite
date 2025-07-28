@@ -270,7 +270,6 @@ export class ChatManager {
     /**
      * Gets indices of messages that need stat regeneration
      * @param {number} startIndex 
-     * @param {boolean} includeFollowing 
      * @returns {number[]}
      */
     getMessagesFrom(startIndex, count = 1) {

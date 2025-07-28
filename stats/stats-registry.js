@@ -8,7 +8,7 @@ import { Presets, StatPreset } from './presets-registry.js';
 /**
  * @typedef {Object} StatEntryOptions
  * @property {string} defaultValue - The default value for the stat
- * @property {string} displayName - The display name for the stat
+ * @property {string} [displayName=''] - The display name for the stat
  * @property {string[]} dependencies - Array of stat names this stat depends on
  * @property {number} order - Display order for the stat
  * @property {boolean} [isCustom=false] - Whether this is a custom user-defined stat
@@ -35,7 +35,7 @@ class StatEntry {
      * @param {string} name - The name of the stat
      * @param {StatEntryOptions} options - Configuration options for the stat
      */
-    constructor(name, { defaultValue, displayName, dependencies, order, isCustom = false, isActive = true, isManual = false }) {
+    constructor(name, { defaultValue, dependencies, order, displayName = '', isCustom = false, isActive = true, isManual = false }) {
         /** @type {string} */
         this.name = name;
         /** @type {string} */
@@ -156,7 +156,7 @@ export class StatRegistry {
      * @returns {void}
      */
     saveToMetadata() {
-        if (!ExtensionSettings.stats) ExtensionSettings.stats = {};
+        if (!ExtensionSettings.stats) ExtensionSettings.stats = { stats: {}, presets: {} };
         if (!ExtensionSettings.stats.stats) ExtensionSettings.stats.stats = {};
         
         // Save basic stat configuration (structure only)
@@ -211,7 +211,7 @@ export class StatRegistry {
 
             this.saveToMetadata();
             this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STAT_ADDED, { detail: name }));
-        } catch (/** @type {Error} */ error) {
+        } catch (error) {
             console.error("StatSuite Error: Failed to add stat entry.", error);
             return false;
         }
@@ -363,7 +363,7 @@ export class StatRegistry {
                 isActive: entry.isActive !== undefined ? !!entry.isActive : true,
                 isManual: entry.isManual !== undefined ? !!entry.isManual : false
             });
-        } catch (/** @type {Error} */ error) {
+        } catch (error) {
             console.error("StatSuite Error: Failed to add stat entry.", error);
             return false;
         }

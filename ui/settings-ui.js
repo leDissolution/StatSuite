@@ -10,6 +10,8 @@ import { loadMovingUIState } from '../../../../../scripts/power-user.js';
 import { dragElement } from '../../../../../scripts/RossAscends-mods.js';
 import { chat_metadata } from '../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../extensions.js';
+import { CharacterRegistry } from '../characters/characters-registry.js';
+import { StatRegistry } from '../stats/stats-registry.js';
 
 let _characterRegistryInstance = null;
 let _statsRegistryInstance = null;
@@ -17,7 +19,7 @@ let _statsRegistryInstance = null;
 /**
  * Binds settings UI elements and character management UI.
  * @param {CharacterRegistry} registryInstance
- * @param {StatsRegistry} statsRegistryInstance
+ * @param {StatRegistry} statsRegistryInstance
  */
 export function bindSettingsUI(registryInstance, statsRegistryInstance) {
     _characterRegistryInstance = registryInstance;
@@ -108,7 +110,7 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
 
     // Bind Character Management UI
     $('#add-character-btn').off('click.statSuite').on('click.statSuite', function() {
-        const charName = $('#new-character-input').val().trim();
+        const charName = String($('#new-character-input').val()).trim();
         if (charName && _characterRegistryInstance) {
             _characterRegistryInstance.addCharacter(charName);
             $('#new-character-input').val('');
@@ -132,8 +134,8 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
 
     // Custom stats UI
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function() {
-        const name = $('#customStatName').val().trim().toLowerCase();
-        const defaultValue = $('#customStatValue').val().trim();
+        const name = String($('#customStatName').val()).trim();
+        const defaultValue = String($('#customStatValue').val()).trim();
         if (!name) return;
         const config = { dependencies: [], order: Object.keys(_statsRegistryInstance._stats).length + 10, defaultValue };
         if (_statsRegistryInstance.addStat(name, config)) {
@@ -158,7 +160,7 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
 
 /**
  * Handles the popout of the settings drawer into a floating panel.
- * @param {Event} e
+ * @param {JQuery.TriggeredEvent} e
  */
 export function doPopout(e) {
     const target = e.target;
@@ -194,14 +196,14 @@ export function doPopout(e) {
         newElement.find('#statsDrawerContent').addClass('scrollY');
         bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
         loadMovingUIState();
-        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window.animation_duration || 200);
+        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window['animation_duration'] || 200);
         dragElement(newElement);
         $('#statBarPopoutClose').off('click').on('click', function () {
             $('#statsDrawerContent').removeClass('scrollY');
             const objectivePopoutHTML = $('#statsDrawerContent');
-            $(statBarPopoutIdJ).fadeOut(window.animation_duration || 200, () => {
+            $(statBarPopoutIdJ).fadeOut(window['animation_duration'] || 200, () => {
                 originalElement.empty();
-                originalElement.html(objectivePopoutHTML);
+                originalElement.html(objectivePopoutHTML.html());
                 $(statBarPopoutIdJ).remove();
                 bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
             });

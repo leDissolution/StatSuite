@@ -69,14 +69,8 @@ export class Template {
      */
     render(data) {
         this._ensureCompiled();
-        try {
-            // Handle backward compatibility: if data is not a TemplateData instance, 
-            // assume it's the legacy format and convert it
-            const templateData = data instanceof TemplateData 
-                ? data 
-                : TemplateData.fromCharacterStats(data);
-            
-            return this._compiledTemplate(templateData);
+        try {            
+            return this._compiledTemplate(data);
         } catch (error) {
             console.error(`Template "${this.name}" rendering failed:`, error);
             throw new Error(`Template rendering failed: ${error.message}`);
