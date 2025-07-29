@@ -112,7 +112,7 @@ export class TemplateRegistry {
 
     /**
      * Listen for changes to the templates registry.
-     * @param {(event: CustomEvent) => void} callback
+     * @param {(event: Event) => void} callback
      */
     onTemplatesChanged(callback) {
         this._eventTarget.addEventListener('templatesChanged', callback);

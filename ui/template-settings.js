@@ -179,7 +179,7 @@ function attachTemplateHandlers() {
             // Display the preview
             $('#template-preview').html(`<pre>${escapeHtml(rendered)}</pre>`);
             
-        } catch (error) {
+        } catch (/** @type {any} */ error) {
             $('#template-preview').html(`<div class="error">Error: ${escapeHtml(error.message)}</div>`);
         }
     });

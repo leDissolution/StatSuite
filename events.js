@@ -10,6 +10,7 @@ import { renderCharactersList } from './ui/characters-list.js';
 import { Chat } from './chat/chat-manager.js';
 import { Presets } from './stats/presets-registry.js';
 import { Templates } from './templates/templates-registry.js';
+import { ChatStatEntry } from './chat/chat-stat-entry.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -105,7 +106,7 @@ function onSwipeChanged(messageId) {
     if (!Chat.isValidMessageForStats(messageId)) return;
     if (chat[messageId].swipe_id >= chat[messageId].swipes.length) // swipe_id out of bounds means new swipe request before message is generated
     {
-        displayStats(messageId, {'...': {}});
+        displayStats(messageId, new ChatStatEntry({'...': null}));
         return;
     } 
 

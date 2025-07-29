@@ -55,7 +55,7 @@ export class Template {
             try {
                 this._compiledTemplate = Handlebars.compile(this._templateString);
                 this._isDirty = false;
-            } catch (error) {
+            } catch (/** @type {any} */ error) {
                 console.error(`Template "${this.name}" compilation failed:`, error);
                 throw new Error(`Template compilation failed: ${error.message}`);
             }
@@ -71,7 +71,7 @@ export class Template {
         this._ensureCompiled();
         try {            
             return this._compiledTemplate(data);
-        } catch (error) {
+        } catch (/** @type {any} */ error) {
             console.error(`Template "${this.name}" rendering failed:`, error);
             throw new Error(`Template rendering failed: ${error.message}`);
         }

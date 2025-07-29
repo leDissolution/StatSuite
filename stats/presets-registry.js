@@ -116,7 +116,7 @@ export class PresetRegistry {
     }
 
     saveToMetadata() {
-        if (!ExtensionSettings.stats) ExtensionSettings.stats = {};
+        if (!ExtensionSettings.stats) ExtensionSettings.stats = { stats: {}, presets: {} };
         
         const presetsData = {};
         Object.entries(this.presets).forEach(([name, preset]) => {

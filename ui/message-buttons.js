@@ -13,8 +13,10 @@ export function addPasteButton(messageId) {
     if (!buttonsContainer.length) return;
     buttonsContainer.find('.paste-stats-button, .request-stats-button').remove();
     const buttonStyle = { 'cursor': 'pointer', 'opacity': '0.3', 'transition': 'opacity 0.2s', 'padding': '0 5px' };
-    const hoverIn = function () { $(this).css('opacity', '1'); };
-    const hoverOut = function () { $(this).css('opacity', '0.3'); };
+    /** @this {HTMLElement} */
+    const hoverIn = function (this) { $(this).css('opacity', '1'); };
+    /** @this {HTMLElement} */
+    const hoverOut = function (this) { $(this).css('opacity', '0.3'); };
     const pasteButton = $('<div class="paste-stats-button fa-solid fa-clipboard"></div>')
         .css(buttonStyle).attr('title', 'Paste stats from clipboard')
         .hover(hoverIn, hoverOut)
@@ -55,7 +57,7 @@ export async function pasteStats(messageId) {
         textarea.focus();
         cancelButton.on('click', () => modal.remove());
         applyButton.on('click', () => {
-            const clipText = textarea.val();
+            const clipText = String(textarea.val());
             if (!clipText) {
                 toastr.error('No text provided'); return;
             }

@@ -140,7 +140,7 @@ export class CharacterRegistry {
     /**
      * Adds an event listener for character registry events.
      * @param {string} type
-     * @param {(event: CustomEvent) => void} callback
+     * @param {(event: Event) => void} callback
      */
     addEventListener(type, callback) {
         this._eventTarget.addEventListener(type, callback);
@@ -149,7 +149,7 @@ export class CharacterRegistry {
     /**
      * Removes an event listener for character registry events.
      * @param {string} type
-     * @param {(event: CustomEvent) => void} callback
+     * @param {(event: Event) => void} callback
      */
     removeEventListener(type, callback) {
         this._eventTarget.removeEventListener(type, callback);

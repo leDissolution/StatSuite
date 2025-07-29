@@ -163,7 +163,7 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
             console.error(`Error generating ${stat} for ${char}: Invalid API response structure`, response);
             return 'error_invalid_response';
         }
-    } catch (error) {
+    } catch (/** @type {any} */ error) {
         console.error(`Error generating ${stat} for ${char}:`, error);
         
         // Mark connection as failed for quick bailout in subsequent calls
