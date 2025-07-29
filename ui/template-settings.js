@@ -194,7 +194,7 @@ function attachTemplateHandlers() {
  */
 function getSampleStatsData() {
     const allStats = Stats.getAllStats();
-    const allCharacters = Characters.listTrackedCharacterNames();
+    const allCharacters = Characters.listActiveCharacterNames();
     /** @type {Record<string, StatsBlock>} */
     const sampleCharacterStats = {};
     

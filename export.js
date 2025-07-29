@@ -6,6 +6,7 @@ import { StatsBlock } from './stats/stat-block.js';
 import { Stats } from './stats/stats-registry.js';
 import { substituteParams } from '../../../../script.js';
 import { Chat } from './chat/chat-manager.js';
+import { ChatStatEntry } from './chat/chat-stat-entry.js';
 
 /**
  * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
@@ -18,33 +19,35 @@ export async function exportChat() {
     for (let i = 0; i < exportableMessages.length; i++) {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i];
         
-        let previousName, previousMes, previousStats;
+        let previousName, previousMes;
+        /** @type {ChatStatEntry} */
+        let previousStats;
 
         const currentStats = Chat.getMessageStats(currentIndex);
 
-        if (!currentStats || typeof currentStats !== 'object') {
+        if (!currentStats) {
             continue; // Skip if no stats or invalid stats
         }
 
         if (i === 0) {
             previousName = currentMessage.name;
             previousMes = '';
-            previousStats = {};
+            previousStats = new ChatStatEntry();
             
-            Object.keys(currentStats).forEach(charName => {
-                previousStats[charName] = null;
+            Object.keys(currentStats.Characters).forEach(charName => {
+                previousStats.Characters[charName] = null;
             });
         } else {
             const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = Chat.getMessageStats(previousIndex) || {};
+            previousStats = Chat.getMessageStats(previousIndex);
         }
 
         // Add missing characters from currentStats to previousStats with null value
-        for (const charName of Object.keys(currentStats)) {
-            if (!(charName in previousStats)) {
-                previousStats[charName] = null;
+        for (const charName of Object.keys(currentStats.Characters)) {
+            if (!(charName in previousStats.Characters)) {
+                previousStats.Characters[charName] = null;
             }
         }
 
@@ -75,25 +78,37 @@ export async function exportChat() {
 }
 
 /**
+     * @typedef MessageContext
+     * @property {string|null} previousName - Name of the previous message sender
+     * @property {string} previousMessage - The text of the previous message
+     * @property {ChatStatEntry} previousStats - Stats object for the previous message
+     * @property {number} previousIndex - Index of the previous message
+     * @property {string} newName - Name of the current message sender
+     * @property {string} newMessage - The text of the current message
+     * @property {ChatStatEntry} newStats - Stats object for the current message
+     * @property {number} newIndex - Index of the current message
+     */
+
+/**
  * Exports a single message context to the clipboard in export format.
- * @param {object} messages - The message context object.
+ * @param {MessageContext} messageContext - The message context object.
  * @returns {Promise<void>}
  */
-export async function exportSingleMessage(messages) {
-    if (!messages) return;
-    let previousStats = messages.previousStats ? { ...messages.previousStats } : {};
-    let newStats = messages.newStats ? { ...messages.newStats } : {};
+export async function exportSingleMessage(messageContext) {
+    if (!messageContext) return;
+    let previousStats = messageContext.previousStats ?? new ChatStatEntry();
+    let newStats = messageContext.newStats ?? new ChatStatEntry();
 
-    let filteredPreviousStats = {};
-    for (const charName of Object.keys(newStats)) {
-        filteredPreviousStats[charName] = previousStats[charName] !== undefined ? previousStats[charName] : null;
+    let filteredPreviousStats = new ChatStatEntry();
+    for (const charName of Object.keys(newStats.Characters)) {
+        filteredPreviousStats.Characters[charName] = previousStats.Characters?.[charName] !== undefined ? previousStats.Characters?.[charName] : null;
     }
 
     let exportPrompt = generateExportPrompt(
-        messages.previousName,
-        messages.previousMessage,
-        messages.newName,
-        messages.newMessage,
+        messageContext.previousName,
+        messageContext.previousMessage,
+        messageContext.newName,
+        messageContext.newMessage,
         statsToStringFull(filteredPreviousStats),
         statsToStringFull(newStats)
     );
@@ -161,11 +176,13 @@ export function characterDescription(name) {
 
 /**
  * Converts a stats object to a string in the export format.
- * @param {Object<string, StatsBlock|null>} stats - The stats object.
+ * @param {ChatStatEntry|null} stats - The stats object.
  * @returns {string} The formatted stats string.
  */
 export function statsToStringFull(stats) {
-    return Object.entries(stats)
+    if (!stats) return '';
+
+    return Object.entries(stats.Characters)
         .map(([charName, statsBlock]) => {
             if (statsBlock) {
                 return statsToString(charName, statsBlock);

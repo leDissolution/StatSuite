@@ -1,5 +1,6 @@
 // StatSuite - Chat Manager: Abstracts chat operations and provides clean interface
 import { chat, saveChatConditional } from '../../../../../script.js';
+import { ChatStatEntry } from './chat-stat-entry.js';
 
 /**
  * Universal stats storage: message.stats is now an object keyed by swipe_id (or 0 if null/undefined)
@@ -17,9 +18,8 @@ function migrateMessageStats(message) {
     const newStats = {};
     newStats[swipeId] = message.stats;
     message.stats = newStats;
-    if (typeof saveChatConditional === 'function') {
-        saveChatConditional();
-    }
+    
+    saveChatConditional();
 }
 
 export class ChatManager {
@@ -82,7 +82,7 @@ export class ChatManager {
      * Gets stats for a specific message
      * Universal: message.stats is an object keyed by swipe_id (or 0)
      * @param {number} messageIndex 
-     * @returns {object}
+     * @returns {ChatStatEntry|null} Stats for the message, or null if not found
      */
     getMessageStats(messageIndex) {
         const message = this.getMessage(messageIndex);
@@ -104,7 +104,17 @@ export class ChatManager {
         
         let stats = message.stats?.[swipeId] || null;
 
-        return stats;
+        if (!stats) return null;
+        if (stats instanceof ChatStatEntry) return stats;
+
+        if (stats["Characters"] && stats["Scenes"]) {
+            message.stats = new ChatStatEntry(stats["Characters"], stats["Scenes"]);
+
+            return message.stats;
+        }
+
+        message.stats = new ChatStatEntry(stats, {});
+        return message.stats;
     }
 
     /**
@@ -205,11 +215,11 @@ export class ChatManager {
      * @typedef MessageContext
      * @property {string|null} previousName - Name of the previous message sender
      * @property {string} previousMessage - The text of the previous message
-     * @property {object} previousStats - Stats object for the previous message
+     * @property {ChatStatEntry} previousStats - Stats object for the previous message
      * @property {number} previousIndex - Index of the previous message
      * @property {string} newName - Name of the current message sender
      * @property {string} newMessage - The text of the current message
-     * @property {object} newStats - Stats object for the current message
+     * @property {ChatStatEntry} newStats - Stats object for the current message
      * @property {number} newIndex - Index of the current message
      */
 
@@ -224,7 +234,7 @@ export class ChatManager {
         
         const current = this.getMessage(messageIndex, useProxy);
         const previous = this.getPreviousMessage(messageIndex, useProxy);
-        const previousStats = previous ? this.getMessageStats(previous.index) : {};
+        const previousStats = previous ? this.getMessageStats(previous.index) : new ChatStatEntry({}, {});
 
         return {
             previousName: previous ? previous.message.name : null,
@@ -280,7 +290,8 @@ export class ChatManager {
     getMessagesFrom(startIndex, count = 1) {
         return this.getStatEligibleMessages(true)
             .filter(({ index }) => index >= startIndex)
-            .slice(0, count);
+            .slice(0, count)
+            .map(({ index }) => index);
     }
     
     /**

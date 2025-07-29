@@ -9,6 +9,7 @@ import { statsToStringFull } from '../export.js';
 import { Stats } from './stats-registry.js';
 import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
+import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 
 /**
  * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
@@ -41,9 +42,21 @@ export function parseStatsString(statsString) {
 }
 
 /**
+     * @typedef MessageContext
+     * @property {string|null} previousName - Name of the previous message sender
+     * @property {string} previousMessage - The text of the previous message
+     * @property {ChatStatEntry} previousStats - Stats object for the previous message
+     * @property {number} previousIndex - Index of the previous message
+     * @property {string} newName - Name of the current message sender
+     * @property {string} newMessage - The text of the current message
+     * @property {ChatStatEntry} newStats - Stats object for the current message
+     * @property {number} newIndex - Index of the current message
+     */
+
+/**
  * Gets the relevant previous and current message details for stat generation.
  * @param {number | null} specificMessageIndex Index of the *new* message, or null for the latest.
- * @returns {object | null} Object with message details or null if not applicable.
+ * @returns {MessageContext | null} Object with message details or null if not applicable.
  */
 export function getRecentMessages(specificMessageIndex = null) {
     if (!Characters) {
@@ -66,20 +79,20 @@ export function getRecentMessages(specificMessageIndex = null) {
         Characters.addCharacter(context.newName, currentMessage?.is_user || false);
     }
 
-    const finalPreviousStats = {};
-    const sourcePreviousStats = context.previousStats || {};
+    const finalPreviousStats = new ChatStatEntry({}, {});
+    const sourcePreviousStats = context.previousStats || new ChatStatEntry({}, {});
     const activeStats = Stats.getActiveStats();
 
     Characters.listActiveCharacterNames().forEach(char => {
-        if (!sourcePreviousStats.hasOwnProperty(char)) {
-            finalPreviousStats[char] = null;
+        if (!sourcePreviousStats.Characters.hasOwnProperty(char)) {
+            finalPreviousStats.Characters[char] = null;
         } else {
-            const charSourceStats = sourcePreviousStats[char] || {};
+            const charSourceStats = sourcePreviousStats.Characters[char] || {};
             const statsBlock = {};
             activeStats.forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
-            finalPreviousStats[char] = new StatsBlock(statsBlock);
+            finalPreviousStats.Characters[char] = new StatsBlock(statsBlock);
         }
     });
 
@@ -204,10 +217,10 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         }
     }
 
-    const resultingStats = messages.newStats ? JSON.parse(JSON.stringify(messages.newStats)) : {};
+    const resultingStats = messages.newStats ? messages.newStats.clone() : new ChatStatEntry({}, {});
 
     if (!messages.newStats) {
-        displayStats(messages.newIndex, {'...': {}});
+        displayStats(messages.newIndex, new ChatStatEntry({'...': null}, {}));
     }
 
     var activeStats = Stats.getActiveStats();
@@ -217,19 +230,19 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     }
 
     charsToProcess.forEach(char => {
-        if (!resultingStats[char]) {
-            resultingStats[char] = new StatsBlock();
-        } else if (!(resultingStats[char] instanceof StatsBlock)) {
-            resultingStats[char] = new StatsBlock(resultingStats[char]);
+        if (!resultingStats.Characters[char]) {
+            resultingStats.Characters[char] = new StatsBlock();
+        } else if (!(resultingStats.Characters[char] instanceof StatsBlock)) {
+            resultingStats.Characters[char] = new StatsBlock(resultingStats.Characters[char]);
         }
         activeStats.forEach(statEntry => {
-            if (!resultingStats[char].hasOwnProperty(statEntry.name)) {
-                resultingStats[char][statEntry.name] = statEntry.defaultValue;
+            if (!resultingStats.Characters[char].hasOwnProperty(statEntry.name)) {
+                resultingStats.Characters[char][statEntry.name] = statEntry.defaultValue;
             }
 
             if (statEntry.isManual) {
                 if (messages.previousStats && messages.previousStats[char] && messages.previousStats[char][statEntry.name] !== undefined) {
-                    resultingStats[char][statEntry.name] = messages.previousStats[char][statEntry.name];
+                    resultingStats.Characters[char][statEntry.name] = messages.previousStats[char][statEntry.name];
                 }
             }
         });
@@ -262,22 +275,22 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                 }
 
                 if (copyOver && messages.previousStats && messages.previousStats[char] && messages.previousStats[char][stat] !== undefined) {
-                    resultingStats[char][stat] = messages.previousStats[char][stat];
+                    resultingStats.Characters[char][stat] = messages.previousStats[char][stat];
                     statsActuallyGenerated = true;
                     continue;
                 }
 
-                if (specificStat === null || stat === specificStat || (resultingStats[char][stat] == null || resultingStats[char][stat] === Stats.getStatEntry(stat).defaultValue)) {
+                if (specificStat === null || stat === specificStat || (resultingStats.Characters[char][stat] == null || resultingStats.Characters[char][stat] === Stats.getStatEntry(stat).defaultValue)) {
                     const generatedValue = await generateStat(
                         stat,
                         char,
                         messages,
-                        resultingStats[char],
+                        resultingStats.Characters[char],
                         greedy
                     );
 
                     if (typeof generatedValue === 'string' && !generatedValue.startsWith('error')) {
-                        resultingStats[char][stat] = generatedValue;
+                        resultingStats.Characters[char][stat] = generatedValue;
                         statsActuallyGenerated = true;
                     } else {
                         console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats[char][stat]}"`);

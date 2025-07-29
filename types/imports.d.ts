@@ -3,6 +3,7 @@ declare module '*/script.js' {
     export const chat: any[];
     export function saveSettingsDebounced(): void;
     export function saveChatConditional(): void;
+    export function substituteParams(text: string): string;
     export const eventSource: any;
     export const event_types: any;
     export const extension_prompt_types: any;

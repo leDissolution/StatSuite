@@ -7,6 +7,7 @@ import { ExtensionSettings } from '../settings.js';
 import { Stats } from '../stats/stats-registry.js';
 import { Chat } from '../chat/chat-manager.js';
 import { Characters } from '../characters/characters-registry.js';
+import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 
 /**
  * Sanitize stat input value before saving.
@@ -108,7 +109,7 @@ function renderStatsTableHeader(characters, messageId) {
  * Renders the table body rows for each stat.
  * @param {string[]} presentStats
  * @param {string[]} characters
- * @param {object} stats
+ * @param {ChatStatEntry} stats
  * @param {number} messageId
  * @returns {JQuery<HTMLElement>[]}
  */
@@ -138,7 +139,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(Stats.getStatEntry(stat)?.displayName || stat));
         row.append(statLabelTd);
         characters.forEach(char => {
-            const statValue = (stats[char] && stats[char][stat] !== undefined) ? stats[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
+            const statValue = (stats.Characters[char] && stats.Characters[char][stat] !== undefined) ? stats.Characters[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
                 .text(statValue)
                 .attr('data-character', char)
@@ -152,12 +153,12 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
 /**
  * Utility to get all present stats for the given characters and stats object, sorted by stat order.
  * @param {string[]} characters
- * @param {object} stats
+ * @param {ChatStatEntry} stats
  * @returns {string[]}
  */
 function getPresentStats(characters, stats) {
     const presentStats = characters.reduce((acc, char) => {
-        const charStats = stats[char];
+        const charStats = stats.Characters[char];
         if (charStats) {
             Object.keys(charStats).forEach(stat => {
                 if (!acc.includes(stat)) {
@@ -182,7 +183,7 @@ function getPresentStats(characters, stats) {
  * @param {number} messageId
  * @param {JQuery<HTMLElement>} container
  * @param {JQuery<HTMLElement>} table
- * @param {object} stats
+ * @param {ChatStatEntry} stats
  * @returns {JQuery<HTMLElement>}
  */
 function renderStatsTableControls(messageId, container, table, stats) {
@@ -262,7 +263,7 @@ function renderStatsTableControls(messageId, container, table, stats) {
  * Handles toggling edit mode and saving edits for the stats table.
  * @param {JQuery<HTMLElement>} container
  * @param {JQuery<HTMLElement>} table
- * @param {object} stats
+ * @param {ChatStatEntry} stats
  * @param {number} messageId
  * @param {JQuery<HTMLElement>} editButton
  * @param {JQuery<HTMLElement>} discardButton
@@ -301,7 +302,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                         for (const { idx } of messagesToDelete) {
                             const currentStats = Chat.getMessageStats(idx);
                             if (currentStats) {
-                                delete currentStats[charName];
+                                delete currentStats.Characters[charName];
                                 setMessageStats(currentStats, idx);
                             }
                         }
@@ -343,9 +344,9 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                         for (const { idx } of messagesToDelete) {
                             const currentStats = Chat.getMessageStats(idx);
                             if (currentStats) {
-                                for (const char in currentStats) {
-                                    if (currentStats[char] && currentStats[char][statKey] !== undefined) {
-                                        delete currentStats[char][statKey];
+                                for (const char in currentStats.Characters) {
+                                    if (currentStats.Characters[char] && currentStats.Characters[char][statKey] !== undefined) {
+                                        delete currentStats.Characters[char][statKey];
                                     }
                                 }
                                 setMessageStats(currentStats, idx);
@@ -394,8 +395,8 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
             const char = cell.attr('data-character');
             const stat = cell.attr('data-stat');
             const newValue = sanitizeStatInput(cell.find('input').val());
-            if (newStats[char][stat] !== newValue) {
-                newStats[char][stat] = newValue;
+            if (newStats.Characters[char][stat] !== newValue) {
+                newStats.Characters[char][stat] = newValue;
                 changed = true;
             }
         });
@@ -413,13 +414,13 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
 /**
  * Renders the stats table and controls for a message.
  * @param {number} messageId
- * @param {object} stats
+ * @param {ChatStatEntry} stats
  */
 export function displayStats(messageId, stats) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length) return;
     messageDiv.find('.stats-table-container').remove();
-    const characters = Object.keys(stats);
+    const characters = Object.keys(stats.Characters);
     if (characters.length === 0) return;
 
     const registryChars = characters.filter(c => Characters.getCharacterIx(c) !== -1);
