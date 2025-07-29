@@ -3,7 +3,7 @@ import { Template } from './template.js';
 import { saveSettingsDebounced } from '../../../../../script.js';
 
 const defaultTemplate = new Template('Default', `<metadata>
-{{#each this}}
+{{#each Characters}}
     <stats character="{{@key}}" {{#each this}}{{@key}}="{{this}}" {{/each}}/>
 {{/each}}
 </metadata>`);
