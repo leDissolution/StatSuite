@@ -137,7 +137,7 @@ export function getRequiredStats(targetStat) {
 
 /**
  * Applies the generated/updated stats to the message object and triggers UI update and save.
- * @param {object} stats The complete stats object for the message.
+ * @param {ChatStatEntry} stats The complete stats object for the message.
  * @param {number} messageIndex The index of the message in the chat array.
  */
 export function setMessageStats(stats, messageIndex) {
@@ -147,12 +147,12 @@ export function setMessageStats(stats, messageIndex) {
     }
 
     if (stats && typeof stats === 'object') {
-        for (const char of Object.keys(stats)) {
+        for (const char of Object.keys(stats.Characters)) {
             /** @type {StatsBlock} */
-            let statsBlock = stats[char];
+            let statsBlock = stats.Characters[char];
             if (!(statsBlock instanceof StatsBlock)) {
                 statsBlock = new StatsBlock(statsBlock);
-                stats[char] = statsBlock;
+                stats.Characters[char] = statsBlock;
             }
         }
     }
@@ -241,8 +241,8 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
             }
 
             if (statEntry.isManual) {
-                if (messages.previousStats && messages.previousStats[char] && messages.previousStats[char][statEntry.name] !== undefined) {
-                    resultingStats.Characters[char][statEntry.name] = messages.previousStats[char][statEntry.name];
+                if (messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][statEntry.name] !== undefined) {
+                    resultingStats.Characters[char][statEntry.name] = messages.previousStats.Characters[char][statEntry.name];
                 }
             }
         });
@@ -274,8 +274,8 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                     break;
                 }
 
-                if (copyOver && messages.previousStats && messages.previousStats[char] && messages.previousStats[char][stat] !== undefined) {
-                    resultingStats.Characters[char][stat] = messages.previousStats[char][stat];
+                if (copyOver && messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][stat] !== undefined) {
+                    resultingStats.Characters[char][stat] = messages.previousStats.Characters[char][stat];
                     statsActuallyGenerated = true;
                     continue;
                 }
@@ -293,7 +293,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
                         resultingStats.Characters[char][stat] = generatedValue;
                         statsActuallyGenerated = true;
                     } else {
-                        console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats[char][stat]}"`);
+                        console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats.Characters[char][stat]}"`);
                         if (generatedValue === 'error_network_or_cors' || generatedValue === 'error_api_call_failed') {
                             console.log(`StatSuite: Detected connection issue. Stopping further stat generation.`);
                             break;
