@@ -146,17 +146,6 @@ export function setMessageStats(stats, messageIndex) {
         return;
     }
 
-    if (stats && typeof stats === 'object') {
-        for (const char of Object.keys(stats.Characters)) {
-            /** @type {StatsBlock} */
-            let statsBlock = stats.Characters[char];
-            if (!(statsBlock instanceof StatsBlock)) {
-                statsBlock = new StatsBlock(statsBlock);
-                stats.Characters[char] = statsBlock;
-            }
-        }
-    }
-
     const currentStats = Chat.getMessageStats(messageIndex);
     const statsChanged = JSON.stringify(currentStats) !== JSON.stringify(stats);
 

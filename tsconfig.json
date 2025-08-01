@@ -9,7 +9,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "noUncheckedIndexedAccess": true
   },
   "include": [
     "**/*.js",

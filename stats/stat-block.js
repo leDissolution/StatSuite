@@ -28,9 +28,12 @@ export class StatsBlock {
     }
 
     /**
-     * @param {any} obj
+     * Returns a deep copy of the stats block.
+     * @returns {StatsBlock}
      */
-    static isStatBlock(obj) {
-        return obj instanceof StatsBlock;
+    clone() {
+        return new StatsBlock(
+            JSON.parse(JSON.stringify(this))
+        );
     }
 }
