@@ -8,19 +8,16 @@ const defaultTemplate = new Template('Default', `<metadata>
 {{/each}}
 </metadata>`);
 
-/**
- * Manages the registry of templates and synchronizes with ExtensionSettings.templates.
- */
 export class TemplateRegistry {
+    private _templates: Template[];
+    private _eventTarget: EventTarget;
+    private _currentTemplate: Template;
+
     constructor() {
-        /** @type {Template[]} */
         this._templates = [];
         this._eventTarget = new EventTarget();
     }
 
-    /**
-     * Initializes templates from ExtensionSettings.templates.
-     */
     initializeFromMetadata() {
         if (!Array.isArray(ExtensionSettings.templates)) {
             ExtensionSettings.templates = [];
@@ -32,18 +29,18 @@ export class TemplateRegistry {
 
         if (!this._templates.some(t => t.name === defaultTemplate.name)) {
             this._templates.push(defaultTemplate);
-
-            this.saveToMetadata();
         }
+        else {
+            this._templates.find(t => t.name === defaultTemplate.name).templateString = defaultTemplate.templateString;
+        }
+
+        this.saveToMetadata();
 
         this._currentTemplate = this._templates.find(t => t.name === defaultTemplate.name);
 
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
 
-    /**
-     * Saves the current template registry to metadata.
-     */
     saveToMetadata() {
         ExtensionSettings.templates = this._templates.map(template => ({
             name: template.name,
@@ -55,69 +52,39 @@ export class TemplateRegistry {
         }
     }
 
-    /**
-     * Returns all templates.
-     * @returns {Template[]}
-     */
-    getAll() {
+    getAll(): Template[] {
         return [...this._templates];
     }
 
-    /**
-     * Adds a new template.
-     * @param {Template} template
-     */
-    addTemplate(template) {
+    addTemplate(template: Template) {
         this._templates.push(template);
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
 
-    /**
-     * Removes a template by name.
-     * @param {string} name
-     */
-    removeTemplate(name) {
+    removeTemplate(name: string) {
         this._templates = this._templates.filter(t => t.name !== name);
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
 
-    /**
-     * Finds a template by name.
-     * @param {string} name
-     * @returns {Template|null}
-     */
-    getTemplate(name) {
+    getTemplate(name: string): Template | null {
         return this._templates.find(t => t.name === name) || null;
     }
 
-    /**
-     * Replace all templates (e.g., for loading from storage).
-     * @param {Template[]} templates
-     */
-    setTemplates(templates) {
+    setTemplates(templates: Template[]) {
         this._templates = [...templates];
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
 
-    /**
-     * Returns the currently selected template.
-     * @returns {Template}
-     */
-    getCurrentTemplate() {
+    getCurrentTemplate(): Template {
         return this._currentTemplate;
     }
 
-    /**
-     * Listen for changes to the templates registry.
-     * @param {(event: Event) => void} callback
-     */
-    onTemplatesChanged(callback) {
+    onTemplatesChanged(callback: (event: Event) => void) {
         this._eventTarget.addEventListener('templatesChanged', callback);
     }
 }
 
-/** @type {TemplateRegistry} */
-export const Templates = new TemplateRegistry(); 
+export const Templates: TemplateRegistry = new TemplateRegistry(); 

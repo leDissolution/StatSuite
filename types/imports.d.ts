@@ -21,7 +21,3 @@ declare module '*/extensions.js' {
     export function saveMetadataDebounced(): void;
     export const extension_settings: Record<string, any>;
 }
-
-declare module '*/lib.js' {
-    export const Handlebars: any;
-}

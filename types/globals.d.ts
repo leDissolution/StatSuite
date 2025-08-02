@@ -1,5 +1,7 @@
+import * as Hb from 'handlebars';
+
 declare global {
-    const SillyTavern: {
+    export const SillyTavern: {
         getContext(): {
             setExtensionPrompt(extension: string, prompt: string, location: any, depth: number): unknown;
             characters: Array<{ name: string }>;
@@ -7,6 +9,8 @@ declare global {
             
         };
     };
+
+    export const Handlebars: typeof Hb;
 }
 
 export {};
