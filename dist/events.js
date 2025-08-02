@@ -29,8 +29,6 @@ export function onChatChanged() {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
     }
-    Characters.characters.clear();
-    renderCharactersList(Characters);
     Presets.loadFromMetadata();
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();

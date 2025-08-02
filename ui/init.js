@@ -4,7 +4,6 @@ import { bindSettingsUI } from './settings-ui.js';
 import { doPopout } from './settings-ui.js';
 import { exportChat } from '../export.js';
 import { onChatChanged } from '../events.js';
-import { Characters } from '../characters/characters-registry.js';
 import { Stats } from '../stats/stats-registry.js';
 
 /**
@@ -16,7 +15,7 @@ export function initializeUI() {
         return;
     }
 
-    bindSettingsUI(Characters, Stats);
+    bindSettingsUI(Stats);
 
     $(document)
         .off('click.statSuite', '#exportStats')

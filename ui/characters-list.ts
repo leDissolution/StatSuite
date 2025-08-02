@@ -1,22 +1,18 @@
-// Handles rendering and management of the tracked character list
-import { CharacterRegistry } from '../characters/characters-registry.js';
+import { Characters } from '../characters/characters-registry.js';
 
-/**
- * Renders the list of tracked characters in the settings UI.
- * @param {CharacterRegistry} registryInstance
- */
-export function renderCharactersList(registryInstance) {
-    if (!registryInstance) {
+export function renderCharactersList() {
+    if (!Characters) {
         console.error("StatSuite UI Error: CharacterRegistry instance not available for renderCharacterList.");
         return;
     }
+
     const container = $('#tracked-characters-list');
     if (!container.length) {
         return;
     }
+
     container.empty();
     console.log("StatSuite UI: Rendering character list.");
-    
     const table = $(`
         <table class="character-table" style="width:100%; table-layout:fixed;">
             <thead>
@@ -30,8 +26,9 @@ export function renderCharactersList(registryInstance) {
             <tbody></tbody>
         </table>
     `);
+
     const tbody = table.find('tbody');
-    registryInstance.listTrackedCharacters().forEach(char => {
+    Characters.listTrackedCharacters().forEach(char => {
         const row = $(`
             <tr class="tracked-character-row">
                 <td>${char.name}</td>
@@ -48,36 +45,33 @@ export function renderCharactersList(registryInstance) {
         `);
         tbody.append(row);
     });
+
     container.append(table);
-    container.off('click.statSuite', '.remove-character').on('click.statSuite', '.remove-character', function() {
-        const char = $(this).data('character');
-        if (registryInstance) {
-            registryInstance.removeCharacter(char);
-            renderCharactersList(registryInstance);
-        }
+
+    container.off('click.statSuite', '.remove-character').on('click.statSuite', '.remove-character', function () {
+        const char = $(this).attr('data-character');
+        Characters.removeCharacter(char);
     });
 
-    container.off('change.statSuite', '.player-checkbox').on('change.statSuite', '.player-checkbox', function() {
-        const charName = $(this).data('character');
+    container.off('change.statSuite', '.player-checkbox').on('change.statSuite', '.player-checkbox', function () {
+        const charName = $(this).attr('data-character');
         const isPlayer = $(this).is(':checked');
-        const charObj = registryInstance.characters && Array.from(registryInstance.characters).find(c => c.name === charName);
+        
+        const charObj = Characters.getCharacter(charName);
         if (charObj) {
             charObj.isPlayer = isPlayer;
-            if (typeof registryInstance.saveToMetadata === 'function') {
-                registryInstance.saveToMetadata();
-            }
+            Characters.saveToMetadata();
         }
     });
-
-    container.off('change.statSuite', '.active-checkbox').on('change.statSuite', '.active-checkbox', function() {
-        const charName = $(this).data('character');
+    
+    container.off('change.statSuite', '.active-checkbox').on('change.statSuite', '.active-checkbox', function () {
+        const charName = $(this).attr('data-character');
         const isActive = $(this).is(':checked');
-        const charObj = registryInstance.characters && Array.from(registryInstance.characters).find(c => c.name === charName);
+        
+        const charObj = Characters.getCharacter(charName);
         if (charObj) {
             charObj.isActive = isActive;
-            if (typeof registryInstance.saveToMetadata === 'function') {
-                registryInstance.saveToMetadata();
-            }
+            Characters.saveToMetadata();
         }
     });
 }

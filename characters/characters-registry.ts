@@ -2,42 +2,50 @@ import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
 import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Character } from './character.js';
+
 export class CharacterRegistry {
+    private _characters: Set<Character>;
+    private _eventTarget: EventTarget;
+
     constructor() {
         this._characters = new Set();
         this._eventTarget = new EventTarget();
     }
+
     initializeFromMetadata() {
         const chatMetadata = chat_metadata.StatSuite;
         const trackedChars = chatMetadata?.trackedCharacters || [];
         this._characters.clear();
-        trackedChars.forEach((char) => {
+        trackedChars.forEach((char: any) => {
             if (char instanceof Character) {
                 this.attachCharacter(char);
-            }
-            else if (typeof char === 'object' && char !== null && 'name' in char) {
+            } else if (typeof char === 'object' && char !== null && 'name' in char) {
                 const rehydrated = new Character(char.name, char.isPlayer, char.isActive);
                 this.attachCharacter(rehydrated);
-            }
-            else if (typeof char === 'string') {
+            } else if (typeof char === 'string') {
                 this.addCharacter(char, false);
             }
         });
     }
-    addCharacter(char, isPlayer = false) {
+
+    addCharacter(char: string, isPlayer: boolean = false) {
         const character = new Character(char, isPlayer);
+        
         this.attachCharacter(character);
     }
-    attachCharacter(char) {
+
+    attachCharacter(char: Character): boolean {
         if (!this.hasCharacter(char.name)) {
             this._characters.add(char);
             this.saveToMetadata();
             this._eventTarget.dispatchEvent(new CustomEvent(EVENT_CHARACTER_ADDED, { detail: char.name }));
             return true;
         }
+
         return false;
     }
-    removeCharacter(name) {
+
+    removeCharacter(name: string): boolean {
         let removed = false;
         for (const char of this._characters) {
             if (char.name === name) {
@@ -52,62 +60,73 @@ export class CharacterRegistry {
         }
         return removed;
     }
-    hasCharacter(name) {
+
+    hasCharacter(name: string): boolean {
         for (const charObj of this._characters) {
-            if (charObj.name === name)
-                return true;
+            if (charObj.name === name) return true;
         }
         return false;
     }
-    getCharacter(name) {
+
+    getCharacter(name: string): Character | null {
         for (const charObj of this._characters) {
-            if (charObj.name === name)
-                return charObj;
+            if (charObj.name === name) return charObj;
         }
         return null;
     }
-    getCharacterIx(name) {
+
+    getCharacterIx(name: string): number {
         return this.listTrackedCharacters().findIndex(char => char.name === name);
     }
-    isPlayer(name) {
+
+    isPlayer(name: string): boolean {
         for (const charObj of this._characters) {
-            if (charObj.name === name)
-                return charObj.isPlayer;
+            if (charObj.name === name) return charObj.isPlayer;
         }
         return false;
     }
-    listTrackedCharacterNames() {
+
+    listTrackedCharacterNames(): string[] {
         return this.listTrackedCharacters()
             .map(charObj => charObj.name)
             .sort();
     }
-    listActiveCharacterNames() {
+
+    listActiveCharacterNames(): string[] {
         return this.listTrackedCharacters()
             .filter(charObj => charObj.isActive)
             .map(charObj => charObj.name)
             .sort();
     }
-    listTrackedCharacters() {
+
+    listTrackedCharacters(): Character[] {
         return Array.from(this._characters);
     }
-    addEventListener(type, callback) {
+
+    addEventListener(type: string, callback: (event: Event) => void) {
         this._eventTarget.addEventListener(type, callback);
     }
-    removeEventListener(type, callback) {
+
+    removeEventListener(type: string, callback: (event: Event) => void) {
         this._eventTarget.removeEventListener(type, callback);
     }
+
     saveToMetadata() {
         if (!chat_metadata.StatSuite) {
             chat_metadata.StatSuite = {};
         }
+
         chat_metadata.StatSuite.trackedCharacters = this.listTrackedCharacters();
+
         if (saveMetadataDebounced) {
             saveMetadataDebounced();
         }
     }
+
     clear() {
         this._characters.clear();
         this.saveToMetadata();
     }
 }
+
 export const Characters = new CharacterRegistry();

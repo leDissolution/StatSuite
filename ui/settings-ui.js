@@ -10,19 +10,16 @@ import { loadMovingUIState } from '../../../../../../scripts/power-user.js';
 import { dragElement } from '../../../../../../scripts/RossAscends-mods.js';
 import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
-import { CharacterRegistry } from '../characters/characters-registry.js';
+import { Characters } from '../characters/characters-registry.js';
 import { StatRegistry } from '../stats/stats-registry.js';
 
-let _characterRegistryInstance = null;
 let _statsRegistryInstance = null;
 
 /**
  * Binds settings UI elements and character management UI.
- * @param {CharacterRegistry} registryInstance
  * @param {StatRegistry} statsRegistryInstance
  */
-export function bindSettingsUI(registryInstance, statsRegistryInstance) {
-    _characterRegistryInstance = registryInstance;
+export function bindSettingsUI(statsRegistryInstance) {
     _statsRegistryInstance = statsRegistryInstance;
     // Bind Model URL input
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
@@ -111,10 +108,10 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
     // Bind Character Management UI
     $('#add-character-btn').off('click.statSuite').on('click.statSuite', function() {
         const charName = String($('#new-character-input').val()).trim();
-        if (charName && _characterRegistryInstance) {
-            _characterRegistryInstance.addCharacter(charName);
+        if (charName && Characters) {
+            Characters.addCharacter(charName);
             $('#new-character-input').val('');
-            renderCharactersList(_characterRegistryInstance);
+            renderCharactersList();
         }
     });
     // Bind Anonymize Clipboard Export checkbox
@@ -144,8 +141,8 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
         }
     });
 
-    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharactersList(_characterRegistryInstance));
-    _characterRegistryInstance.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharactersList(_characterRegistryInstance));
+    Characters.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharactersList());
+    Characters.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharactersList());
 
     _statsRegistryInstance.addEventListener(EVENT_STAT_ADDED, () => renderStatsList(_statsRegistryInstance));
     _statsRegistryInstance.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList(_statsRegistryInstance));
@@ -153,7 +150,7 @@ export function bindSettingsUI(registryInstance, statsRegistryInstance) {
 
     Templates.onTemplatesChanged(() => renderTemplateSettings());
 
-    renderCharactersList(_characterRegistryInstance);
+    renderCharactersList();
     renderStatsList(_statsRegistryInstance);
     renderTemplateSettings();
 }
@@ -194,7 +191,7 @@ export function doPopout(e) {
         originalElement.html('<div class="flex-container alignitemscenter justifyCenter wide100p"><small><i>StatSuite settings popped out</i></small></div>');
         $('#movingDivs').append(newElement);
         newElement.find('#statsDrawerContent').addClass('scrollY');
-        bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
+        bindSettingsUI(_statsRegistryInstance);
         loadMovingUIState();
         $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window['animation_duration'] || 200);
         dragElement(newElement);
@@ -205,7 +202,7 @@ export function doPopout(e) {
                 originalElement.empty();
                 originalElement.html(objectivePopoutHTML.html());
                 $(statBarPopoutIdJ).remove();
-                bindSettingsUI(_characterRegistryInstance, _statsRegistryInstance);
+                bindSettingsUI(_statsRegistryInstance);
             });
         });
     } else {
