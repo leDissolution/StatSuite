@@ -2,7 +2,6 @@
 import { ExtensionSettings } from '../settings.js';
 import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
-
 export class StatPreset {
     constructor({ name, displayName, active, manual, defaultValue }) {
         /** @type {string} */
@@ -17,7 +16,6 @@ export class StatPreset {
         this.defaultValue = defaultValue;
     }
 }
-
 /**
  * Class representing a stats preset (activation states for all stats).
  */
@@ -31,11 +29,9 @@ export class StatsPreset {
         this.name = name;
         /** @type {Object.<string, StatPreset>} */
         this.stats = stats;
-
         /** @type {string[]} */
         this.characters = [];
     }
-
     /**
      * Get a stat preset by name
      * @param {string} name - The name of the stat preset
@@ -44,7 +40,6 @@ export class StatsPreset {
     get(name) {
         return this.stats[name] || null;
     }
-
     /**
      * Set a stat preset
      * @param {StatPreset} preset - The stat preset to set
@@ -58,7 +53,8 @@ export class StatsPreset {
                 manual: preset.manual || false,
                 defaultValue: preset.defaultValue || 'unspecified'
             });
-        } else {
+        }
+        else {
             this.stats[preset.name].active = preset.active;
             this.stats[preset.name].manual = preset.manual;
             this.stats[preset.name].displayName = preset.displayName || this.stats[preset.name].displayName;
@@ -66,7 +62,6 @@ export class StatsPreset {
         }
     }
 }
-
 /**
  * PresetRegistry: Singleton for managing stat activation presets
  */
@@ -76,10 +71,8 @@ export class PresetRegistry {
         this.presets = {};
         this.selectedPreset = 'default';
     }
-
     loadFromMetadata() {
         this.presets = {};
-        
         if (ExtensionSettings.stats && ExtensionSettings.stats.presets) {
             Object.entries(ExtensionSettings.stats.presets).forEach(([presetName, presetData]) => {
                 const preset = new StatsPreset(presetName);
@@ -96,28 +89,27 @@ export class PresetRegistry {
                 this.presets[presetName] = preset;
             });
         }
-        
         if (!this.presets['default']) {
             this.presets['default'] = new StatsPreset('default', {});
         }
-
         if (chat_metadata.StatSuite && chat_metadata.StatSuite.selectedPreset) {
             this.selectedPreset = chat_metadata.StatSuite.selectedPreset;
-        } else {
+        }
+        else {
             const context = SillyTavern.getContext();
             const currentCharacter = context?.characters[context.characterId]?.name;
             const presetForCharacter = this.getPresetForCharacter(currentCharacter);
             if (presetForCharacter) {
                 this.selectedPreset = presetForCharacter.name;
-            } else {
+            }
+            else {
                 this.selectedPreset = 'default';
             }
         }
     }
-
     saveToMetadata() {
-        if (!ExtensionSettings.stats) ExtensionSettings.stats = { stats: {}, presets: {} };
-        
+        if (!ExtensionSettings.stats)
+            ExtensionSettings.stats = { stats: {}, presets: {} };
         const presetsData = {};
         Object.entries(this.presets).forEach(([name, preset]) => {
             presetsData[name] = {
@@ -126,17 +118,12 @@ export class PresetRegistry {
                 characters: preset.characters,
             };
         });
-        
         ExtensionSettings.stats.presets = presetsData;
         saveSettingsDebounced();
-
         chat_metadata.StatSuite = chat_metadata.StatSuite || {};
         chat_metadata.StatSuite.selectedPreset = this.selectedPreset;
-
         saveMetadataDebounced();
     }
-
-
     /**
      * Get all stat presets
      * @returns {Record<string, StatsPreset>} presets by name
@@ -144,7 +131,6 @@ export class PresetRegistry {
     getAllPresets() {
         return this.presets;
     }
-
     /**
      * Get a single preset by name
      * @param {string} name
@@ -153,7 +139,6 @@ export class PresetRegistry {
     getPreset(name) {
         return this.presets[name] || null;
     }
-
     /**
      * Get current active preset
      * @return {StatsPreset} The active preset, or a default if none is set
@@ -161,13 +146,11 @@ export class PresetRegistry {
     getActivePreset() {
         return this.getPreset(this.selectedPreset) || new StatsPreset(this.selectedPreset, {});
     }
-
     setActivePreset(name) {
         if (this.presets[name]) {
             this.selectedPreset = name;
         }
     }
-
     /**
      * Add a preset to the registry
      * @param {StatsPreset} preset - The preset to add
@@ -176,7 +159,6 @@ export class PresetRegistry {
         this.presets[preset.name] = preset;
         this.saveToMetadata();
     }
-
     /**
      * Delete a stat preset by name
      * @param {string} name
@@ -186,13 +168,11 @@ export class PresetRegistry {
             console.warn('Cannot delete default preset');
             return;
         }
-        
         if (this.presets[name]) {
             delete this.presets[name];
             this.saveToMetadata();
         }
     }
-
     /**
      * Get the preset that contains a specific character
      * @param {string} characterName - The name of the character to search for
@@ -202,30 +182,24 @@ export class PresetRegistry {
         if (!characterName) {
             return null;
         }
-
         for (const preset of Object.values(this.presets)) {
             if (preset.characters.includes(characterName)) {
                 return preset;
             }
         }
-
         return null;
     }
-
     setPresetForCharacter(characterName, presetName) {
         if (!this.presets[presetName]) {
             console.warn(`Preset "${presetName}" does not exist.`);
             return;
         }
-
         const preset = this.getPresetForCharacter(characterName);
         if (preset) {
             preset.characters = preset.characters.filter(name => name !== characterName);
         }
-
         this.presets[presetName].characters.push(characterName);
         this.saveToMetadata();
     }
 }
-
 export const Presets = new PresetRegistry();

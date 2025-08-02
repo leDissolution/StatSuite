@@ -2,14 +2,12 @@ export class StatsBlock {
     constructor(initial = {}) {
         Object.assign(this, initial);
     }
-
     /**
      * @param {string} statKey
      */
     get(statKey) {
         return this[statKey];
     }
-
     /**
      * @param {string} statKey
      * @param {string} value
@@ -17,7 +15,6 @@ export class StatsBlock {
     set(statKey, value) {
         this[statKey] = value;
     }
-
     // For backwards compatibility: allow iteration and serialization as plain object
     toJSON() {
         const obj = {};
@@ -26,14 +23,11 @@ export class StatsBlock {
         }
         return obj;
     }
-
     /**
      * Returns a deep copy of the stats block.
      * @returns {StatsBlock}
      */
     clone() {
-        return new StatsBlock(
-            JSON.parse(JSON.stringify(this))
-        );
+        return new StatsBlock(JSON.parse(JSON.stringify(this)));
     }
 }

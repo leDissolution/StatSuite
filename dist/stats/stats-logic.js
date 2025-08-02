@@ -1,6 +1,5 @@
 // StatSuite - Core logic for stats definition, generation, and processing
 import { extension_prompt_types } from '../../../../../../script.js';
-
 import { ExtensionSettings } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
@@ -10,7 +9,6 @@ import { Stats } from './stats-registry.js';
 import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
-
 /**
  * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
  * @param {string} statsString
@@ -19,17 +17,18 @@ import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 export function parseStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
-    if (!charMatch) return null;
+    if (!charMatch)
+        return null;
     const charName = charMatch[1];
     result[charName] = {};
-
     const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
     for (const match of matches) {
         const [_, key, value] = match;
         if (key !== 'character') {
             if (Stats.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
-            } else {
+            }
+            else {
                 console.warn(`StatSuite: Ignoring unsupported stat key "${key}" during parsing.`);
             }
         }
@@ -40,7 +39,6 @@ export function parseStatsString(statsString) {
     }
     return result;
 }
-
 /**
      * @typedef MessageContext
      * @property {string|null} previousName - Name of the previous message sender
@@ -52,7 +50,6 @@ export function parseStatsString(statsString) {
      * @property {ChatStatEntry} newStats - Stats object for the current message
      * @property {number} newIndex - Index of the current message
      */
-
 /**
  * Gets the relevant previous and current message details for stat generation.
  * @param {number | null} specificMessageIndex Index of the *new* message, or null for the latest.
@@ -63,13 +60,12 @@ export function getRecentMessages(specificMessageIndex = null) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return null;
     }
-
     const messageIndex = specificMessageIndex ?? Chat.getLatestMessage()?.index;
-    if (messageIndex === undefined) return null;
-
+    if (messageIndex === undefined)
+        return null;
     const context = Chat.getMessageContext(messageIndex);
-    if (!context) return null;
-
+    if (!context)
+        return null;
     if (ExtensionSettings.autoTrackMessageAuthors) {
         if (context.previousName) {
             const previousMessage = Chat.getMessage(context.previousIndex);
@@ -78,15 +74,14 @@ export function getRecentMessages(specificMessageIndex = null) {
         const currentMessage = Chat.getMessage(context.newIndex);
         Characters.addCharacter(context.newName, currentMessage?.is_user || false);
     }
-
     const finalPreviousStats = new ChatStatEntry({}, {});
     const sourcePreviousStats = context.previousStats || new ChatStatEntry({}, {});
     const activeStats = Stats.getActiveStats();
-
     Characters.listActiveCharacterNames().forEach(char => {
         if (!sourcePreviousStats.Characters.hasOwnProperty(char)) {
             finalPreviousStats.Characters[char] = null;
-        } else {
+        }
+        else {
             const charSourceStats = sourcePreviousStats.Characters[char] || {};
             const statsBlock = {};
             activeStats.forEach(statEntry => {
@@ -95,13 +90,11 @@ export function getRecentMessages(specificMessageIndex = null) {
             finalPreviousStats.Characters[char] = new StatsBlock(statsBlock);
         }
     });
-
     return {
         ...context,
         previousStats: finalPreviousStats
     };
 }
-
 /**
  * Calculates required stats including dependencies.
  * @param {string} targetStat The stat for which dependencies are needed.
@@ -125,7 +118,8 @@ export function getRequiredStats(targetStat) {
     }
     if (Stats.hasStat(targetStat)) {
         addDependencies(targetStat);
-    } else {
+    }
+    else {
         console.error(`StatSuite Error: Target stat "${targetStat}" not found in StatConfig.`);
     }
     return Array.from(required).sort((a, b) => {
@@ -134,7 +128,6 @@ export function getRequiredStats(targetStat) {
         return orderA - orderB;
     });
 }
-
 /**
  * Applies the generated/updated stats to the message object and triggers UI update and save.
  * @param {ChatStatEntry} stats The complete stats object for the message.
@@ -145,19 +138,14 @@ export function setMessageStats(stats, messageIndex) {
         console.error(`StatSuite Error: Invalid messageIndex ${messageIndex} in setMessageStats.`);
         return;
     }
-
     const currentStats = Chat.getMessageStats(messageIndex);
     const statsChanged = JSON.stringify(currentStats) !== JSON.stringify(stats);
-
     Chat.setMessageStats(messageIndex, stats);
-
     displayStats(messageIndex, stats);
-
     if (statsChanged) {
         Chat.saveChat();
     }
 }
-
 /**
  * Orchestrates the generation of stats for a specific message.
  * @param {number | null} specificMessageIndex Index of the message, or null for latest.
@@ -174,29 +162,24 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.log("StatSuite: Automatic stat generation is disabled.");
         return;
     }
-
     if (!ExtensionSettings.offlineMode && shouldSkipApiCalls()) {
         console.log("StatSuite: Skipping stat generation due to recent connection failures. Call resetConnectionFailure() to retry.");
         return;
     }
-
     const messages = getRecentMessages(specificMessageIndex);
     if (!messages) {
         return;
     }
-
     if (!messages.newMessage || messages.newMessage.trim() === "") {
         console.log("StatSuite: Skipping stat generation for empty message.");
         return;
     }
-
     const charsToProcess = specificChar ? [specificChar] : Characters.listActiveCharacterNames();
     if (charsToProcess.length === 0) {
         console.log("StatSuite: No characters are being tracked.");
         toastr.error("StatSuite: No characters are being tracked. Please add characters to the registry.");
         return;
     }
-
     if (!ExtensionSettings.offlineMode && specificMessageIndex === null && specificChar === null && specificStat === null) {
         console.log("StatSuite: Testing API connection before automatic stat generation...");
         const connectionOk = await checkApiConnection();
@@ -205,83 +188,64 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
             return;
         }
     }
-
     const resultingStats = messages.newStats ? messages.newStats.clone() : new ChatStatEntry({}, {});
-
     if (!messages.newStats) {
-        displayStats(messages.newIndex, new ChatStatEntry({'...': null}, {}));
+        displayStats(messages.newIndex, new ChatStatEntry({ '...': null }, {}));
     }
-
     var activeStats = Stats.getActiveStats();
-
     if (ExtensionSettings.offlineMode) {
         activeStats = activeStats.filter(stat => stat.isManual);
     }
-
     charsToProcess.forEach(char => {
         if (!resultingStats.Characters[char]) {
             resultingStats.Characters[char] = new StatsBlock();
-        } else if (!(resultingStats.Characters[char] instanceof StatsBlock)) {
+        }
+        else if (!(resultingStats.Characters[char] instanceof StatsBlock)) {
             resultingStats.Characters[char] = new StatsBlock(resultingStats.Characters[char]);
         }
         activeStats.forEach(statEntry => {
             if (!resultingStats.Characters[char].hasOwnProperty(statEntry.name)) {
                 resultingStats.Characters[char][statEntry.name] = statEntry.defaultValue;
             }
-
             if (statEntry.isManual) {
                 if (messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][statEntry.name] !== undefined) {
                     resultingStats.Characters[char][statEntry.name] = messages.previousStats.Characters[char][statEntry.name];
                 }
             }
         });
-    });    
-    
+    });
     let statsActuallyGenerated = false;
-
     if (!ExtensionSettings.offlineMode) {
         const statsToGenerate = Array.isArray(activeStats)
             ? activeStats.filter(s => !s.isManual).map(s => s.name)
             : [];
-
         for (const char of charsToProcess) {
             if (shouldSkipApiCalls()) {
                 console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to character "${char}".`);
                 break;
             }
-
             const statsToGenerateForChar = specificStat
                 ? getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual)
                 : statsToGenerate;
             const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatEntry(a).order - Stats.getStatEntry(b).order);
-
             console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
-
             for (const stat of sortedStatsToGenerate) {
                 if (shouldSkipApiCalls()) {
                     console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to stat "${stat}" for character "${char}".`);
                     break;
                 }
-
                 if (copyOver && messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][stat] !== undefined) {
                     resultingStats.Characters[char][stat] = messages.previousStats.Characters[char][stat];
                     statsActuallyGenerated = true;
                     continue;
                 }
-
                 if (specificStat === null || stat === specificStat || (resultingStats.Characters[char][stat] == null || resultingStats.Characters[char][stat] === Stats.getStatEntry(stat).defaultValue)) {
-                    const generatedValue = await generateStat(
-                        stat,
-                        char,
-                        messages,
-                        resultingStats.Characters[char],
-                        greedy
-                    );
-
+                    const generatedValue = await generateStat(stat, char, messages, resultingStats.Characters[char], greedy);
                     if (typeof generatedValue === 'string' && !generatedValue.startsWith('error')) {
                         resultingStats.Characters[char][stat] = generatedValue;
                         statsActuallyGenerated = true;
-                    } else {
+                    }
+                    else {
                         console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats.Characters[char][stat]}"`);
                         if (generatedValue === 'error_network_or_cors' || generatedValue === 'error_api_call_failed') {
                             console.log(`StatSuite: Detected connection issue. Stopping further stat generation.`);
@@ -295,16 +259,14 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
             }
         }
     }
-
     if (ExtensionSettings.offlineMode || statsActuallyGenerated) {
         setMessageStats(resultingStats, messages.newIndex);
-    } else {
+    }
+    else {
         console.log("StatSuite: No stats were generated in this run.");
     }
-
     console.log("StatSuite: Generation mutex released.");
 }
-
 /**
  * Resets the connection failure state to allow retrying stat generation.
  * Call this when you want to retry after a connection failure.
@@ -313,39 +275,24 @@ export function retryStatGeneration() {
     resetConnectionFailure();
     console.log("StatSuite: Connection failure state reset. Stat generation will be attempted again.");
 }
-
 export async function injectStatsFromMessage(messageId) {
     const ctx = SillyTavern.getContext();
-
-    ctx.setExtensionPrompt(
-        "StatSuite",
-        "",
-        extension_prompt_types.IN_CHAT,
-        0
-    )
-
+    ctx.setExtensionPrompt("StatSuite", "", extension_prompt_types.IN_CHAT, 0);
     const stats = Chat.getMessageStats(messageId);
     if (!stats || Object.keys(stats).length === 0) {
         if (ExtensionSettings.enableAutoRequestStats) {
             await makeStats(messageId);
         }
-    } else {
+    }
+    else {
         console.log("StatSuite: Stats already present in the last message. No action taken.");
     }
-
     const finalStats = Chat.getMessageStats(messageId);
     if (!finalStats) {
         console.warn("StatSuite: No stats found in the last message.");
         return;
     }
-
     const statsString = statsToStringFull(finalStats);
     const injection = `\n[current state]${statsString}[/current state]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE.`;
-
-    ctx.setExtensionPrompt(
-        "StatSuite",
-        injection,
-        extension_prompt_types.IN_CHAT,
-        1
-    )
+    ctx.setExtensionPrompt("StatSuite", injection, extension_prompt_types.IN_CHAT, 1);
 }

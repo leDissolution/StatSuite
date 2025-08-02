@@ -1,16 +1,16 @@
 // Handles adding paste/request buttons to message UI
-
 import { makeStats, parseStatsString, setMessageStats } from '../stats/stats-logic.js';
-
 /**
  * Adds paste and request buttons to a message's extra buttons container.
  * @param {number} messageId
  */
 export function addPasteButton(messageId) {
     const messageDiv = $(`[mesid="${messageId}"]`);
-    if (!messageDiv.length) return;
+    if (!messageDiv.length)
+        return;
     const buttonsContainer = messageDiv.find('.extraMesButtons');
-    if (!buttonsContainer.length) return;
+    if (!buttonsContainer.length)
+        return;
     buttonsContainer.find('.paste-stats-button, .request-stats-button').remove();
     const buttonStyle = { 'cursor': 'pointer', 'opacity': '0.3', 'transition': 'opacity 0.2s', 'padding': '0 5px' };
     // @ts-ignore
@@ -26,11 +26,10 @@ export function addPasteButton(messageId) {
         .css(buttonStyle).attr('title', 'Request/Regenerate stats for this message')
         .hover(hoverIn, hoverOut)
         .on('click', function (e) {
-             makeStats(messageId, null, null, e.altKey !== true);
-        });
+        makeStats(messageId, null, null, e.altKey !== true);
+    });
     buttonsContainer.append(requestButton);
 }
-
 /**
  * Shows a modal to paste stats from clipboard and apply them to a message.
  * @param {number} messageId
@@ -59,11 +58,13 @@ export async function pasteStats(messageId) {
         applyButton.on('click', () => {
             const clipText = String(textarea.val());
             if (!clipText) {
-                toastr.error('No text provided'); return;
+                toastr.error('No text provided');
+                return;
             }
             const statMatch = clipText.match(/<\/message>\s*([\s\S]*?)(?:\n\n|$)/);
             if (!statMatch || !statMatch[1]) {
-                toastr.error('No stats block found after </message> in pasted text'); return;
+                toastr.error('No stats block found after </message> in pasted text');
+                return;
             }
             const statsText = statMatch[1].trim();
             const stats = {};
@@ -74,20 +75,23 @@ export async function pasteStats(messageId) {
                 if (parsed) {
                     parsedSomething = true;
                     Object.entries(parsed).forEach(([char, charStats]) => {
-                        if (!stats[char]) stats[char] = {};
+                        if (!stats[char])
+                            stats[char] = {};
                         Object.assign(stats[char], charStats);
                     });
                 }
             });
             if (!parsedSomething) {
-                toastr.error('Failed to parse any valid stats from the text'); return;
+                toastr.error('Failed to parse any valid stats from the text');
+                return;
             }
             // @ts-ignore
             setMessageStats(stats, messageId);
             toastr.success('Stats applied successfully from pasted text');
             modal.remove();
         });
-    } catch (err) {
+    }
+    catch (err) {
         console.error('StatSuite UI Error: Failed to paste stats:', err);
         toastr.error('Failed to show paste stats modal or apply stats');
     }

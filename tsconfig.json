@@ -6,11 +6,12 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "strict": true,
-    "noEmit": true,
+    "noEmit": false,
     "skipLibCheck": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "outDir": "dist",
   },
   "include": [
     "**/*.js",

@@ -4,7 +4,6 @@ import { saveSettingsDebounced } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { ExtensionSettings } from '../settings.js';
 import { Presets, StatPreset } from './presets-registry.js';
-
 /**
  * @typedef {Object} StatEntryOptions
  * @property {string} defaultValue - The default value for the stat
@@ -15,7 +14,6 @@ import { Presets, StatPreset } from './presets-registry.js';
  * @property {boolean} [isActive=true] - Whether this stat is currently active
  * @property {boolean} [isManual=false] - Whether this stat requires manual input
  */
-
 /**
  * @typedef {Object} StatConfig
  * @property {string[]} [dependencies] - Array of stat names this stat depends on
@@ -26,7 +24,6 @@ import { Presets, StatPreset } from './presets-registry.js';
  * @property {boolean} [isActive] - Whether this stat is currently active
  * @property {boolean} [isManual] - Whether this stat requires manual input
  */
-
 /**
  * Represents a single stat entry with its configuration
  */
@@ -54,7 +51,6 @@ class StatEntry {
         this.isManual = isManual;
     }
 }
-
 /** @type {StatEntry[]} */
 const DEFAULT_STATS = [
     new StatEntry('pose', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true }),
@@ -65,7 +61,6 @@ const DEFAULT_STATS = [
     new StatEntry('bodyState', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false }),
     new StatEntry('mood', { dependencies: [], order: 6, defaultValue: 'neutral', isActive: false }),
 ];
-
 /**
  * Manages the registry of stats (official + custom) and synchronizes with chat metadata.
  */
@@ -76,7 +71,6 @@ export class StatRegistry {
         /** @type {EventTarget} */
         this._eventTarget = new EventTarget();
     }
-
     /**
      * Initializes the stat registry from chat metadata.
      * Loads stored stats and syncs with default stat configurations.
@@ -84,12 +78,10 @@ export class StatRegistry {
      */
     initializeFromMetadata() {
         const preset = Presets.getActivePreset();
-
         if (ExtensionSettings.stats && ExtensionSettings.stats.stats) {
             Object.entries(ExtensionSettings.stats.stats).forEach(([statName, stat]) => {
                 if (stat && statName && !this._stats[statName]) {
                     let statPreset = preset.get(statName);
-
                     if (!statPreset) {
                         if (!stat.isCustom) {
                             const defaultStat = DEFAULT_STATS.find(s => s.name === statName);
@@ -103,7 +95,6 @@ export class StatRegistry {
                                 };
                             }
                         }
-
                         if (!statPreset) {
                             console.warn(`StatSuite Warning: Stat "${stat.name}" not found in presets. Using default configuration.`);
                             statPreset = {
@@ -115,7 +106,6 @@ export class StatRegistry {
                             };
                         }
                     }
-
                     this._addStatEntryInternal({
                         name: stat.name,
                         dependencies: stat.dependencies || [],
@@ -129,36 +119,31 @@ export class StatRegistry {
                 }
             });
         }
-
         this.applyPreset(preset.name);
-
         DEFAULT_STATS.forEach(stat => {
             if (!this._stats[stat.name]) {
                 this._addStatEntryInternal(stat);
             }
-
             this._stats[stat.name].isCustom = false;
             this._stats[stat.name].defaultValue = stat.defaultValue;
-
             const statPreset = preset.get(stat.name);
             if (statPreset) {
                 statPreset.defaultValue = stat.defaultValue;
             }
         });
-
         this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STATS_BATCH_LOADED, {
             detail: { statNames: Object.keys(this._stats) }
         }));
     }
-
     /**
      * Saves the current stat registry to chat metadata.
      * @returns {void}
      */
     saveToMetadata() {
-        if (!ExtensionSettings.stats) ExtensionSettings.stats = { stats: {}, presets: {} };
-        if (!ExtensionSettings.stats.stats) ExtensionSettings.stats.stats = {};
-        
+        if (!ExtensionSettings.stats)
+            ExtensionSettings.stats = { stats: {}, presets: {} };
+        if (!ExtensionSettings.stats.stats)
+            ExtensionSettings.stats.stats = {};
         // Save basic stat configuration (structure only)
         ExtensionSettings.stats.stats = {};
         this.getAllStats().forEach(stat => {
@@ -169,7 +154,6 @@ export class StatRegistry {
                 isCustom: stat.isCustom
             };
         });
-
         // Save activation states and display settings to the active preset
         const preset = Presets.getActivePreset();
         this.getAllStats().forEach(stat => {
@@ -181,24 +165,23 @@ export class StatRegistry {
                 defaultValue: stat.defaultValue
             }));
         });
-
         Presets.saveToMetadata();
         saveSettingsDebounced();
-
-        if (saveMetadataDebounced) saveMetadataDebounced();
+        if (saveMetadataDebounced)
+            saveMetadataDebounced();
     }
-
     /**
      * Adds a stat entry to the registry.
      * @param {StatEntry | any} entry - The stat entry to add
      * @returns {boolean} True if successfully added, false otherwise
      */
     addStatEntry(entry) {
-        if (!entry || !(entry.name)) return false;
+        if (!entry || !(entry.name))
+            return false;
         /** @type {string} */
         const name = entry.name;
-        if (this._stats[name]) return false;
-        
+        if (this._stats[name])
+            return false;
         try {
             this.addStat(name, {
                 dependencies: entry.dependencies,
@@ -208,16 +191,15 @@ export class StatRegistry {
                 isActive: entry.isActive,
                 isManual: entry.isManual
             });
-
             this.saveToMetadata();
             this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STAT_ADDED, { detail: name }));
-        } catch (error) {
+        }
+        catch (error) {
             console.error("StatSuite Error: Failed to add stat entry.", error);
             return false;
         }
         return true;
     }
-
     /**
      * Adds a new stat to the registry with the given configuration.
      * @param {string} key - The unique key/name for the stat
@@ -225,10 +207,12 @@ export class StatRegistry {
      * @returns {boolean} True if successfully added, false otherwise
      */
     addStat(key, config) {
-        if (!key || typeof key !== 'string') return false;
+        if (!key || typeof key !== 'string')
+            return false;
         /** @type {string} */
         const name = key;
-        if (this._stats[name]) return false;
+        if (this._stats[name])
+            return false;
         this._stats[name] = new StatEntry(name, {
             dependencies: Array.isArray(config.dependencies) ? config.dependencies : [],
             order: typeof config.order === 'number' ? config.order : Object.keys(this._stats).length,
@@ -242,7 +226,6 @@ export class StatRegistry {
         this._eventTarget.dispatchEvent(new CustomEvent(EVENT_STAT_ADDED, { detail: name }));
         return true;
     }
-
     /**
      * Removes a stat from the registry.
      * @param {string} key - The key/name of the stat to remove
@@ -257,7 +240,6 @@ export class StatRegistry {
         }
         return false;
     }
-
     /**
      * Checks if a stat exists in the registry.
      * @param {string} key - The key/name of the stat to check
@@ -266,7 +248,6 @@ export class StatRegistry {
     hasStat(key) {
         return !!this._stats[key];
     }
-
     /**
      * Gets all stat entries sorted by order.
      * @returns {StatEntry[]} Array of all stat entries
@@ -275,7 +256,6 @@ export class StatRegistry {
         return Object.values(this._stats)
             .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     }
-
     /**
      * Gets all stat names sorted by order.
      * @returns {string[]} Array of all stat names
@@ -283,7 +263,6 @@ export class StatRegistry {
     getAllStatNames() {
         return this.getAllStats().map(stat => stat.name);
     }
-
     /**
      * Gets all active stat entries sorted by order.
      * @returns {StatEntry[]} Array of active stat entries
@@ -293,7 +272,6 @@ export class StatRegistry {
             .filter(stat => stat.isActive)
             .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     }
-
     /**
      * Gets all active stat names sorted by order.
      * @returns {string[]} Array of active stat names
@@ -301,7 +279,6 @@ export class StatRegistry {
     getActiveStatNames() {
         return this.getActiveStats().map(stat => stat.name);
     }
-
     /**
      * Gets the configuration for a specific stat.
      * @param {string} key - The key/name of the stat
@@ -310,7 +287,6 @@ export class StatRegistry {
     getStatEntry(key) {
         return this._stats[key] || null;
     }
-
     /**
      * Adds an event listener to the registry.
      * @param {string} type - The event type to listen for
@@ -320,7 +296,6 @@ export class StatRegistry {
     addEventListener(type, callback) {
         this._eventTarget.addEventListener(type, callback);
     }
-
     /**
      * Removes an event listener from the registry.
      * @param {string} type - The event type to remove the listener from
@@ -330,7 +305,6 @@ export class StatRegistry {
     removeEventListener(type, callback) {
         this._eventTarget.removeEventListener(type, callback);
     }
-
     /**
      * Clears all stats from the registry and saves to metadata.
      * @returns {void}
@@ -339,7 +313,6 @@ export class StatRegistry {
         this._stats = {};
         this.saveToMetadata();
     }
-
     /**
      * Internal method to add a stat entry without triggering events or saving.
      * Used during batch loading to avoid multiple re-renders.
@@ -348,11 +321,12 @@ export class StatRegistry {
      * @private
      */
     _addStatEntryInternal(entry) {
-        if (!entry || !(entry.name)) return false;
+        if (!entry || !(entry.name))
+            return false;
         /** @type {string} */
         const name = entry.name;
-        if (this._stats[name]) return false;
-        
+        if (this._stats[name])
+            return false;
         try {
             this._stats[name] = new StatEntry(name, {
                 dependencies: Array.isArray(entry.dependencies) ? entry.dependencies : [],
@@ -363,13 +337,13 @@ export class StatRegistry {
                 isActive: entry.isActive !== undefined ? !!entry.isActive : true,
                 isManual: entry.isManual !== undefined ? !!entry.isManual : false
             });
-        } catch (error) {
+        }
+        catch (error) {
             console.error("StatSuite Error: Failed to add stat entry.", error);
             return false;
         }
         return true;
     }
-
     /**
      * Applies a preset to all stats in the registry.
      * @param {string} presetName - The name of the preset to apply
@@ -381,7 +355,6 @@ export class StatRegistry {
             console.warn(`StatSuite Warning: Preset "${presetName}" not found.`);
             return;
         }
-        
         this.getAllStats().forEach(stat => {
             const statPreset = preset.get(stat.name);
             if (statPreset) {
@@ -391,13 +364,10 @@ export class StatRegistry {
                 stat.defaultValue = statPreset.defaultValue || stat.defaultValue;
             }
         });
-        
         Presets.setActivePreset(presetName);
         this.saveToMetadata();
-        
         this._eventTarget.dispatchEvent(new CustomEvent('statsChanged'));
     }
 }
-
 /** @type {StatRegistry} */
 export const Stats = new StatRegistry();
