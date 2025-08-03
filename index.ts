@@ -17,7 +17,7 @@ export async function injectStats(chat: any[], _ctx: any, abort: any, type: stri
     }
 
     var messageId = chat.length - 1;
-    while (messageId >= 0 && Chat.getMessage(messageId).is_system) {
+    while (messageId >= 0 && Chat.getMessage(messageId)?.is_system) {
         messageId--;
     }
 

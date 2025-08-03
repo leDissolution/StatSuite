@@ -13,7 +13,7 @@ export async function injectStats(chat, _ctx, abort, type) {
         return;
     }
     var messageId = chat.length - 1;
-    while (messageId >= 0 && Chat.getMessage(messageId).is_system) {
+    while (messageId >= 0 && Chat.getMessage(messageId)?.is_system) {
         messageId--;
     }
     if (messageId > -1) {

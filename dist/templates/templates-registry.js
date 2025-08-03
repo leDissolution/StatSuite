@@ -23,7 +23,6 @@ export class TemplateRegistry {
             this._templates.find(t => t.name === defaultTemplate.name).templateString = defaultTemplate.templateString;
         }
         this.saveToMetadata();
-        this._currentTemplate = this._templates.find(t => t.name === defaultTemplate.name);
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
     saveToMetadata() {
@@ -55,9 +54,6 @@ export class TemplateRegistry {
         this._templates = [...templates];
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
-    }
-    getCurrentTemplate() {
-        return this._currentTemplate;
     }
     onTemplatesChanged(callback) {
         this._eventTarget.addEventListener('templatesChanged', callback);

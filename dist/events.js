@@ -82,7 +82,8 @@ function onSwipeChanged(messageId) {
         return;
     if (!Chat.isValidMessageForStats(messageId))
         return;
-    if (chat[messageId].swipe_id >= chat[messageId].swipes.length) // swipe_id out of bounds means new swipe request before message is generated
+    const message = chat[messageId];
+    if (message.swipe_id >= message.swipes.length) // swipe_id out of bounds means new swipe request before message is generated
      {
         displayStats(messageId, new ChatStatEntry({ '...': null }));
         return;

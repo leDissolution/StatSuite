@@ -79,8 +79,8 @@ export class StatRegistry {
                 this._addStatEntryInternal(stat);
             }
 
-            this._stats[stat.name].isCustom = false;
-            this._stats[stat.name].defaultValue = stat.defaultValue;
+            this._stats[stat.name]!.isCustom = false;
+            this._stats[stat.name]!.defaultValue = stat.defaultValue;
 
             const statPreset = preset.get(stat.name);
             if (statPreset) {

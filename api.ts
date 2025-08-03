@@ -101,10 +101,10 @@ export async function generateStat(stat: string, char: string, messages: Message
     const statPrompt = generateStatPrompt(
         stat,
         char,
-        messages.previousName,
-        messages.previousMessage,
-        messages.newName,
-        messages.newMessage,
+        messages.previousName ?? '',
+        messages.previousMessage ?? '',
+        messages.newName ?? '',
+        messages.newMessage ?? '',
         statsToStringFull(messages.previousStats),
         dependencies
     );

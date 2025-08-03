@@ -12,11 +12,13 @@ export class ChatStatEntry {
     }
     clone() {
         const chars = {};
-        for (const k of Object.keys(this.Characters))
-            chars[k] = this.Characters[k].clone();
+        for (const k of Object.keys(this.Characters)) {
+            chars[k] = this.Characters[k]?.clone() ?? null;
+        }
         const scenes = {};
-        for (const k of Object.keys(this.Scenes))
-            scenes[k] = this.Scenes[k].clone();
+        for (const k of Object.keys(this.Scenes)) {
+            scenes[k] = this.Scenes[k]?.clone() ?? null;
+        }
         return new ChatStatEntry(chars, scenes);
     }
 }

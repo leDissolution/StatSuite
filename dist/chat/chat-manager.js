@@ -10,7 +10,7 @@ export class ChatManager {
         const chatArray = this.getCurrentChat();
         if (index < 0 || index >= chatArray.length)
             return null;
-        return chatArray[index];
+        return chatArray[index] ?? null;
     }
     getLatestMessage() {
         const chatArray = this.getCurrentChat();
@@ -114,6 +114,8 @@ export class ChatManager {
         if (!this.isValidMessageForStats(messageIndex))
             return false;
         const message = this.getMessage(messageIndex);
+        if (!message)
+            return false;
         const swipeId = message.swipe_id ?? 0;
         if (!message.stats || !Array.isArray(message.stats)) {
             message.stats = [];
@@ -127,6 +129,9 @@ export class ChatManager {
         if (!message)
             return false;
         const swipe_id = message.swipe_id ?? 0;
+        if (!message.stats || !Array.isArray(message.stats) || !message.stats[swipe_id]) {
+            return false;
+        }
         delete message.stats[swipe_id];
         return true;
     }
@@ -145,11 +150,13 @@ export class ChatManager {
         if (!this.isValidMessageForStats(messageIndex))
             return null;
         const current = this.getMessage(messageIndex);
+        if (!current)
+            return null;
         const previous = this.getPreviousMessage(messageIndex);
         const previousStats = previous ? this.getMessageStats(previous.index) : new ChatStatEntry({}, {});
         return {
-            previousName: previous ? previous.message.name : null,
-            previousMessage: previous ? previous.message.mes : "",
+            previousName: previous?.message?.name ?? null,
+            previousMessage: previous?.message?.mes ?? "",
             previousStats: previousStats,
             previousIndex: previous ? previous.index : -1,
             newName: current.name,
@@ -165,7 +172,8 @@ export class ChatManager {
             message: this.getMessage(index),
             index
         }))
-            .filter(item => this.isValidMessageForStats(item.index));
+            .filter(item => this.isValidMessageForStats(item.index))
+            .filter(item => item.message !== null);
     }
     isValidMessageForStats(messageIndex) {
         const message = this.getMessage(messageIndex);

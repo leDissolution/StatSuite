@@ -158,10 +158,10 @@ export function renderStatsList() {
                 const key = container.data('key');
                 const newVal = String($(this).val()).trim();
                 const stat = Stats.getStatEntry(key);
-                if (stat) {
-                    stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
-                }
-                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
+                if (!stat)
+                    return;
+                stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
+                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName);
                 $(this).replaceWith(newSpan);
             });
             Stats.saveToMetadata();
@@ -191,6 +191,8 @@ export function renderStatsList() {
             const container = $(this).closest('.display-name-container');
             const key = container.data('key');
             const stat = Stats.getStatEntry(key);
+            if (!stat)
+                return;
             const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
             $(this).replaceWith(newSpan);
         });

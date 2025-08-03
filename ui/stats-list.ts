@@ -175,11 +175,11 @@ export function renderStatsList(): void {
                 const newVal = String($(this).val()).trim();
                 const stat = Stats.getStatEntry(key);
                 
-                if (stat) {
-                    stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
-                }
+                if (!stat) return;
                 
-                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
+                stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
+
+                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName);
                 $(this).replaceWith(newSpan);
             });
             
@@ -212,6 +212,8 @@ export function renderStatsList(): void {
             const container = $(this).closest('.display-name-container');
             const key = container.data('key');
             const stat = Stats.getStatEntry(key);
+
+            if (!stat) return;
             
             const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
             $(this).replaceWith(newSpan);

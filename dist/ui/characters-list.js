@@ -44,10 +44,12 @@ export function renderCharactersList() {
     container.append(table);
     container.off('click.statSuite', '.remove-character').on('click.statSuite', '.remove-character', function () {
         const char = $(this).attr('data-character');
-        Characters.removeCharacter(char);
+        if (char) {
+            Characters.removeCharacter(char);
+        }
     });
     container.off('change.statSuite', '.player-checkbox').on('change.statSuite', '.player-checkbox', function () {
-        const charName = $(this).attr('data-character');
+        const charName = $(this).attr('data-character') ?? null;
         const isPlayer = $(this).is(':checked');
         const charObj = Characters.getCharacter(charName);
         if (charObj) {
@@ -56,7 +58,7 @@ export function renderCharactersList() {
         }
     });
     container.off('change.statSuite', '.active-checkbox').on('change.statSuite', '.active-checkbox', function () {
-        const charName = $(this).attr('data-character');
+        const charName = $(this).attr('data-character') ?? null;
         const isActive = $(this).is(':checked');
         const charObj = Characters.getCharacter(charName);
         if (charObj) {

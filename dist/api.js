@@ -83,7 +83,7 @@ export async function generateStat(stat, char, messages, existingStats, greedy =
             }
         });
     }
-    const statPrompt = generateStatPrompt(stat, char, messages.previousName, messages.previousMessage, messages.newName, messages.newMessage, statsToStringFull(messages.previousStats), dependencies);
+    const statPrompt = generateStatPrompt(stat, char, messages.previousName ?? '', messages.previousMessage ?? '', messages.newName ?? '', messages.newMessage ?? '', statsToStringFull(messages.previousStats), dependencies);
     console.log(`Generating ${stat} for ${char}:`, statPrompt);
     try {
         if (!ExtensionSettings.modelUrl) {

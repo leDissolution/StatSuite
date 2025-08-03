@@ -38,6 +38,9 @@ export class Template {
     }
     render(data) {
         this._ensureCompiled();
+        if (!this._compiledTemplate) {
+            throw new Error(`Template "${this.name}" is not compiled.`);
+        }
         try {
             return this._compiledTemplate(data);
         }

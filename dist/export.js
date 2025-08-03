@@ -13,7 +13,6 @@ export async function exportChat() {
     for (let i = 0; i < exportableMessages.length; i++) {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i];
         let previousName, previousMes;
-        /** @type {ChatStatEntry} */
         let previousStats;
         const currentStats = Chat.getMessageStats(currentIndex);
         if (!currentStats) {
@@ -65,7 +64,7 @@ export async function exportSingleMessage(messageContext) {
     for (const charName of Object.keys(newStats.Characters)) {
         filteredPreviousStats.Characters[charName] = previousStats.Characters?.[charName] !== undefined ? previousStats.Characters?.[charName] : null;
     }
-    let exportPrompt = generateExportPrompt(messageContext.previousName, messageContext.previousMessage, messageContext.newName, messageContext.newMessage, statsToStringFull(filteredPreviousStats), statsToStringFull(newStats));
+    let exportPrompt = generateExportPrompt(messageContext.previousName ?? '', messageContext.previousMessage ?? '', messageContext.newName ?? '', messageContext.newMessage ?? '', statsToStringFull(filteredPreviousStats), statsToStringFull(newStats));
     if (ExtensionSettings.anonymizeClipboardExport) {
         let characterMap = {};
         Characters.listTrackedCharacterNames().forEach((name, index) => {

@@ -54,7 +54,7 @@ export function renderTemplateSettings() {
 }
 
 function attachTemplateHandlers() {
-    let currentTemplate = null;
+    let currentTemplate: Template | null = null;
     let isNewTemplate = false;
     
     $('#template-selector').off('change.templateSettings').on('change.templateSettings', function() {
@@ -94,7 +94,7 @@ function attachTemplateHandlers() {
         
         let templateName: string;
         if (isNewTemplate) {
-            templateName = prompt('Enter template name:').trim();
+            templateName = prompt('Enter template name:')?.trim() || '';
             if (!templateName) {
                 return;
             }

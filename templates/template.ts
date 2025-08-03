@@ -50,6 +50,11 @@ export class Template {
 
     render(data: TemplateData): string {
         this._ensureCompiled();
+
+        if (!this._compiledTemplate) {
+            throw new Error(`Template "${this.name}" is not compiled.`);
+        }
+
         try {            
             return this._compiledTemplate(data);
         } catch (error: any) {

@@ -14,11 +14,13 @@ export function parseStatsString(statsString) {
     if (!charMatch)
         return null;
     const charName = charMatch[1];
+    if (!charName)
+        return null;
     result[charName] = {};
     const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
     for (const match of matches) {
         const [_, key, value] = match;
-        if (key !== 'character') {
+        if (key && key !== 'character') {
             if (Stats.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
             }
@@ -157,23 +159,25 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     if (ExtensionSettings.offlineMode) {
         activeStats = activeStats.filter(stat => stat.isManual);
     }
-    charsToProcess.forEach(char => {
-        if (!resultingStats.Characters[char]) {
-            resultingStats.Characters[char] = new StatsBlock();
+    charsToProcess.forEach(charName => {
+        let charStats = resultingStats.Characters[charName];
+        if (!charStats) {
+            charStats = new StatsBlock();
         }
-        else if (!(resultingStats.Characters[char] instanceof StatsBlock)) {
-            resultingStats.Characters[char] = new StatsBlock(resultingStats.Characters[char]);
+        else if (!(charStats instanceof StatsBlock)) {
+            charStats = new StatsBlock(charStats);
         }
         activeStats.forEach(statEntry => {
-            if (!resultingStats.Characters[char].hasOwnProperty(statEntry.name)) {
-                resultingStats.Characters[char][statEntry.name] = statEntry.defaultValue;
+            if (!charStats.hasOwnProperty(statEntry.name)) {
+                charStats[statEntry.name] = statEntry.defaultValue;
             }
             if (statEntry.isManual) {
-                if (messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][statEntry.name] !== undefined) {
-                    resultingStats.Characters[char][statEntry.name] = messages.previousStats.Characters[char][statEntry.name];
+                if (messages.previousStats && messages.previousStats.Characters[charName] && messages.previousStats.Characters[charName][statEntry.name] !== undefined) {
+                    charStats[statEntry.name] = messages.previousStats.Characters[charName][statEntry.name];
                 }
             }
         });
+        resultingStats.Characters[charName] = charStats;
     });
     let statsActuallyGenerated = false;
     if (!ExtensionSettings.offlineMode) {
@@ -188,26 +192,29 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
             const statsToGenerateForChar = specificStat
                 ? getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual)
                 : statsToGenerate;
-            const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatEntry(a).order - Stats.getStatEntry(b).order);
+            const sortedStatsToGenerate = statsToGenerateForChar.sort((a, b) => Stats.getStatEntry(a)?.order ?? 0 - (Stats.getStatEntry(b)?.order ?? 0));
             console.log(`StatSuite: Processing stats for character "${char}"`, sortedStatsToGenerate);
             for (const stat of sortedStatsToGenerate) {
                 if (shouldSkipApiCalls()) {
                     console.log(`StatSuite: Stopping stat generation due to connection issues. Processed up to stat "${stat}" for character "${char}".`);
                     break;
                 }
+                const charStats = resultingStats.Characters[char];
+                if (!charStats)
+                    continue;
                 if (copyOver && messages.previousStats && messages.previousStats.Characters[char] && messages.previousStats.Characters[char][stat] !== undefined) {
-                    resultingStats.Characters[char][stat] = messages.previousStats.Characters[char][stat];
+                    charStats[stat] = messages.previousStats.Characters[char][stat];
                     statsActuallyGenerated = true;
                     continue;
                 }
-                if (specificStat === null || stat === specificStat || (resultingStats.Characters[char][stat] == null || resultingStats.Characters[char][stat] === Stats.getStatEntry(stat).defaultValue)) {
-                    const generatedValue = await generateStat(stat, char, messages, resultingStats.Characters[char], greedy);
+                if (specificStat === null || stat === specificStat || (charStats[stat] == null || charStats[stat] === Stats.getStatEntry(stat)?.defaultValue)) {
+                    const generatedValue = await generateStat(stat, char, messages, charStats, greedy);
                     if (typeof generatedValue === 'string' && !generatedValue.startsWith('error')) {
-                        resultingStats.Characters[char][stat] = generatedValue;
+                        charStats[stat] = generatedValue;
                         statsActuallyGenerated = true;
                     }
                     else {
-                        console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${resultingStats.Characters[char][stat]}"`);
+                        console.warn(`StatSuite: Failed to generate stat "${stat}" for "${char}". Error: ${generatedValue}. Keeping previous value: "${charStats[stat]}"`);
                         if (generatedValue === 'error_network_or_cors' || generatedValue === 'error_api_call_failed') {
                             console.log(`StatSuite: Detected connection issue. Stopping further stat generation.`);
                             break;

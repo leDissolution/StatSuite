@@ -11,7 +11,6 @@ const defaultTemplate = new Template('Default', `<metadata>
 export class TemplateRegistry {
     private _templates: Template[];
     private _eventTarget: EventTarget;
-    private _currentTemplate: Template;
 
     constructor() {
         this._templates = [];
@@ -31,12 +30,10 @@ export class TemplateRegistry {
             this._templates.push(defaultTemplate);
         }
         else {
-            this._templates.find(t => t.name === defaultTemplate.name).templateString = defaultTemplate.templateString;
+            this._templates.find(t => t.name === defaultTemplate.name)!.templateString = defaultTemplate.templateString;
         }
 
         this.saveToMetadata();
-
-        this._currentTemplate = this._templates.find(t => t.name === defaultTemplate.name);
 
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
@@ -76,10 +73,6 @@ export class TemplateRegistry {
         this._templates = [...templates];
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
-    }
-
-    getCurrentTemplate(): Template {
-        return this._currentTemplate;
     }
 
     onTemplatesChanged(callback: (event: Event) => void) {

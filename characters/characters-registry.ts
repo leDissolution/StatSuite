@@ -68,7 +68,7 @@ export class CharacterRegistry {
         return false;
     }
 
-    getCharacter(name: string): Character | null {
+    getCharacter(name: string | null): Character | null {
         for (const charObj of this._characters) {
             if (charObj.name === name) return charObj;
         }

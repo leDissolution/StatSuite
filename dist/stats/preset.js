@@ -17,20 +17,21 @@ export class StatsPreset {
         return this.stats[name] || null;
     }
     set(preset) {
-        if (!this.stats[preset.name]) {
+        const existingPreset = this.get(preset.name);
+        if (existingPreset) {
+            existingPreset.active = preset.active;
+            existingPreset.manual = preset.manual;
+            existingPreset.displayName = preset.displayName || existingPreset.displayName;
+            existingPreset.defaultValue = preset.defaultValue || existingPreset.defaultValue;
+        }
+        else {
             this.stats[preset.name] = new StatPreset({
                 name: preset.name,
                 displayName: preset.displayName || preset.name,
-                active: preset.active || false,
-                manual: preset.manual || false,
+                active: preset.active ?? false,
+                manual: preset.manual ?? false,
                 defaultValue: preset.defaultValue || 'unspecified'
             });
-        }
-        else {
-            this.stats[preset.name].active = preset.active;
-            this.stats[preset.name].manual = preset.manual;
-            this.stats[preset.name].displayName = preset.displayName || this.stats[preset.name].displayName;
-            this.stats[preset.name].defaultValue = preset.defaultValue || this.stats[preset.name].defaultValue;
         }
     }
 }

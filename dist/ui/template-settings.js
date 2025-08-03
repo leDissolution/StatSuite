@@ -77,7 +77,7 @@ function attachTemplateHandlers() {
         }
         let templateName;
         if (isNewTemplate) {
-            templateName = prompt('Enter template name:').trim();
+            templateName = prompt('Enter template name:')?.trim() || '';
             if (!templateName) {
                 return;
             }

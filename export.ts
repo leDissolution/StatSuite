@@ -10,13 +10,12 @@ import { ChatStatEntry } from './chat/chat-stat-entry.js';
 
 export async function exportChat(): Promise<void> {
     const exportableMessages = Chat.getStatEligibleMessages();
-    const exports = [];
+    const exports: Array<string> = [];
     
     for (let i = 0; i < exportableMessages.length; i++) {
-        const { message: currentMessage, index: currentIndex } = exportableMessages[i];
+        const { message: currentMessage, index: currentIndex } = exportableMessages[i]!;
         
-        let previousName, previousMes;
-        /** @type {ChatStatEntry} */
+        let previousName: string, previousMes: string;
         let previousStats: ChatStatEntry;
 
         const currentStats = Chat.getMessageStats(currentIndex);
@@ -34,10 +33,10 @@ export async function exportChat(): Promise<void> {
                 previousStats.Characters[charName] = null;
             });
         } else {
-            const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
+            const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1]!;
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = Chat.getMessageStats(previousIndex);
+            previousStats = Chat.getMessageStats(previousIndex)!;
         }
 
         // Add missing characters from currentStats to previousStats with null value
@@ -84,10 +83,10 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
     }
 
     let exportPrompt = generateExportPrompt(
-        messageContext.previousName,
-        messageContext.previousMessage,
-        messageContext.newName,
-        messageContext.newMessage,
+        messageContext.previousName ?? '',
+        messageContext.previousMessage ?? '',
+        messageContext.newName ?? '',
+        messageContext.newMessage ?? '',
         statsToStringFull(filteredPreviousStats),
         statsToStringFull(newStats)
     );

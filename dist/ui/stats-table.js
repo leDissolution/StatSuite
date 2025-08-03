@@ -229,32 +229,30 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                     .hover(function () { $(this).css('opacity', '1'); }, function () { $(this).css('opacity', '0.7'); })
                     .on('click', function (e) {
                     e.stopPropagation();
-                    var messagesToDelete = [];
+                    let messagesToDelete = [];
                     if (e.shiftKey) {
                         const confirmDelete = confirm(`Are you sure you want to remove ${charName} from ALL messages?`);
                         if (!confirmDelete)
                             return;
                         messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                            .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                            .filter(({ msg }) => !msg.message.is_system);
+                            .filter(({ message }) => !message.is_system);
                     }
                     else if (e.ctrlKey) {
                         const confirmDelete = confirm(`Remove ${charName} from next 5 messages?`);
                         if (!confirmDelete)
                             return;
                         messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                            .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                            .filter(({ msg }) => !msg.message.is_system)
+                            .filter(({ message }) => !message.is_system)
                             .slice(0, 5);
                     }
                     else {
-                        messagesToDelete = [{ idx: messageId }];
+                        messagesToDelete = [{ message: Chat.getMessage(messageId), index: messageId }];
                     }
-                    for (const { idx } of messagesToDelete) {
-                        const currentStats = Chat.getMessageStats(idx);
+                    for (const { index } of messagesToDelete) {
+                        const currentStats = Chat.getMessageStats(index);
                         if (currentStats) {
                             delete currentStats.Characters[charName];
-                            setMessageStats(currentStats, idx);
+                            setMessageStats(currentStats, index);
                         }
                     }
                     container.removeClass('editing');
@@ -269,6 +267,8 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
             const td = $(this);
             if (td.find('.remove-stat-btn').length === 0) {
                 const statKey = td.attr('data-stat-key');
+                if (!statKey)
+                    return;
                 const statName = td.find('span').text().trim();
                 const removeStatBtn = $('<i class="fas fa-times remove-stat-btn" title="Remove stat"></i>')
                     .css({ cursor: 'pointer', marginLeft: '5px', opacity: '0.7' })
@@ -281,30 +281,29 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                         if (!confirmDelete)
                             return;
                         messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                            .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                            .filter(({ msg }) => !msg.message.is_system);
+                            .filter(({ message }) => !message.is_system);
                     }
                     else if (e.ctrlKey) {
                         const confirmDelete = confirm(`Remove stat '${statName}' from next 5 messages?`);
                         if (!confirmDelete)
                             return;
                         messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                            .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                            .filter(({ msg }) => !msg.message.is_system)
+                            .map(({ message }, idx) => ({ message, index: messageId + idx }))
+                            .filter(({ message }) => !message.is_system)
                             .slice(0, 5);
                     }
                     else {
-                        messagesToDelete = [{ idx: messageId }];
+                        messagesToDelete = [{ message: Chat.getMessage(messageId), index: messageId }];
                     }
-                    for (const { idx } of messagesToDelete) {
-                        const currentStats = Chat.getMessageStats(idx);
+                    for (const { index } of messagesToDelete) {
+                        const currentStats = Chat.getMessageStats(index);
                         if (currentStats) {
                             for (const char in currentStats.Characters) {
                                 if (currentStats.Characters[char] && currentStats.Characters[char][statKey] !== undefined) {
                                     delete currentStats.Characters[char][statKey];
                                 }
                             }
-                            setMessageStats(currentStats, idx);
+                            setMessageStats(currentStats, index);
                         }
                     }
                     container.removeClass('editing');
@@ -351,8 +350,12 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
         table.find('td[data-character]').each(function () {
             const cell = $(this);
             const char = cell.attr('data-character');
+            if (!char)
+                return;
             const stat = cell.attr('data-stat');
-            const newValue = sanitizeStatInput(cell.find('input').val());
+            if (!stat)
+                return;
+            const newValue = sanitizeStatInput(String(cell.find('input').val()));
             if (newStats.Characters[char][stat] !== newValue) {
                 newStats.Characters[char][stat] = newValue;
                 changed = true;
@@ -392,7 +395,7 @@ export function displayStats(messageId, stats) {
             if (this.open) {
                 setTimeout(() => {
                     const chatDiv = $("#chat");
-                    chatDiv.scrollTop(chatDiv[0].scrollHeight);
+                    chatDiv.scrollTop(chatDiv[0]?.scrollHeight || 0);
                 }, 0);
             }
         });
