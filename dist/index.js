@@ -20,6 +20,7 @@ export async function injectStats(chat, _ctx, abort, type) {
         await injectStatsFromMessage(messageId);
     }
 }
+// @ts-ignore
 globalThis.injectStats = injectStats;
 jQuery(async () => {
     try {

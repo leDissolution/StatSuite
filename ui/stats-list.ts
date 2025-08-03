@@ -309,13 +309,13 @@ export function renderStatsList(): void {
             
             const newPreset = new StatsPreset(trimmedName);
             Stats.getAllStats().forEach(stat => {
-                newPreset.set(new StatPreset({
-                    name: stat.name,
-                    displayName: stat.displayName,
-                    active: stat.isActive,
-                    manual: stat.isManual,
-                    defaultValue: stat.defaultValue
-                }));
+                newPreset.set(new StatPreset(
+                    stat.name,
+                    stat.displayName,
+                    stat.isActive,
+                    stat.isManual,
+                    stat.defaultValue
+                ));
             });
             
             Presets.addPreset(newPreset);

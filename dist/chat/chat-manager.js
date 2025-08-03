@@ -1,4 +1,5 @@
-import { chat, saveChatConditional } from '../../../../../../script.js';
+import { chat, chat_metadata, saveChatConditional } from '../../../../../../script.js';
+import { ChatMetadata } from './chat-metadata.js';
 import { ChatStatEntry } from './chat-stat-entry.js';
 export class ChatManager {
     constructor() {
@@ -197,6 +198,12 @@ export class ChatManager {
     }
     getMessageCount() {
         return this.getCurrentChat().length;
+    }
+    get Metadata() {
+        if (!chat_metadata['StatSuite']) {
+            chat_metadata['StatSuite'] = new ChatMetadata();
+        }
+        return chat_metadata['StatSuite'];
     }
 }
 // Singleton instance

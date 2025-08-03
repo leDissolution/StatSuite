@@ -2,6 +2,7 @@ import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
 import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Character } from './character.js';
+import { Chat } from '../chat/chat-manager.js';
 
 export class CharacterRegistry {
     private _characters: Set<Character>;
@@ -13,9 +14,9 @@ export class CharacterRegistry {
     }
 
     initializeFromMetadata() {
-        const chatMetadata = chat_metadata.StatSuite;
-        const trackedChars = chatMetadata?.trackedCharacters || [];
+        const trackedChars = Chat.Metadata.trackedCharacters;
         this._characters.clear();
+        
         trackedChars.forEach((char: any) => {
             if (char instanceof Character) {
                 this.attachCharacter(char);
@@ -112,15 +113,8 @@ export class CharacterRegistry {
     }
 
     saveToMetadata() {
-        if (!chat_metadata.StatSuite) {
-            chat_metadata.StatSuite = {};
-        }
-
-        chat_metadata.StatSuite.trackedCharacters = this.listTrackedCharacters();
-
-        if (saveMetadataDebounced) {
-            saveMetadataDebounced();
-        }
+        Chat.Metadata.trackedCharacters = this.listTrackedCharacters();
+        Chat.Metadata.save();
     }
 
     clear() {

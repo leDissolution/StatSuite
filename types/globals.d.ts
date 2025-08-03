@@ -9,7 +9,11 @@ declare global {
         };
     };
 
-    export const Handlebars: typeof Hb;
+    declare const Handlebars: typeof Hb;
+
+    interface Window {
+        animation_duration?: number;
+    }
 }
 
 export {};

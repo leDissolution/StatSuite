@@ -1,6 +1,6 @@
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 import { StatsBlock } from '../stats/stat-block.js';
-import { makeStats, parseStatsString, setMessageStats } from '../stats/stats-logic.js';
+import { makeStats, parseSingleStatsString, setMessageStats } from '../stats/stats-logic.js';
 
 export function addPasteButton(messageId: number) {
     const messageDiv = $(`[mesid="${messageId}"]`);
@@ -61,12 +61,11 @@ export async function pasteStats(messageId: number) {
             const statLines = statsText.split('\n');
             let parsedSomething = false;
             statLines.forEach(line => {
-                const parsed = parseStatsString(line.trim());
+                const parsed = parseSingleStatsString(line.trim());
                 if (parsed) {
                     parsedSomething = true;
-                    Object.entries(parsed).forEach(([char, charStats]) => {
-                        if (!charStats[char]) charStats[char] = new ChatStatEntry();
-                        Object.assign(charStats[char], charStats);
+                    Object.entries(parsed).forEach(([char, parsedStats]) => {
+                        charStats[char] = parsedStats;
                     });
                 }
             });

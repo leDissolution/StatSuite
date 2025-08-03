@@ -8,6 +8,18 @@ const defaultTemplate = new Template('Default', `<metadata>
 </metadata>`);
 export class TemplateRegistry {
     constructor() {
+        Object.defineProperty(this, "_templates", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_eventTarget", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this._templates = [];
         this._eventTarget = new EventTarget();
     }

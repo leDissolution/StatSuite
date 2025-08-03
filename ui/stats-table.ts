@@ -109,7 +109,7 @@ function renderStatsTableBody(presentStats: string[], characters: string[], stat
         characters.forEach(char => {
             const statValue = (stats.Characters[char] && stats.Characters[char][stat] !== undefined) ? stats.Characters[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
-                .text(statValue)
+                .text(statValue!)
                 .attr('data-character', char)
                 .attr('data-stat', stat);
             row.append(cell);

@@ -78,8 +78,9 @@ export async function generateStat(stat, char, messages, existingStats, greedy =
     const dependencies = {};
     if (statConfig.dependencies.length > 0) {
         statConfig.dependencies.forEach(dep => {
-            if (existingStats && existingStats[dep]) {
-                dependencies[dep] = existingStats[dep];
+            const existingValue = existingStats[dep];
+            if (existingValue) {
+                dependencies[dep] = existingValue;
             }
         });
     }

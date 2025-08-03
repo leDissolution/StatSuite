@@ -1,5 +1,35 @@
 export class StatPreset {
-    constructor({ name, displayName, active, manual, defaultValue }) {
+    constructor(name, displayName, active, manual, defaultValue) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "displayName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "active", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "manual", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "defaultValue", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.name = name;
         this.displayName = displayName;
         this.active = active;
@@ -9,6 +39,24 @@ export class StatPreset {
 }
 export class StatsPreset {
     constructor(name, stats = {}) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "stats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "characters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.name = name;
         this.stats = stats;
         this.characters = [];
@@ -25,13 +73,7 @@ export class StatsPreset {
             existingPreset.defaultValue = preset.defaultValue || existingPreset.defaultValue;
         }
         else {
-            this.stats[preset.name] = new StatPreset({
-                name: preset.name,
-                displayName: preset.displayName || preset.name,
-                active: preset.active ?? false,
-                manual: preset.manual ?? false,
-                defaultValue: preset.defaultValue || 'unspecified'
-            });
+            this.stats[preset.name] = new StatPreset(preset.name, preset.displayName || preset.name, preset.active ?? false, preset.manual ?? false, preset.defaultValue || 'unspecified');
         }
     }
 }

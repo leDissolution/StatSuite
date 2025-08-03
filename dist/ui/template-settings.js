@@ -147,7 +147,7 @@ function getSampleStatsData() {
     allCharacters.forEach(character => {
         const statsBlock = new StatsBlock();
         allStats.forEach(stat => {
-            statsBlock.set(stat.name, stat.defaultValue);
+            statsBlock[stat.name] = stat.defaultValue;
         });
         sampleCharacterStats[character] = statsBlock;
     });

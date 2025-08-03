@@ -16,6 +16,18 @@ const DEFAULT_STATS = [
 ];
 export class StatRegistry {
     constructor() {
+        Object.defineProperty(this, "_stats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_eventTarget", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this._stats = {};
         this._eventTarget = new EventTarget();
     }
@@ -94,13 +106,7 @@ export class StatRegistry {
         });
         const preset = Presets.getActivePreset();
         this.getAllStats().forEach(stat => {
-            preset.set(new StatPreset({
-                name: stat.name,
-                displayName: stat.displayName,
-                active: stat.isActive,
-                manual: stat.isManual,
-                defaultValue: stat.defaultValue
-            }));
+            preset.set(new StatPreset(stat.name, stat.displayName, stat.isActive, stat.isManual, stat.defaultValue));
         });
         Presets.saveToMetadata();
         saveSettingsDebounced();

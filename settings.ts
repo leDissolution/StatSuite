@@ -2,14 +2,22 @@ import { extension_settings } from "../../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../../../script.js"
 import { fetchAvailableModels } from "./api.js"
 
-interface StatsSettings {
+export interface StatsSettings {
     stats: Record<string, any>;
-    presets: Record<string, any>;
+    presets: PresetsSettings;
 }
 
-interface TemplateSettings {
+export interface TemplateSettings {
     name: string;
     templateString: string;
+}
+
+export interface PresetsSettings {
+    [presetName: string]: {
+        name: string;
+        stats: Record<string, any>;
+        characters: string[];
+    };
 }
 
 export class SuiteSettings {
@@ -66,9 +74,11 @@ export async function initializeSettings(): Promise<void> {
         settingsChanged = true;
     } else {
         for (const key in defaultSettings) {
+            const typedKey = key as keyof typeof defaultSettings;
+
             if (!ExtensionSettings.hasOwnProperty(key)) {
                 console.log(`StatSuite: Adding missing default setting key "${key}"`);
-                ExtensionSettings[key] = defaultSettings[key];
+                (ExtensionSettings as any)[typedKey] = defaultSettings[typedKey];
                 settingsChanged = true;
             }
         }
@@ -93,14 +103,4 @@ export async function initializeSettings(): Promise<void> {
     }
 
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
-}
-
-export function updateSetting(key: string, value: any) {
-    if (ExtensionSettings.hasOwnProperty(key)) {
-        ExtensionSettings[key] = value;
-        saveSettingsDebounced();
-        console.log(`StatSuite: Setting "${key}" updated.`);
-    } else {
-        console.warn(`StatSuite: Attempted to update unknown setting "${key}".`);
-    }
 }

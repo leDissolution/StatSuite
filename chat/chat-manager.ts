@@ -1,5 +1,6 @@
-import { chat, saveChatConditional } from '../../../../../../script.js';
+import { chat, chat_metadata, saveChatConditional } from '../../../../../../script.js';
 import { StatsBlock } from '../stats/stat-block.js';
+import { ChatMetadata } from './chat-metadata.js';
 import { ChatStatEntry } from './chat-stat-entry.js';
 
 type ValidMessageIndex = number & { __validMessage: true };
@@ -246,6 +247,14 @@ export class ChatManager {
 
     getMessageCount(): number {
         return this.getCurrentChat().length;
+    }
+
+    get Metadata(): ChatMetadata {
+        if (!chat_metadata['StatSuite']) {
+            chat_metadata['StatSuite'] = new ChatMetadata();
+        }
+        
+        return chat_metadata['StatSuite'];
     }
 }
 

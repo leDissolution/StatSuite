@@ -4,11 +4,41 @@
  */
 export class TemplateData {
     constructor(characterStats = {}) {
+        Object.defineProperty(this, "Characters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.Characters = characterStats;
     }
 }
 export class Template {
     constructor(name, templateString) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_templateString", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_compiledTemplate", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_isDirty", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.name = name;
         this._templateString = templateString;
         this._compiledTemplate = null;

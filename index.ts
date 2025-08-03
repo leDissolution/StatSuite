@@ -26,6 +26,7 @@ export async function injectStats(chat: any[], _ctx: any, abort: any, type: stri
     }
 }
 
+// @ts-ignore
 globalThis.injectStats = injectStats;
 
 jQuery(async () => {

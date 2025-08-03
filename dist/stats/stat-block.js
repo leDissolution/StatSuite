@@ -2,14 +2,10 @@ export class StatsBlock {
     constructor(initial = {}) {
         Object.assign(this, initial);
     }
-    get(statKey) {
-        return this[statKey] || null;
-    }
-    set(statKey, value) {
-        this[statKey] = value;
-    }
-    clone() {
-        return new StatsBlock(JSON.parse(JSON.stringify(this)));
+    static clone(statsBlock) {
+        if (!statsBlock)
+            return null;
+        return new StatsBlock(JSON.parse(JSON.stringify(statsBlock)));
     }
     static fromObject(obj) {
         if (obj instanceof StatsBlock) {

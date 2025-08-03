@@ -8,7 +8,7 @@ import { Stats } from './stats-registry.js';
 import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
-export function parseStatsString(statsString) {
+export function parseSingleStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
     if (!charMatch)
@@ -16,11 +16,11 @@ export function parseStatsString(statsString) {
     const charName = charMatch[1];
     if (!charName)
         return null;
-    result[charName] = {};
+    result[charName] = new StatsBlock();
     const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
     for (const match of matches) {
         const [_, key, value] = match;
-        if (key && key !== 'character') {
+        if (key && key !== 'character' && value) {
             if (Stats.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
             }
@@ -63,7 +63,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         }
         else {
             const charSourceStats = sourcePreviousStats.Characters[char] || {};
-            const statsBlock = {};
+            const statsBlock = new StatsBlock();
             activeStats.forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });

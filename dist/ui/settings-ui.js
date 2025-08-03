@@ -1,4 +1,4 @@
-import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
+import { ExtensionSettings, tryGetModels } from '../settings.js';
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
 import { renderCharactersList } from './characters-list.js';
 import { renderStatsList } from './stats-list.js';
@@ -14,27 +14,27 @@ export function bindSettingsUI() {
     // Bind Model URL input
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('modelUrl', $(this).prop("value"));
+        ExtensionSettings.modelUrl = $(this).prop("value");
     });
     // Bind Auto Track Authors checkbox
     $("#autoTrackAuthors").prop("checked", ExtensionSettings.autoTrackMessageAuthors);
     $("#autoTrackAuthors").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('autoTrackMessageAuthors', $(this).prop("checked"));
+        ExtensionSettings.autoTrackMessageAuthors = $(this).prop("checked");
     });
     // Bind Disable Auto Request Stats checkbox
     $("#enableAutoRequestStats").prop("checked", ExtensionSettings.enableAutoRequestStats);
     $("#enableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('enableAutoRequestStats', $(this).prop("checked"));
+        ExtensionSettings.enableAutoRequestStats = $(this).prop("checked");
     });
     // Bind Show Stats checkbox
     $("#showStats").prop("checked", ExtensionSettings.showStats);
     $("#showStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('showStats', $(this).prop("checked"));
+        ExtensionSettings.showStats = $(this).prop("checked");
     });
     // Bind Collapse Old Stats checkbox
     $("#collapseOldStats").prop("checked", ExtensionSettings.collapseOldStats);
     $("#collapseOldStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('collapseOldStats', $(this).prop("checked"));
+        ExtensionSettings.collapseOldStats = $(this).prop("checked");
     });
     // Bind retry connection button
     $("#retryConnection").off("click.statSuite").on("click.statSuite", async function () {
@@ -59,8 +59,8 @@ export function bindSettingsUI() {
                     $(".online_status_text_stat_suite").text(`${ExtensionSettings.modelName}`);
                     modelStatusDiv.empty().append(modelSelect);
                     modelSelect.off("change.statSuite").on("change.statSuite", function () {
-                        const selectedModel = $(this).val();
-                        updateSetting('modelName', selectedModel);
+                        const selectedModel = String($(this).val());
+                        ExtensionSettings.modelName = selectedModel;
                         $(".online_status_text_stat_suite").text(`${selectedModel}`);
                     });
                 }
@@ -75,7 +75,7 @@ export function bindSettingsUI() {
     $("#offlineMode").prop("checked", ExtensionSettings.offlineMode);
     $("#offlineMode").off("input.statSuite").on("input.statSuite", function () {
         const isOffline = $(this).prop("checked");
-        updateSetting('offlineMode', isOffline);
+        ExtensionSettings.offlineMode = isOffline;
         if (isOffline) {
             $("#modelSettings").hide();
             $("#offlineExplanation").show();
@@ -106,11 +106,11 @@ export function bindSettingsUI() {
     // Bind Anonymize Clipboard Export checkbox
     $('#anonymizeClipboardExport').prop("checked", ExtensionSettings.anonymizeClipboardExport);
     $('#anonymizeClipboardExport').off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('anonymizeClipboardExport', $(this).prop("checked"));
+        ExtensionSettings.anonymizeClipboardExport = $(this).prop("checked");
     });
     $('#clearMetadata').off("click.statSuite").on("click.statSuite", function () {
         if (confirm("Are you sure you want to clear all metadata? This action cannot be undone.")) {
-            chat_metadata.StatSuite = {};
+            chat_metadata['StatSuite'] = {};
             saveMetadataDebounced();
             location.reload();
         }
@@ -159,12 +159,13 @@ export function doPopout(e) {
         newElement.find('#statsDrawerContent').addClass('scrollY');
         bindSettingsUI();
         loadMovingUIState();
-        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window['animation_duration'] || 200);
+        const animationDuration = window.animation_duration || 200;
+        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(animationDuration);
         dragElement(newElement);
         $('#statBarPopoutClose').off('click').on('click', function () {
             $('#statsDrawerContent').removeClass('scrollY');
             const objectivePopoutHTML = $('#statsDrawerContent');
-            $(statBarPopoutIdJ).fadeOut(window['animation_duration'] || 200, () => {
+            $(statBarPopoutIdJ).fadeOut(animationDuration, () => {
                 originalElement.empty();
                 originalElement.html(objectivePopoutHTML.html());
                 $(statBarPopoutIdJ).remove();

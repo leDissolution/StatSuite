@@ -10,20 +10,20 @@ import { StatsBlock } from './stat-block.js';
 import { Chat, MessageContext } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 
-export function parseStatsString(statsString: string): object | null {
-    const result = {};
+export function parseSingleStatsString(statsString: string): { [key: string]: StatsBlock } | null {
+    const result: { [key: string]: StatsBlock } = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
     if (!charMatch) return null;
     
     const charName = charMatch[1];
     if (!charName) return null;
-    
-    result[charName] = {};
+
+    result[charName] = new StatsBlock();
 
     const matches = statsString.matchAll(/(\w+)="([^"]+)"/g);
     for (const match of matches) {
         const [_, key, value] = match;
-        if (key && key !== 'character') {
+        if (key && key !== 'character' && value) {
             if (Stats.hasStat(key.toLowerCase())) {
                 result[charName][key.toLowerCase()] = value;
             } else {
@@ -68,7 +68,7 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
             finalPreviousStats.Characters[char] = null;
         } else {
             const charSourceStats = sourcePreviousStats.Characters[char] || {};
-            const statsBlock = {};
+            const statsBlock = new StatsBlock();
             activeStats.forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
@@ -196,7 +196,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
 
             if (statEntry.isManual) {
                 if (messages.previousStats && messages.previousStats.Characters[charName] && messages.previousStats.Characters[charName][statEntry.name] !== undefined) {
-                    charStats[statEntry.name] = messages.previousStats.Characters[charName][statEntry.name];
+                    charStats[statEntry.name] = messages.previousStats.Characters[charName][statEntry.name]!;
                 }
             }
         });
@@ -280,7 +280,7 @@ export function retryStatGeneration() {
     console.log("StatSuite: Connection failure state reset. Stat generation will be attempted again.");
 }
 
-export async function injectStatsFromMessage(messageId) {
+export async function injectStatsFromMessage(messageId: number) {
     const ctx = SillyTavern.getContext();
 
     ctx.setExtensionPrompt(

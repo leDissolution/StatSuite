@@ -1,11 +1,11 @@
 export class StatPreset {
-    name: any;
-    displayName: any;
-    active: any;
-    manual: any;
-    defaultValue: any;
+    name: string;
+    displayName: string;
+    active: boolean;
+    manual: boolean;
+    defaultValue: string;
 
-    constructor({ name, displayName, active, manual, defaultValue }) {
+    constructor(name: string, displayName: string, active: boolean, manual: boolean, defaultValue: string) {
         this.name = name;
         this.displayName = displayName;
         this.active = active;
@@ -38,13 +38,13 @@ export class StatsPreset {
             existingPreset.displayName = preset.displayName || existingPreset.displayName;
             existingPreset.defaultValue = preset.defaultValue || existingPreset.defaultValue;
         } else {
-            this.stats[preset.name] = new StatPreset({
-                name: preset.name,
-                displayName: preset.displayName || preset.name,
-                active: preset.active ?? false,
-                manual: preset.manual ?? false,
-                defaultValue: preset.defaultValue || 'unspecified'
-            });
+            this.stats[preset.name] = new StatPreset(
+                preset.name,
+                preset.displayName || preset.name,
+                preset.active ?? false,
+                preset.manual ?? false,
+                preset.defaultValue || 'unspecified'
+            );
         }
     }
 }

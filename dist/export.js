@@ -112,23 +112,16 @@ export function statsToStringFull(stats) {
     if (!stats)
         return '';
     return Object.entries(stats.Characters)
-        .map(([charName, statsBlock]) => {
-        if (statsBlock) {
-            return statsToString(charName, statsBlock);
+        .map(([charName, stats]) => {
+        const hadNoStats = !stats;
+        const block = hadNoStats ? new StatsBlock() : stats;
+        for (const statEntry of Stats.getActiveStats()) {
+            if (block[statEntry.name] === undefined) {
+                block[statEntry.name] = statEntry.defaultValue;
+            }
         }
-        else {
-            const description = characterDescription(charName);
-            const statsBlock = new StatsBlock();
-            Stats.getActiveStats().forEach(statEntry => {
-                if (statsBlock?.[statEntry.name] !== undefined) {
-                    statsBlock.set(statEntry.name, statsBlock[statEntry.name]);
-                }
-                else {
-                    statsBlock.set(statEntry.name, statEntry.defaultValue);
-                }
-            });
-            return statsToString(charName, statsBlock) + description;
-        }
+        const base = statsToString(charName, block);
+        return hadNoStats ? base + characterDescription(charName) : base;
     })
         .join('\n');
 }

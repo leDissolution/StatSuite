@@ -1,7 +1,7 @@
-import { ExtensionSettings } from '../settings.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
-import { saveMetadataDebounced } from '../../../../../extensions.js';
+import { ExtensionSettings, PresetsSettings } from '../settings.js';
+import { saveSettingsDebounced } from '../../../../../../script.js';
 import { StatPreset, StatsPreset } from './preset.js';
+import { Chat } from '../chat/chat-manager.js';
 
 export class PresetRegistry {
     presets: { [s: string]: StatsPreset; };
@@ -28,27 +28,27 @@ export class PresetRegistry {
                     for (const [statName, statData] of Object.entries(statsData)) {
                         if (!statData || typeof statData !== 'object') continue;
                         
-                        preset.set(new StatPreset({
-                            name: statName,
-                            displayName: (<any>statData).displayName ?? statName,
-                            active: Boolean((<any>statData).active),
-                            manual: Boolean((<any>statData).manual),
-                            defaultValue: (<any>statData).defaultValue ?? 'unspecified'
-                        }));
+                        preset.set(new StatPreset(
+                            statName,
+                            (<any>statData).displayName ?? statName,
+                            Boolean((<any>statData).active),
+                            Boolean((<any>statData).manual),
+                            (<any>statData).defaultValue ?? 'unspecified'
+                        ));
                     }
                 }
                 
                 this.presets[presetName] = preset;
             }
         }
-        
-        this.presets.default ??= new StatsPreset('default', {});
+
+        this.presets['default'] ??= new StatsPreset('default', {});
 
         this.selectedPreset = this.determineSelectedPreset();
     }
 
     private determineSelectedPreset(): string {
-        const chatSelectedPreset = chat_metadata.StatSuite?.selectedPreset;
+        const chatSelectedPreset = Chat.Metadata.selectedPreset;
         if (chatSelectedPreset && this.presets[chatSelectedPreset]) {
             return chatSelectedPreset;
         }
@@ -68,7 +68,7 @@ export class PresetRegistry {
     saveToMetadata() {
         if (!ExtensionSettings.stats) ExtensionSettings.stats = { stats: {}, presets: {} };
         
-        const presetsData = {};
+        const presetsData: PresetsSettings = {};
         Object.entries(this.presets).forEach(([name, preset]) => {
             presetsData[name] = {
                 name: preset.name,
@@ -80,10 +80,8 @@ export class PresetRegistry {
         ExtensionSettings.stats.presets = presetsData;
         saveSettingsDebounced();
 
-        chat_metadata.StatSuite = chat_metadata.StatSuite ?? {};
-        chat_metadata.StatSuite.selectedPreset = this.selectedPreset;
-
-        saveMetadataDebounced();
+        Chat.Metadata.selectedPreset = this.selectedPreset;
+        Chat.Metadata.save();
     }
 
     getAllPresets(): Record<string, StatsPreset> {

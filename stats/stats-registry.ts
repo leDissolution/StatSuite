@@ -109,13 +109,13 @@ export class StatRegistry {
 
         const preset = Presets.getActivePreset();
         this.getAllStats().forEach(stat => {
-            preset.set(new StatPreset({
-                name: stat.name,
-                displayName: stat.displayName,
-                active: stat.isActive,
-                manual: stat.isManual,
-                defaultValue: stat.defaultValue
-            }));
+            preset.set(new StatPreset(
+                stat.name,
+                stat.displayName,
+                stat.isActive,
+                stat.isManual,
+                stat.defaultValue
+            ));
         });
 
         Presets.saveToMetadata();

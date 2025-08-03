@@ -20,12 +20,12 @@ export class ChatStatEntry {
     clone(): ChatStatEntry {
         const chars: Record<string, StatsBlock | null> = {};
         for (const k of Object.keys(this.Characters)) {
-            chars[k] = this.Characters[k]?.clone() ?? null;
+            chars[k] = StatsBlock.clone(this.Characters[k]);
         }
 
         const scenes: Record<string, StatsBlock | null> = {};
         for (const k of Object.keys(this.Scenes)) {
-            scenes[k] = this.Scenes[k]?.clone() ?? null;
+            scenes[k] = StatsBlock.clone(this.Scenes[k]);
         }
 
         return new ChatStatEntry(chars, scenes);

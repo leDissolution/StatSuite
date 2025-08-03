@@ -3,6 +3,66 @@ import { saveSettingsDebounced } from "../../../../../../../../script.js";
 import { fetchAvailableModels } from "./api.js";
 export class SuiteSettings {
     constructor() {
+        Object.defineProperty(this, "offlineMode", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "modelUrl", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "modelName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "autoTrackMessageAuthors", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "enableAutoRequestStats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "showStats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "collapseOldStats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "anonymizeClipboardExport", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "stats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "templates", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.offlineMode = false;
         this.modelUrl = '';
         this.modelName = '';
@@ -42,9 +102,10 @@ export async function initializeSettings() {
     }
     else {
         for (const key in defaultSettings) {
+            const typedKey = key;
             if (!ExtensionSettings.hasOwnProperty(key)) {
                 console.log(`StatSuite: Adding missing default setting key "${key}"`);
-                ExtensionSettings[key] = defaultSettings[key];
+                ExtensionSettings[typedKey] = defaultSettings[typedKey];
                 settingsChanged = true;
             }
         }
@@ -65,14 +126,4 @@ export async function initializeSettings() {
         saveSettingsDebounced();
     }
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
-}
-export function updateSetting(key, value) {
-    if (ExtensionSettings.hasOwnProperty(key)) {
-        ExtensionSettings[key] = value;
-        saveSettingsDebounced();
-        console.log(`StatSuite: Setting "${key}" updated.`);
-    }
-    else {
-        console.warn(`StatSuite: Attempted to update unknown setting "${key}".`);
-    }
 }

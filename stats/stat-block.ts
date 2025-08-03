@@ -1,19 +1,15 @@
 export class StatsBlock {
+    [key: string]: string | null;
+
     constructor(initial = {}) {
         Object.assign(this, initial);
     }
 
-    get(statKey: string): string | null {
-        return this[statKey] || null;
-    }
+    static clone(statsBlock: StatsBlock | null | undefined): StatsBlock | null {
+        if (!statsBlock) return null;
 
-    set(statKey: string, value: string) {
-        this[statKey] = value;
-    }
-
-    clone(): StatsBlock {
         return new StatsBlock(
-            JSON.parse(JSON.stringify(this))
+            JSON.parse(JSON.stringify(statsBlock))
         );
     }
 
