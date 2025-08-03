@@ -3,7 +3,8 @@ import { EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '
 import { saveSettingsDebounced } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { ExtensionSettings } from '../settings.js';
-import { Presets, StatPreset } from './presets-registry.js';
+import { Presets } from './presets-registry.js';
+import { StatPreset } from './preset.js';
 
 /**
  * @typedef {Object} StatEntryOptions

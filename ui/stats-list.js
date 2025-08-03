@@ -1,5 +1,6 @@
 import { onChatChanged } from '../events.js';
-import { Presets, StatsPreset, StatPreset } from '../stats/presets-registry.js';
+import { Presets } from '../stats/presets-registry.js';
+import { StatPreset, StatsPreset } from '../stats/preset.js';
 
 /**
  * Renders the list of stats in the UI, including toggles for isActive and isManual.
