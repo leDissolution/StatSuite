@@ -1,4 +1,3 @@
-// StatSuite - Core logic for stats definition, generation, and processing
 import { extension_prompt_types } from '../../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
@@ -9,11 +8,6 @@ import { Stats } from './stats-registry.js';
 import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
-/**
- * Parses a stats string (e.g., `<stats character="Alice" pose="standing" />`)
- * @param {string} statsString
- * @returns {object | null} Parsed stats object or null if invalid.
- */
 export function parseStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
@@ -39,22 +33,6 @@ export function parseStatsString(statsString) {
     }
     return result;
 }
-/**
-     * @typedef MessageContext
-     * @property {string|null} previousName - Name of the previous message sender
-     * @property {string} previousMessage - The text of the previous message
-     * @property {ChatStatEntry} previousStats - Stats object for the previous message
-     * @property {number} previousIndex - Index of the previous message
-     * @property {string} newName - Name of the current message sender
-     * @property {string} newMessage - The text of the current message
-     * @property {ChatStatEntry} newStats - Stats object for the current message
-     * @property {number} newIndex - Index of the current message
-     */
-/**
- * Gets the relevant previous and current message details for stat generation.
- * @param {number | null} specificMessageIndex Index of the *new* message, or null for the latest.
- * @returns {MessageContext | null} Object with message details or null if not applicable.
- */
 export function getRecentMessages(specificMessageIndex = null) {
     if (!Characters) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
@@ -95,11 +73,6 @@ export function getRecentMessages(specificMessageIndex = null) {
         previousStats: finalPreviousStats
     };
 }
-/**
- * Calculates required stats including dependencies.
- * @param {string} targetStat The stat for which dependencies are needed.
- * @returns {string[]} Array of required stats, sorted by order.
- */
 export function getRequiredStats(targetStat) {
     const required = new Set();
     function addDependencies(stat) {
@@ -128,11 +101,6 @@ export function getRequiredStats(targetStat) {
         return orderA - orderB;
     });
 }
-/**
- * Applies the generated/updated stats to the message object and triggers UI update and save.
- * @param {ChatStatEntry} stats The complete stats object for the message.
- * @param {number} messageIndex The index of the message in the chat array.
- */
 export function setMessageStats(stats, messageIndex) {
     if (!Chat.isValidMessageForStats(messageIndex)) {
         console.error(`StatSuite Error: Invalid messageIndex ${messageIndex} in setMessageStats.`);
@@ -146,13 +114,6 @@ export function setMessageStats(stats, messageIndex) {
         Chat.saveChat();
     }
 }
-/**
- * Orchestrates the generation of stats for a specific message.
- * @param {number | null} specificMessageIndex Index of the message, or null for latest.
- * @param {string | null} specificChar Character name, or null for all tracked.
- * @param {string | null} specificStat Stat name, or null for all supported.
- * @param {boolean} greedy Use greedy sampling for API call.
- */
 export async function makeStats(specificMessageIndex = null, specificChar = null, specificStat = null, greedy = true, copyOver = false) {
     if (!Characters) {
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
@@ -267,10 +228,6 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     }
     console.log("StatSuite: Generation mutex released.");
 }
-/**
- * Resets the connection failure state to allow retrying stat generation.
- * Call this when you want to retry after a connection failure.
- */
 export function retryStatGeneration() {
     resetConnectionFailure();
     console.log("StatSuite: Connection failure state reset. Stat generation will be attempted again.");

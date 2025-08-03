@@ -1,4 +1,3 @@
-// Handles rendering and editing of the stats table for messages
 import { setMessageStats, getRecentMessages, makeStats } from '../stats/stats-logic.js';
 import { exportSingleMessage } from '../export.js';
 import { chat, saveChatConditional } from '../../../../../../script.js';
@@ -6,12 +5,6 @@ import { ExtensionSettings } from '../settings.js';
 import { Stats } from '../stats/stats-registry.js';
 import { Chat } from '../chat/chat-manager.js';
 import { Characters } from '../characters/characters-registry.js';
-import { ChatStatEntry } from '../chat/chat-stat-entry.js';
-/**
- * Sanitize stat input value before saving.
- * @param {string} value
- * @returns {string}
- */
 function sanitizeStatInput(value) {
     if (typeof value !== 'string')
         return value;
@@ -23,12 +16,7 @@ function sanitizeStatInput(value) {
     sanitized = sanitized.replace(/^,|,$/g, '');
     return sanitized;
 }
-/**
- * Batch regenerate stats for a set of messages.
- * @param {Array<number>} messageIndices - Indices of messages to process.
- * @param {Object} options - { char, stat, greedy, toastMessage }
- */
-async function regenerateStatsBatch(messageIndices, { char = null, stat = null, greedy = true, toastMessage = '', copyOver = false } = {}) {
+async function regenerateStatsBatch(messageIndices, char = null, stat = null, greedy = true, toastMessage = '', copyOver = false) {
     try {
         for (const idx of messageIndices) {
             await makeStats(idx, char, stat, greedy, copyOver);
@@ -42,12 +30,6 @@ async function regenerateStatsBatch(messageIndices, { char = null, stat = null, 
         toastr.error('StatSuite: An error occurred during regeneration.');
     }
 }
-/**
- * Utility to compute message indices for regeneration based on key modifiers.
- * @param {number} startIndex - The starting message index.
- * @param {JQuery.MouseDownEvent} e - The event object (for key modifiers).
- * @returns {{indices: number[], description: string}}
- */
 function getRegenerationIndices(startIndex, e) {
     let count = 1;
     let description = '';
@@ -66,12 +48,6 @@ function getRegenerationIndices(startIndex, e) {
     const indices = Chat.getMessagesFrom(startIndex, count);
     return { indices, description };
 }
-/**
- * Renders the table header row with character columns and regen buttons.
- * @param {string[]} characters
- * @param {number} messageId
- * @returns {JQuery<HTMLElement>}
- */
 function renderStatsTableHeader(characters, messageId) {
     const headerRow = $('<tr></tr>');
     headerRow.append($('<th></th>'));
@@ -95,21 +71,13 @@ function renderStatsTableHeader(characters, messageId) {
                 toastMessage = `Regenerated all stats for ${char} in ${description}`;
             }
             console.log(`StatSuite: Regenerating all stats for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
-            await regenerateStatsBatch(indices, { char, greedy, toastMessage, copyOver });
+            await regenerateStatsBatch(indices, char, null, greedy, toastMessage, copyOver);
         });
         th.append(colRegenBtn, $('<span></span>').text(char));
         headerRow.append(th);
     });
     return headerRow;
 }
-/**
- * Renders the table body rows for each stat.
- * @param {string[]} presentStats
- * @param {string[]} characters
- * @param {ChatStatEntry} stats
- * @param {number} messageId
- * @returns {JQuery<HTMLElement>[]}
- */
 function renderStatsTableBody(presentStats, characters, stats, messageId) {
     return presentStats.map(stat => {
         const row = $('<tr></tr>');
@@ -132,7 +100,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
                 toastMessage = `Regenerated ${stat} for all characters in ${description}`;
             }
             console.log(`StatSuite: Regenerating ${stat} for all characters in ${description}${copyOver ? ' (copyOver)' : ''}`);
-            await regenerateStatsBatch(indices, { stat, greedy, toastMessage, copyOver });
+            await regenerateStatsBatch(indices, null, stat, greedy, toastMessage, copyOver);
         });
         const statLabelTd = $('<td></td>').addClass('stat-label').attr('data-stat-key', stat);
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(Stats.getStatEntry(stat)?.displayName || stat));
@@ -148,12 +116,6 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
         return row;
     });
 }
-/**
- * Utility to get all present stats for the given characters and stats object, sorted by stat order.
- * @param {string[]} characters
- * @param {ChatStatEntry} stats
- * @returns {string[]}
- */
 function getPresentStats(characters, stats) {
     const presentStats = characters.reduce((acc, char) => {
         const charStats = stats.Characters[char];
@@ -175,14 +137,6 @@ function getPresentStats(characters, stats) {
     });
     return presentStats;
 }
-/**
- * Renders the button bar (regenerate, edit, export, delete) and binds their events.
- * @param {number} messageId
- * @param {JQuery<HTMLElement>} container
- * @param {JQuery<HTMLElement>} table
- * @param {ChatStatEntry} stats
- * @returns {JQuery<HTMLElement>}
- */
 function renderStatsTableControls(messageId, container, table, stats) {
     const buttonContainer = $('<div class="stats-button-container"></div>');
     const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages\nRight Click: Copy stats from previous message(s)"></div>');
@@ -219,7 +173,7 @@ function renderStatsTableControls(messageId, container, table, stats) {
             toastMessage = `Regenerated stats for ${description}`;
         }
         console.log(`StatSuite: Regenerating stats for ${description}${copyOver ? ' (copyOver)' : ''}`);
-        await regenerateStatsBatch(indices, { greedy, toastMessage, copyOver });
+        await regenerateStatsBatch(indices, null, null, greedy, toastMessage, copyOver);
     });
     // Delete
     deleteButton.on('mousedown', function (e) {
@@ -260,15 +214,6 @@ function renderStatsTableControls(messageId, container, table, stats) {
     });
     return buttonContainer;
 }
-/**
- * Handles toggling edit mode and saving edits for the stats table.
- * @param {JQuery<HTMLElement>} container
- * @param {JQuery<HTMLElement>} table
- * @param {ChatStatEntry} stats
- * @param {number} messageId
- * @param {JQuery<HTMLElement>} editButton
- * @param {JQuery<HTMLElement>} discardButton
- */
 function bindStatsTableEditMode(container, table, stats, messageId, editButton, discardButton) {
     const isEditing = container.hasClass('editing');
     if (!isEditing) {
@@ -392,7 +337,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                     toastMessage = `Regenerated ${stat} for ${char} in ${description}`;
                 }
                 console.log(`StatSuite: Regenerating ${stat} for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
-                await regenerateStatsBatch(indices, { char, stat, greedy, toastMessage, copyOver });
+                await regenerateStatsBatch(indices, char, stat, greedy, toastMessage, copyOver);
             });
             inputContainer.append(statRegenerateButton, input);
             cell.empty().append(inputContainer);
@@ -424,11 +369,6 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
         table.find('.stats-col-regenerate, .stats-row-regenerate').css('display', 'none');
     }
 }
-/**
- * Renders the stats table and controls for a message.
- * @param {number} messageId
- * @param {ChatStatEntry} stats
- */
 export function displayStats(messageId, stats) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length)
@@ -449,7 +389,7 @@ export function displayStats(messageId, stats) {
     const container = $('<details class="stats-details"></details>');
     if (messageId === chat.length - 1) {
         container.on('toggle', function () {
-            if (( /** @type {HTMLDetailsElement} */(this)).open) {
+            if (this.open) {
                 setTimeout(() => {
                     const chatDiv = $("#chat");
                     chatDiv.scrollTop(chatDiv[0].scrollHeight);
