@@ -1,6 +1,17 @@
+declare interface ChatMessage {
+    stats?: Array<ChatStatEntry> | null;
+    swipe_id?: number | null;
+    swipe_info?: Array<object> | null;
+    swipes?: Array<string> | null;
+    is_system: boolean;
+    is_user: boolean;
+    mes: string;
+    name: string;
+}
+
 declare module '*/script.js' {
     export const chat_metadata: Record<string, any>;
-    export const chat: any[];
+    export const chat: Array<ChatMessage>;
     export function saveSettingsDebounced(): void;
     export function saveChatConditional(): void;
     export function substituteParams(text: string): string;

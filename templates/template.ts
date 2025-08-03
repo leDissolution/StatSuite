@@ -3,13 +3,10 @@
  * Contains all the data that can be used in template rendering.
  */
 export class TemplateData {
-    Characters: Map<string, import('../stats/stat-block.js').StatsBlock>;
+    Characters: Record<string, import('../stats/stat-block.js').StatsBlock>;
 
     constructor(characterStats: Record<string, import('../stats/stat-block.js').StatsBlock> = {}) {
-        this.Characters = new Map();
-        for (const [name, stats] of Object.entries(characterStats)) {
-            this.Characters.set(name, stats);
-        }
+        this.Characters = characterStats;
     }
 }
 

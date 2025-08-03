@@ -171,8 +171,8 @@ function getPresentStats(characters, stats) {
     presentStats.sort((a, b) => {
         const aConfig = Stats.getStatEntry(a);
         const bConfig = Stats.getStatEntry(b);
-        const aOrder = aConfig.order || 0;
-        const bOrder = bConfig.order || 0;
+        const aOrder = aConfig?.order || 0;
+        const bOrder = bConfig?.order || 0;
         return aOrder - bOrder;
     });
     return presentStats;
@@ -288,13 +288,13 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.is_system);
+                                .filter(({ msg }) => !msg.message.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove ${charName} from next 5 messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.is_system)
+                                .filter(({ msg }) => !msg.message.is_system)
                                 .slice(0, 5);
                         } else {
                             messagesToDelete = [{ idx: messageId }];
@@ -330,13 +330,13 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.is_system);
+                                .filter(({ msg }) => !msg.message.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove stat '${statName}' from next 5 messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
                                 .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.is_system)
+                                .filter(({ msg }) => !msg.message.is_system)
                                 .slice(0, 5);
                         } else {
                             messagesToDelete = [{ idx: messageId }];

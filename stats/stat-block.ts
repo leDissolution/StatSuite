@@ -16,4 +16,14 @@ export class StatsBlock {
             JSON.parse(JSON.stringify(this))
         );
     }
+
+    static fromObject(obj: any): StatsBlock {
+        if (obj instanceof StatsBlock) {
+            return obj;
+        }
+        
+        const statsBlock = new StatsBlock();
+        Object.assign(statsBlock, obj);
+        return statsBlock;
+    }
 }

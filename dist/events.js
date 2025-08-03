@@ -6,7 +6,6 @@ import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
 import { Characters } from './characters/characters-registry.js';
 import { Stats } from './stats/stats-registry.js';
-import { renderCharactersList } from './ui/characters-list.js';
 import { Chat } from './chat/chat-manager.js';
 import { Presets } from './stats/presets-registry.js';
 import { Templates } from './templates/templates-registry.js';
@@ -24,7 +23,6 @@ export function onChatChanged() {
     if (!ExtensionInitialized) {
         return;
     }
-    Chat.clearCache();
     if (!Characters) {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
@@ -52,6 +50,9 @@ export function onChatChanged() {
         }
     });
 }
+/**
+ * @type {boolean[]}
+ */
 var messageLock = [];
 /**
  * Triggers automatic stat generation if enabled and adds UI buttons.
@@ -120,7 +121,7 @@ export function initializeEventListeners() {
     }
     console.log("StatSuite Events: Initializing event listeners...");
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (message_id) => {
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (/** @type {number} */ message_id) => {
         if (!Chat.isValidMessageForStats(message_id))
             return;
         if (generating) {

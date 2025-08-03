@@ -4,10 +4,7 @@
  */
 export class TemplateData {
     constructor(characterStats = {}) {
-        this.Characters = new Map();
-        for (const [name, stats] of Object.entries(characterStats)) {
-            this.Characters.set(name, stats);
-        }
+        this.Characters = characterStats;
     }
 }
 export class Template {
