@@ -2,59 +2,48 @@ import { extension_settings } from "../../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../../../script.js"
 import { fetchAvailableModels } from "./api.js"
 
-/**
- * @typedef {Object} StatsSettings
- * @property {Object.<string, any>} stats
- * @property {Object.<string, any>} presets
- */
+interface StatsSettings {
+    stats: Record<string, any>;
+    presets: Record<string, any>;
+}
 
-/**
- * @typedef {Object} TemplateSettings
- * @property {string} name - The template's name
- * @property {string} templateString - The template string to use
- */
+interface TemplateSettings {
+    name: string;
+    templateString: string;
+}
 
-/**
- * @implements {SuiteSettings}
- */
 export class SuiteSettings {
+    offlineMode: boolean;
+    modelUrl: string;
+    modelName: string;
+    autoTrackMessageAuthors: boolean;
+    enableAutoRequestStats: boolean;
+    showStats: boolean;
+    collapseOldStats: boolean;
+    anonymizeClipboardExport: boolean;
+    stats: StatsSettings;
+    templates: TemplateSettings[];
+
     constructor() {
-        /** @type {boolean} */
         this.offlineMode = false;
-        /** @type {string} */
         this.modelUrl = '';
-        /** @type {string} */
         this.modelName = '';
-        /** @type {boolean} */
         this.autoTrackMessageAuthors = true;
-        /** @type {boolean} */
         this.enableAutoRequestStats = true;
-        /** @type {boolean} */
         this.showStats = true;
-        /** @type {boolean} */
         this.collapseOldStats = true;
-        /** @type {boolean} */
         this.anonymizeClipboardExport = true;
-        /** @type {StatsSettings} */
         this.stats = { stats: {}, presets: {} };
-        /** @type {TemplateSettings[]} */
         this.templates = [];
     }
 }
 
 const extensionName = "StatSuite";
-/**
- * Global settings registry for StatSuite.
- * @type {SuiteSettings}
- */
-export const ExtensionSettings = extension_settings[extensionName] ??= new SuiteSettings();
+
+export const ExtensionSettings: SuiteSettings = extension_settings[extensionName] ??= new SuiteSettings();
 const defaultSettings = new SuiteSettings();
 
-/**
- * Attempts to fetch available models from the API and handles errors.
- * @returns {Promise<Array>} List of available models or empty array on failure.
- */
-export async function tryGetModels() {
+export async function tryGetModels(): Promise<Array<any>> {
     try {
         const models = await fetchAvailableModels();
         if (models.length === 0) {
@@ -69,11 +58,7 @@ export async function tryGetModels() {
     }
 }
 
-/**
- * Initializes StatSuite settings, applying defaults and verifying model selection.
- * @returns {Promise<void>}
- */
-export async function initializeSettings() {
+export async function initializeSettings(): Promise<void> {
     let settingsChanged = false;
     if (Object.keys(ExtensionSettings).length === 0) {
         console.log(`StatSuite: Initializing default settings for ${extensionName}`);
@@ -110,12 +95,7 @@ export async function initializeSettings() {
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
 }
 
-/**
- * Updates a single setting and persists the change.
- * @param {string} key - The setting key to update.
- * @param {*} value - The new value for the setting.
- */
-export function updateSetting(key, value) {
+export function updateSetting(key: string, value: any) {
     if (ExtensionSettings.hasOwnProperty(key)) {
         ExtensionSettings[key] = value;
         saveSettingsDebounced();

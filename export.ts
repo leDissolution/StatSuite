@@ -5,14 +5,10 @@ import { Characters } from './characters/characters-registry.js';
 import { StatsBlock } from './stats/stat-block.js';
 import { Stats } from './stats/stats-registry.js';
 import { substituteParams } from '../../../../../script.js';
-import { Chat } from './chat/chat-manager.js';
+import { Chat, MessageContext } from './chat/chat-manager.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
 
-/**
- * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
- * @returns {Promise<void>}
- */
-export async function exportChat() {
+export async function exportChat(): Promise<void> {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
     
@@ -21,7 +17,7 @@ export async function exportChat() {
         
         let previousName, previousMes;
         /** @type {ChatStatEntry} */
-        let previousStats;
+        let previousStats: ChatStatEntry;
 
         const currentStats = Chat.getMessageStats(currentIndex);
 
@@ -77,24 +73,7 @@ export async function exportChat() {
     URL.revokeObjectURL(link.href);
 }
 
-/**
-     * @typedef MessageContext
-     * @property {string|null} previousName - Name of the previous message sender
-     * @property {string} previousMessage - The text of the previous message
-     * @property {ChatStatEntry} previousStats - Stats object for the previous message
-     * @property {number} previousIndex - Index of the previous message
-     * @property {string} newName - Name of the current message sender
-     * @property {string} newMessage - The text of the current message
-     * @property {ChatStatEntry} newStats - Stats object for the current message
-     * @property {number} newIndex - Index of the current message
-     */
-
-/**
- * Exports a single message context to the clipboard in export format.
- * @param {MessageContext} messageContext - The message context object.
- * @returns {Promise<void>}
- */
-export async function exportSingleMessage(messageContext) {
+export async function exportSingleMessage(messageContext: MessageContext): Promise<void> {
     if (!messageContext) return;
     let previousStats = messageContext.previousStats ?? new ChatStatEntry();
     let newStats = messageContext.newStats ?? new ChatStatEntry();
@@ -114,7 +93,7 @@ export async function exportSingleMessage(messageContext) {
     );
 
     if (ExtensionSettings.anonymizeClipboardExport) {
-        let characterMap = {};
+        let characterMap: Record<string, string> = {};
         Characters.listTrackedCharacterNames().forEach((name, index) => {
             characterMap[name] = `Character${index + 1}`;
         });
@@ -132,12 +111,7 @@ export async function exportSingleMessage(messageContext) {
     }
 }
 
-/**
- * Converts a StatsBlock into string.
- * @param {StatsBlock} statsBlock - The stats object.
- * @returns {string} The formatted stats string.
- */
-export function statsToString(name, statsBlock) {
+export function statsToString(name: string, statsBlock: StatsBlock): string {
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
             let strValue = String(value)
@@ -150,12 +124,7 @@ export function statsToString(name, statsBlock) {
     return `<stats character="${name}" ${attributes} />`;
 }
 
-/**
- * Generates a character description string.
- * @param {string} name - The character name.
- * @returns {string} The character description string.
- */
-export function characterDescription(name) {
+export function characterDescription(name: string): string {
     var description = '';
 
     if (Characters.isPlayer(name)) {
@@ -174,12 +143,7 @@ export function characterDescription(name) {
     return description;
 }
 
-/**
- * Converts a stats object to a string in the export format.
- * @param {ChatStatEntry|null} stats - The stats object.
- * @returns {string} The formatted stats string.
- */
-export function statsToStringFull(stats) {
+export function statsToStringFull(stats: ChatStatEntry | null): string {
     if (!stats) return '';
 
     return Object.entries(stats.Characters)

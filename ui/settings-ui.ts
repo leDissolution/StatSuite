@@ -1,5 +1,3 @@
-// Handles settings UI binding and popout for StatSuite
-
 import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
 import { renderCharactersList } from './characters-list.js';
@@ -136,11 +134,7 @@ export function bindSettingsUI() {
     renderTemplateSettings();
 }
 
-/**
- * Handles the popout of the settings drawer into a floating panel.
- * @param {JQuery.TriggeredEvent} e
- */
-export function doPopout(e) {
+export function doPopout(e: JQuery.TriggeredEvent) {
     const target = e.target;
     const statBarPopoutId = "statBarPopout";
     const statBarPopoutIdJ = "#" + statBarPopoutId;

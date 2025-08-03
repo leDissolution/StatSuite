@@ -16,9 +16,6 @@ export const EVENT_STAT_ADDED = 'stat-added';
 export const EVENT_STAT_REMOVED = 'stat-removed';
 export const EVENT_STATS_BATCH_LOADED = 'stats-batch-loaded';
 export var ExtensionInitialized = false;
-/**
- * Handles the CHAT_CHANGED event. Refreshes character registry from metadata and updates UI for all messages.
- */
 export function onChatChanged() {
     if (!ExtensionInitialized) {
         return;
@@ -50,14 +47,7 @@ export function onChatChanged() {
         }
     });
 }
-/**
- * @type {boolean[]}
- */
 var messageLock = [];
-/**
- * Triggers automatic stat generation if enabled and adds UI buttons.
- * @param {number} message_id
- */
 async function processMessageForStats(message_id) {
     if (!Chat.isValidMessageForStats(message_id))
         return;
@@ -85,10 +75,6 @@ async function processMessageForStats(message_id) {
         messageLock[message_id] = false;
     }
 }
-/**
- * Handles MESSAGE_SWIPED event. Re-renders stats for the swiped message.
- * @param {number} messageId - The index of the message that was swiped
- */
 function onSwipeChanged(messageId) {
     if (!ExtensionInitialized)
         return;
@@ -111,9 +97,6 @@ function onSwipeChanged(messageId) {
 }
 var latestMessageIndex = -1;
 var generating = false;
-/**
- * Initializes the event listeners for StatSuite extension.
- */
 export function initializeEventListeners() {
     if (!eventSource) {
         console.error("StatSuite Events Error: eventSource is not available!");

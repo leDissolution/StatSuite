@@ -7,10 +7,6 @@ import { Stats } from './stats/stats-registry.js';
 import { substituteParams } from '../../../../../script.js';
 import { Chat } from './chat/chat-manager.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
-/**
- * Exports the entire chat (excluding system and bracketed messages) to a downloadable text file.
- * @returns {Promise<void>}
- */
 export async function exportChat() {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
@@ -60,22 +56,6 @@ export async function exportChat() {
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
 }
-/**
-     * @typedef MessageContext
-     * @property {string|null} previousName - Name of the previous message sender
-     * @property {string} previousMessage - The text of the previous message
-     * @property {ChatStatEntry} previousStats - Stats object for the previous message
-     * @property {number} previousIndex - Index of the previous message
-     * @property {string} newName - Name of the current message sender
-     * @property {string} newMessage - The text of the current message
-     * @property {ChatStatEntry} newStats - Stats object for the current message
-     * @property {number} newIndex - Index of the current message
-     */
-/**
- * Exports a single message context to the clipboard in export format.
- * @param {MessageContext} messageContext - The message context object.
- * @returns {Promise<void>}
- */
 export async function exportSingleMessage(messageContext) {
     if (!messageContext)
         return;
@@ -104,11 +84,6 @@ export async function exportSingleMessage(messageContext) {
         toastr.error('Failed to copy to clipboard');
     }
 }
-/**
- * Converts a StatsBlock into string.
- * @param {StatsBlock} statsBlock - The stats object.
- * @returns {string} The formatted stats string.
- */
 export function statsToString(name, statsBlock) {
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
@@ -120,11 +95,6 @@ export function statsToString(name, statsBlock) {
         .join(' ');
     return `<stats character="${name}" ${attributes} />`;
 }
-/**
- * Generates a character description string.
- * @param {string} name - The character name.
- * @returns {string} The character description string.
- */
 export function characterDescription(name) {
     var description = '';
     if (Characters.isPlayer(name)) {
@@ -139,11 +109,6 @@ export function characterDescription(name) {
     description = `\n<character name="${name}" description="${description}" />`;
     return description;
 }
-/**
- * Converts a stats object to a string in the export format.
- * @param {ChatStatEntry|null} stats - The stats object.
- * @returns {string} The formatted stats string.
- */
 export function statsToStringFull(stats) {
     if (!stats)
         return '';

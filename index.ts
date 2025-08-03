@@ -1,17 +1,9 @@
-// index.js - Main script for the StatSuite extension
-// ====================================================
-
-//#region Global Imports
 import { saveMetadataDebounced } from "../../../../extensions.js";
-//#endregion
-
-//#region Local Imports
 import { initializeSettings } from './settings.js';
 import { injectStatsFromMessage } from './stats/stats-logic.js';
 import { initializeUI } from './ui/init.js';
 import { initializeEventListeners, onChatChanged } from './events.js';
 import { Chat } from './chat/chat-manager.js';
-//#endregion
 
 export const extensionName = "StatSuite";
 export const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -19,13 +11,7 @@ export const extensionFolderPath = `scripts/extensions/third-party/${extensionNa
 // @ts-ignore
 window.saveMetadataDebounced = saveMetadataDebounced;
 
-/**
- * @param {any[]} chat
- * @param {any} _ctx
- * @param {any} abort
- * @param {string} type
- */
-export async function injectStats(chat, _ctx, abort, type) {
+export async function injectStats(chat: any[], _ctx: any, abort: any, type: string) {
     if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;
     }
@@ -50,7 +36,6 @@ jQuery(async () => {
         console.error("StatSuite Error: Failed to load settings.html", error);
     }
 
-    // Initialize core modules
     await initializeSettings();
     initializeUI();
     initializeEventListeners();

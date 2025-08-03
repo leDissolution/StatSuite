@@ -4,19 +4,17 @@ import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
 import { Stats } from './stats/stats-registry.js';
+import { MessageContext } from './chat/chat-manager.js';
+import { StatsBlock } from './stats/stat-block.js';
 
 const API_URL = '{0}/v1/completions';
 const LIST_MODELS_URL = '{0}/v1/models';
 
 let connectionFailureDetected = false;
 let lastConnectionCheck = 0;
-const CONNECTION_CHECK_INTERVAL = 10000; // 10 seconds
+const CONNECTION_CHECK_INTERVAL = 10000;
 
-/**
- * Quickly tests if the API connection is available.
- * @returns {Promise<boolean>} True if connection is working, false otherwise (or offline).
- */
-export async function checkApiConnection() {
+export async function checkApiConnection(): Promise<boolean> {
     if (ExtensionSettings.offlineMode) {
         return false;
     }
@@ -45,19 +43,12 @@ export async function checkApiConnection() {
     }
 }
 
-/**
- * Resets the connection failure flag (call this when user wants to retry).
- */
 export function resetConnectionFailure() {
     connectionFailureDetected = false;
     lastConnectionCheck = 0;
 }
 
-/**
- * Checks if we should skip API calls due to recent connection failures or offline mode.
- * @returns {boolean} True if we should skip API calls.
- */
-export function shouldSkipApiCalls() {
+export function shouldSkipApiCalls(): boolean {
     if (ExtensionSettings.offlineMode) {
         return true;
     }
@@ -72,11 +63,7 @@ export function shouldSkipApiCalls() {
     return connectionFailureDetected;
 }
 
-/**
- * Fetches the list of available models from the API.
- * @returns {Promise<Array>} List of available models.
- */
-export async function fetchAvailableModels() {
+export async function fetchAvailableModels(): Promise<Array<{id: string}>> {
     if (!ExtensionSettings.modelUrl) {
         console.error('StatSuite API Error: Model URL is not set in settings.');
         return [];
@@ -95,23 +82,14 @@ export async function fetchAvailableModels() {
     }
 }
 
-/**
- * Generates a specific stat for a character using the external API.
- * @param {string} stat The stat to generate (e.g., from Stats enum).
- * @param {string} char The character name.
- * @param {object} messages Object containing previous/new message details (previousName, previousMessage, newName, newMessage, previousStats).
- * @param {object} existingStats Current stats for the character in the new message, used for dependencies.
- * @param {boolean} greedy Whether to use greedy sampling.
- * @returns {Promise<string>} The generated stat value or an error string (e.g., 'error', 'error_missing_url').
- */
-export async function generateStat(stat, char, messages, existingStats = {}, greedy = true) {
+export async function generateStat(stat: string, char: string, messages: MessageContext, existingStats: StatsBlock, greedy: boolean = true): Promise<string> {
     const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
         console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);
         return 'error_invalid_config';
     }
 
-    const dependencies = {};
+    const dependencies: Record<string, string> = {};
     if (statConfig.dependencies.length > 0) {
         statConfig.dependencies.forEach(dep => {
             if (existingStats && existingStats[dep]) {
@@ -163,7 +141,7 @@ export async function generateStat(stat, char, messages, existingStats = {}, gre
             console.error(`Error generating ${stat} for ${char}: Invalid API response structure`, response);
             return 'error_invalid_response';
         }
-    } catch (/** @type {any} */ error) {
+    } catch (/** @type {any} */ error: any) {
         console.error(`Error generating ${stat} for ${char}:`, error);
         
         // Mark connection as failed for quick bailout in subsequent calls

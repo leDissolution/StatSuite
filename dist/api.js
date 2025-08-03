@@ -7,11 +7,7 @@ const API_URL = '{0}/v1/completions';
 const LIST_MODELS_URL = '{0}/v1/models';
 let connectionFailureDetected = false;
 let lastConnectionCheck = 0;
-const CONNECTION_CHECK_INTERVAL = 10000; // 10 seconds
-/**
- * Quickly tests if the API connection is available.
- * @returns {Promise<boolean>} True if connection is working, false otherwise (or offline).
- */
+const CONNECTION_CHECK_INTERVAL = 10000;
 export async function checkApiConnection() {
     if (ExtensionSettings.offlineMode) {
         return false;
@@ -38,17 +34,10 @@ export async function checkApiConnection() {
         return false;
     }
 }
-/**
- * Resets the connection failure flag (call this when user wants to retry).
- */
 export function resetConnectionFailure() {
     connectionFailureDetected = false;
     lastConnectionCheck = 0;
 }
-/**
- * Checks if we should skip API calls due to recent connection failures or offline mode.
- * @returns {boolean} True if we should skip API calls.
- */
 export function shouldSkipApiCalls() {
     if (ExtensionSettings.offlineMode) {
         return true;
@@ -60,10 +49,6 @@ export function shouldSkipApiCalls() {
     }
     return connectionFailureDetected;
 }
-/**
- * Fetches the list of available models from the API.
- * @returns {Promise<Array>} List of available models.
- */
 export async function fetchAvailableModels() {
     if (!ExtensionSettings.modelUrl) {
         console.error('StatSuite API Error: Model URL is not set in settings.');
@@ -84,16 +69,7 @@ export async function fetchAvailableModels() {
         throw error;
     }
 }
-/**
- * Generates a specific stat for a character using the external API.
- * @param {string} stat The stat to generate (e.g., from Stats enum).
- * @param {string} char The character name.
- * @param {object} messages Object containing previous/new message details (previousName, previousMessage, newName, newMessage, previousStats).
- * @param {object} existingStats Current stats for the character in the new message, used for dependencies.
- * @param {boolean} greedy Whether to use greedy sampling.
- * @returns {Promise<string>} The generated stat value or an error string (e.g., 'error', 'error_missing_url').
- */
-export async function generateStat(stat, char, messages, existingStats = {}, greedy = true) {
+export async function generateStat(stat, char, messages, existingStats, greedy = true) {
     const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
         console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);

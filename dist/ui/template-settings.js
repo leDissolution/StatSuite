@@ -3,9 +3,6 @@ import { Characters } from "../characters/characters-registry.js";
 import { Template, TemplateData } from "../templates/template.js";
 import { Stats } from "../stats/stats-registry.js";
 import { StatsBlock } from "../stats/stat-block.js";
-/**
- * Renders the templates section in the settings UI.
- */
 export function renderTemplateSettings() {
     const $container = $('#template-container');
     $container.empty();
@@ -42,13 +39,9 @@ export function renderTemplateSettings() {
     $container.append($templateControls, $templateEditor, $previewContainer);
     attachTemplateHandlers();
 }
-/**
- * Attaches event handlers for template settings.
- */
 function attachTemplateHandlers() {
     let currentTemplate = null;
     let isNewTemplate = false;
-    // Template selector change
     $('#template-selector').off('change.templateSettings').on('change.templateSettings', function () {
         const selectedName = String($(this).val());
         if (selectedName) {
@@ -68,7 +61,6 @@ function attachTemplateHandlers() {
             clearPreview();
         }
     });
-    // New template button
     $('#new-template-btn').off('click.templateSettings').on('click.templateSettings', function () {
         currentTemplate = null;
         isNewTemplate = true;
@@ -77,7 +69,6 @@ function attachTemplateHandlers() {
         $('#delete-template-btn').hide();
         clearPreview();
     });
-    // Save template button
     $('#save-template-btn').off('click.templateSettings').on('click.templateSettings', function () {
         const templateString = String($('#template-text').val()).trim();
         if (!templateString) {
@@ -86,13 +77,10 @@ function attachTemplateHandlers() {
         }
         let templateName;
         if (isNewTemplate) {
-            // Use popup to get template name
-            templateName = prompt('Enter template name:');
-            if (!templateName || !templateName.trim()) {
-                return; // User cancelled or entered empty name
+            templateName = prompt('Enter template name:').trim();
+            if (!templateName) {
+                return;
             }
-            templateName = templateName.trim();
-            // Check if template already exists
             if (Templates.getTemplate(templateName)) {
                 if (!confirm(`Template "${templateName}" already exists. Overwrite?`)) {
                     return;
@@ -107,9 +95,7 @@ function attachTemplateHandlers() {
             alert('No template selected.');
             return;
         }
-        // Create and add the template
         const template = new Template(templateName, templateString);
-        // Validate template before saving
         if (!template.isValid()) {
             alert('Template contains syntax errors and cannot be saved.');
             return;
@@ -118,26 +104,21 @@ function attachTemplateHandlers() {
             Templates.addTemplate(template);
         }
         else {
-            // Update existing template
             currentTemplate.templateString = templateString;
         }
-        // Refresh the UI to update the dropdown
         const selectedTemplateName = templateName;
         renderTemplateSettings();
         $('#template-selector').val(selectedTemplateName);
         $('#template-selector').trigger('change');
     });
-    // Delete template button
     $('#delete-template-btn').off('click.templateSettings').on('click.templateSettings', function () {
         if (!currentTemplate)
             return;
         if (confirm(`Delete template "${currentTemplate.name}"? This cannot be undone.`)) {
             Templates.removeTemplate(currentTemplate.name);
-            // Refresh the UI to update the dropdown
             renderTemplateSettings();
         }
     });
-    // Preview template button
     $('#preview-template-btn').off('click.templateSettings').on('click.templateSettings', function () {
         const templateString = String($('#template-text').val()).trim();
         if (!templateString) {
@@ -145,36 +126,25 @@ function attachTemplateHandlers() {
             return;
         }
         try {
-            // Create a temporary template for preview
             const previewTemplate = new Template('preview', templateString);
-            // Get sample stats data
             const sampleStats = getSampleStatsData();
-            // Render the template
             const rendered = previewTemplate.render(sampleStats);
-            // Display the preview
             $('#template-preview').html(`<pre>${escapeHtml(rendered)}</pre>`);
         }
-        catch ( /** @type {any} */error) {
+        catch (error) {
             $('#template-preview').html(`<div class="error">Error: ${escapeHtml(error.message)}</div>`);
         }
     });
-    // Initially hide delete button
     $('#delete-template-btn').hide();
 }
-/**
- * Gets sample stats data for template preview.
- * @returns {TemplateData} Sample stats object
- */
 function getSampleStatsData() {
     const allStats = Stats.getAllStats();
     const allCharacters = Characters.listActiveCharacterNames();
-    /** @type {Record<string, StatsBlock>} */
     const sampleCharacterStats = {};
     if (allCharacters.length === 0) {
         allCharacters.push('Sample Character');
     }
     allCharacters.forEach(character => {
-        /** @type {StatsBlock} */
         const statsBlock = new StatsBlock();
         allStats.forEach(stat => {
             statsBlock.set(stat.name, stat.defaultValue);
@@ -183,17 +153,9 @@ function getSampleStatsData() {
     });
     return new TemplateData(sampleCharacterStats);
 }
-/**
- * Clears the template preview area.
- */
 function clearPreview() {
     $('#template-preview').html('<p class="text-muted">Preview will appear here...</p>');
 }
-/**
- * Escapes HTML characters for safe display.
- * @param {string} text - Text to escape
- * @returns {string} Escaped text
- */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;

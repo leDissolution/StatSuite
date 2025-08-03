@@ -183,3 +183,14 @@ table.stats-table {
     font-size: 0.9em;
     white-space: nowrap;
 }
+
+.paste-stats-button, .request-stats-button {
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    padding: 0 5px;
+}
+
+.paste-stats-button:hover, .request-stats-button:hover {
+    opacity: 1;
+}

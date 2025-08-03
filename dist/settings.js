@@ -1,54 +1,23 @@
 import { extension_settings } from "../../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../../../script.js";
 import { fetchAvailableModels } from "./api.js";
-/**
- * @typedef {Object} StatsSettings
- * @property {Object.<string, any>} stats
- * @property {Object.<string, any>} presets
- */
-/**
- * @typedef {Object} TemplateSettings
- * @property {string} name - The template's name
- * @property {string} templateString - The template string to use
- */
-/**
- * @implements {SuiteSettings}
- */
 export class SuiteSettings {
     constructor() {
-        /** @type {boolean} */
         this.offlineMode = false;
-        /** @type {string} */
         this.modelUrl = '';
-        /** @type {string} */
         this.modelName = '';
-        /** @type {boolean} */
         this.autoTrackMessageAuthors = true;
-        /** @type {boolean} */
         this.enableAutoRequestStats = true;
-        /** @type {boolean} */
         this.showStats = true;
-        /** @type {boolean} */
         this.collapseOldStats = true;
-        /** @type {boolean} */
         this.anonymizeClipboardExport = true;
-        /** @type {StatsSettings} */
         this.stats = { stats: {}, presets: {} };
-        /** @type {TemplateSettings[]} */
         this.templates = [];
     }
 }
 const extensionName = "StatSuite";
-/**
- * Global settings registry for StatSuite.
- * @type {SuiteSettings}
- */
 export const ExtensionSettings = extension_settings[extensionName] ?? (extension_settings[extensionName] = new SuiteSettings());
 const defaultSettings = new SuiteSettings();
-/**
- * Attempts to fetch available models from the API and handles errors.
- * @returns {Promise<Array>} List of available models or empty array on failure.
- */
 export async function tryGetModels() {
     try {
         const models = await fetchAvailableModels();
@@ -64,10 +33,6 @@ export async function tryGetModels() {
         return [];
     }
 }
-/**
- * Initializes StatSuite settings, applying defaults and verifying model selection.
- * @returns {Promise<void>}
- */
 export async function initializeSettings() {
     let settingsChanged = false;
     if (Object.keys(ExtensionSettings).length === 0) {
@@ -101,11 +66,6 @@ export async function initializeSettings() {
     }
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
 }
-/**
- * Updates a single setting and persists the change.
- * @param {string} key - The setting key to update.
- * @param {*} value - The new value for the setting.
- */
 export function updateSetting(key, value) {
     if (ExtensionSettings.hasOwnProperty(key)) {
         ExtensionSettings[key] = value;

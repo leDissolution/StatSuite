@@ -2,18 +2,19 @@ const NON_INSTRUCT_TEMPLATE = `<previousMessage from="{previous_from}">{previous
 {previous_stats}
 <message from="{name}">{message}</message>
 <stats character="{req_name}" {existingNewStats}{stat}="`;
+
 const EXPORT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_message}</previousMessage>
 {previous_stats}
 <message from="{name}">{message}</message>
 {new_stats}`;
-export function generateStatPrompt(stat, reqName, previousName, previousMessage, name, message, previousStats, existingNewStats) {
+
+export function generateStatPrompt(stat: string, reqName: string, previousName: string, previousMessage: string, name: string, message: string, previousStats: string, existingNewStats: object): string {
     let existingNewStatsString = "";
     if (existingNewStats) {
         existingNewStatsString = Object.entries(existingNewStats)
             .map(([key, value]) => `${key.toLowerCase()}="${value}"`)
             .join(' ') + ' ';
-    }
-    else {
+    } else {
         existingNewStatsString = '';
     }
     const userPrompt = NON_INSTRUCT_TEMPLATE.replace('{previous_from}', previousName)
@@ -26,7 +27,8 @@ export function generateStatPrompt(stat, reqName, previousName, previousMessage,
         .replace('{stat}', stat);
     return userPrompt;
 }
-export function generateExportPrompt(previousName, previousMessage, name, message, previousStats, newStats) {
+
+export function generateExportPrompt(previousName: string, previousMessage: string, name: string, message: string, previousStats: string, newStats: string): string {
     const exportPrompt = EXPORT_TEMPLATE.replace('{previous_from}', previousName)
         .replace('{previous_message}', previousMessage ?? '')
         .replace('{previous_stats}', previousStats ?? '')

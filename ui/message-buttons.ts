@@ -1,41 +1,30 @@
-// Handles adding paste/request buttons to message UI
-
+import { ChatStatEntry } from '../chat/chat-stat-entry.js';
+import { StatsBlock } from '../stats/stat-block.js';
 import { makeStats, parseStatsString, setMessageStats } from '../stats/stats-logic.js';
 
-/**
- * Adds paste and request buttons to a message's extra buttons container.
- * @param {number} messageId
- */
-export function addPasteButton(messageId) {
+export function addPasteButton(messageId: number) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length) return;
+
     const buttonsContainer = messageDiv.find('.extraMesButtons');
     if (!buttonsContainer.length) return;
+
     buttonsContainer.find('.paste-stats-button, .request-stats-button').remove();
-    const buttonStyle = { 'cursor': 'pointer', 'opacity': '0.3', 'transition': 'opacity 0.2s', 'padding': '0 5px' };
-    // @ts-ignore
-    const hoverIn = function () { $(this).css('opacity', '1'); };
-    // @ts-ignore
-    const hoverOut = function () { $(this).css('opacity', '0.3'); };
+    
     const pasteButton = $('<div class="paste-stats-button fa-solid fa-clipboard"></div>')
-        .css(buttonStyle).attr('title', 'Paste stats from clipboard')
-        .hover(hoverIn, hoverOut)
+        .attr('title', 'Paste stats from clipboard')
         .on('click', function () { pasteStats(messageId); });
     buttonsContainer.append(pasteButton);
+
     const requestButton = $('<div class="request-stats-button fa-solid fa-rotate"></div>')
-        .css(buttonStyle).attr('title', 'Request/Regenerate stats for this message')
-        .hover(hoverIn, hoverOut)
+        .attr('title', 'Request/Regenerate stats for this message')
         .on('click', function (e) {
              makeStats(messageId, null, null, e.altKey !== true);
         });
     buttonsContainer.append(requestButton);
 }
 
-/**
- * Shows a modal to paste stats from clipboard and apply them to a message.
- * @param {number} messageId
- */
-export async function pasteStats(messageId) {
+export async function pasteStats(messageId: number) {
     try {
         const modal = $('<div>').css({
             'position': 'fixed', 'top': '50%', 'left': '50%', 'transform': 'translate(-50%, -50%)',
@@ -66,7 +55,9 @@ export async function pasteStats(messageId) {
                 toastr.error('No stats block found after </message> in pasted text'); return;
             }
             const statsText = statMatch[1].trim();
-            const stats = {};
+            
+            const charStats: Record<string, StatsBlock> = {};
+
             const statLines = statsText.split('\n');
             let parsedSomething = false;
             statLines.forEach(line => {
@@ -74,16 +65,16 @@ export async function pasteStats(messageId) {
                 if (parsed) {
                     parsedSomething = true;
                     Object.entries(parsed).forEach(([char, charStats]) => {
-                        if (!stats[char]) stats[char] = {};
-                        Object.assign(stats[char], charStats);
+                        if (!charStats[char]) charStats[char] = new ChatStatEntry();
+                        Object.assign(charStats[char], charStats);
                     });
                 }
             });
             if (!parsedSomething) {
                 toastr.error('Failed to parse any valid stats from the text'); return;
             }
-            // @ts-ignore
-            setMessageStats(stats, messageId);
+
+            setMessageStats(new ChatStatEntry(charStats, {}), messageId);
             toastr.success('Stats applied successfully from pasted text');
             modal.remove();
         });
