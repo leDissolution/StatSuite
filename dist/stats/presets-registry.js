@@ -1,4 +1,3 @@
-// StatSuite - Preset management for stat activation states
 import { ExtensionSettings } from '../settings.js';
 import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
@@ -66,7 +65,7 @@ export class PresetRegistry {
         });
         ExtensionSettings.stats.presets = presetsData;
         saveSettingsDebounced();
-        chat_metadata.StatSuite = chat_metadata.StatSuite || {};
+        chat_metadata.StatSuite = chat_metadata.StatSuite ?? {};
         chat_metadata.StatSuite.selectedPreset = this.selectedPreset;
         saveMetadataDebounced();
     }
@@ -74,10 +73,10 @@ export class PresetRegistry {
         return this.presets;
     }
     getPreset(name) {
-        return this.presets[name] || null;
+        return this.presets[name] ?? null;
     }
     getActivePreset() {
-        return this.getPreset(this.selectedPreset) || new StatsPreset(this.selectedPreset, {});
+        return this.getPreset(this.selectedPreset) ?? new StatsPreset(this.selectedPreset, {});
     }
     setActivePreset(name) {
         if (this.presets[name]) {

@@ -3,7 +3,6 @@ import { bindSettingsUI } from './settings-ui.js';
 import { doPopout } from './settings-ui.js';
 import { exportChat } from '../export.js';
 import { onChatChanged } from '../events.js';
-import { Stats } from '../stats/stats-registry.js';
 /**
  * Initializes the UI module, binds event listeners.
  */
@@ -12,7 +11,7 @@ export function initializeUI() {
         console.error("StatSuite UI Error: jQuery not available!");
         return;
     }
-    bindSettingsUI(Stats);
+    bindSettingsUI();
     $(document)
         .off('click.statSuite', '#exportStats')
         .on('click.statSuite', '#exportStats', exportChat);

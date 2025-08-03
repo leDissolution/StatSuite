@@ -10,14 +10,8 @@ import { dragElement } from '../../../../../../scripts/RossAscends-mods.js';
 import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Characters } from '../characters/characters-registry.js';
-import { StatRegistry } from '../stats/stats-registry.js';
-let _statsRegistryInstance = null;
-/**
- * Binds settings UI elements and character management UI.
- * @param {StatRegistry} statsRegistryInstance
- */
-export function bindSettingsUI(statsRegistryInstance) {
-    _statsRegistryInstance = statsRegistryInstance;
+import { Stats } from '../stats/stats-registry.js';
+export function bindSettingsUI() {
     // Bind Model URL input
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
@@ -122,26 +116,14 @@ export function bindSettingsUI(statsRegistryInstance) {
             location.reload();
         }
     });
-    // Custom stats UI
-    $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function () {
-        const name = String($('#customStatName').val()).trim();
-        const defaultValue = String($('#customStatValue').val()).trim();
-        if (!name)
-            return;
-        const config = { dependencies: [], order: Object.keys(_statsRegistryInstance._stats).length + 10, defaultValue };
-        if (_statsRegistryInstance.addStat(name, config)) {
-            $('#customStatName').val('');
-            $('#customStatValue').val('');
-        }
-    });
     Characters.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharactersList());
     Characters.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharactersList());
-    _statsRegistryInstance.addEventListener(EVENT_STAT_ADDED, () => renderStatsList(_statsRegistryInstance));
-    _statsRegistryInstance.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList(_statsRegistryInstance));
-    _statsRegistryInstance.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList(_statsRegistryInstance));
+    Stats.addEventListener(EVENT_STAT_ADDED, () => renderStatsList());
+    Stats.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList());
+    Stats.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList());
     Templates.onTemplatesChanged(() => renderTemplateSettings());
     renderCharactersList();
-    renderStatsList(_statsRegistryInstance);
+    renderStatsList();
     renderTemplateSettings();
 }
 /**
@@ -180,7 +162,7 @@ export function doPopout(e) {
         originalElement.html('<div class="flex-container alignitemscenter justifyCenter wide100p"><small><i>StatSuite settings popped out</i></small></div>');
         $('#movingDivs').append(newElement);
         newElement.find('#statsDrawerContent').addClass('scrollY');
-        bindSettingsUI(_statsRegistryInstance);
+        bindSettingsUI();
         loadMovingUIState();
         $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window['animation_duration'] || 200);
         dragElement(newElement);
@@ -191,7 +173,7 @@ export function doPopout(e) {
                 originalElement.empty();
                 originalElement.html(objectivePopoutHTML.html());
                 $(statBarPopoutIdJ).remove();
-                bindSettingsUI(_statsRegistryInstance);
+                bindSettingsUI();
             });
         });
     }
