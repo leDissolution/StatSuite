@@ -6,6 +6,15 @@ export class TemplateData {
     constructor(characterStats: Record<string, import('../stats/stat-block.js').StatsBlock> = {}) {
         this.Characters = characterStats;
     }
+
+    static fromMessageStatEntry(entry: import('../chat/chat-stat-entry.js').ChatStatEntry): TemplateData {
+        const data = new TemplateData();
+        data.Characters = Object.fromEntries(
+            Object.entries(entry.Characters ?? {})
+                .filter(([_, v]) => v !== null)
+        ) as Record<string, import('../stats/stat-block.js').StatsBlock>;
+        return data;
+    }
 }
 
 export class Template {

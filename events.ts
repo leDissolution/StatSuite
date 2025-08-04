@@ -1,4 +1,3 @@
-// StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../../script.js';
 import { ExtensionSettings } from './settings.js';
 import { makeStats } from './stats/stats-logic.js';
@@ -10,6 +9,7 @@ import { Chat } from './chat/chat-manager.js';
 import { Presets } from './stats/presets-registry.js';
 import { Templates } from './templates/templates-registry.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
+import { TemplateData } from './templates/template.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
@@ -50,6 +50,11 @@ export function onChatChanged() {
             console.warn("StatSuite Events Warning: addPasteButton function not available.");
         }
     });
+
+    const stats = Chat.getLatestStats();
+    if (stats) {
+        Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
+    }
 }
 
 var messageLock: boolean[] = [];
@@ -78,6 +83,11 @@ async function processMessageForStats(message_id: number) {
         }
 
         addPasteButton(message_id);
+
+        const stats = Chat.getMessageStats(message_id);
+        if (stats) {
+            Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
+        }
     }
     finally
     {
@@ -99,11 +109,16 @@ function onSwipeChanged(messageId: number) {
         return;
     } 
 
-    const stats = Chat.getMessageStats(messageId);
-    if (stats && Object.keys(stats).length > 0) {
+    let stats = Chat.getMessageStats(messageId);
+    if (stats) {
         displayStats(messageId, stats);
     } else {
         makeStats(messageId);
+    }
+
+    stats = Chat.getMessageStats(messageId);
+    if (stats) {
+        Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
     }
 }
 

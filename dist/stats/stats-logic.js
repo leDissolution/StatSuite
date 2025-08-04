@@ -3,11 +3,12 @@ import { ExtensionSettings } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
 import { Characters } from '../characters/characters-registry.js';
-import { statsToStringFull } from '../export.js';
 import { Stats } from './stats-registry.js';
 import { StatsBlock } from './stat-block.js';
 import { Chat } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
+import { Templates } from '../templates/templates-registry.js';
+import { TemplateData } from '../templates/template.js';
 export function parseSingleStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
@@ -256,7 +257,16 @@ export async function injectStatsFromMessage(messageId) {
         console.warn("StatSuite: No stats found in the last message.");
         return;
     }
-    const statsString = statsToStringFull(finalStats);
-    const injection = `\n[current state]${statsString}[/current state]\nDO NOT REITERATE THE STATS IN YOUR RESPONSE.`;
-    ctx.setExtensionPrompt("StatSuite", injection, extension_prompt_types.IN_CHAT, 1);
+    Templates.getEnabledTemplates().forEach(template => {
+        const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
+        if (!text)
+            return;
+        ctx.variables.local.set(template.variableName, text);
+        if (template.injectAtDepth) {
+            ctx.setExtensionPrompt("StatSuite" + `.${template.name.replace(/\s+/g, '_')}`, text, extension_prompt_types.IN_CHAT, template.injectAtDepthValue);
+        }
+        else {
+            console.warn(`StatSuite: Template "${template.name}" did not produce an injection.`);
+        }
+    });
 }

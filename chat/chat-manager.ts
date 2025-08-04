@@ -49,6 +49,13 @@ export class ChatManager {
         return null;
     }
 
+    getLatestStats(): ChatStatEntry | null {
+        const latestMessage = this.getLatestMessage();
+        if (!latestMessage) return null;
+
+        return Chat.getMessageStats(latestMessage.index);
+    }
+
     private isChatStatEntryData(obj: any): obj is { Characters: Record<string, StatsBlock>, Scenes: Record<string, StatsBlock> } {
         return obj &&
             typeof obj === 'object' &&

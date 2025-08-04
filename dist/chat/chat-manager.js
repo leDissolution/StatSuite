@@ -25,6 +25,12 @@ export class ChatManager {
         }
         return null;
     }
+    getLatestStats() {
+        const latestMessage = this.getLatestMessage();
+        if (!latestMessage)
+            return null;
+        return Chat.getMessageStats(latestMessage.index);
+    }
     isChatStatEntryData(obj) {
         return obj &&
             typeof obj === 'object' &&

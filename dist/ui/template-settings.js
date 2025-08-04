@@ -86,15 +86,6 @@ function renderTemplatesList(preservedDrawerStates = {}) {
     $templatesList.find('.template-entry').remove();
     const $shadowContainer = $('<div style="position: absolute; left: -9999px; top: -9999px;"></div>');
     $('body').append($shadowContainer);
-    let hasActiveDepthTemplate = false;
-    allTemplates.forEach(template => {
-        if (template.injectAtDepth && hasActiveDepthTemplate) {
-            template.injectAtDepth = false;
-        }
-        else if (template.injectAtDepth) {
-            hasActiveDepthTemplate = true;
-        }
-    });
     allTemplates.forEach((template, index) => {
         const $templateEntry = createTemplateEntry(template, index);
         $shadowContainer.append($templateEntry);
@@ -130,7 +121,7 @@ function createTemplateEntry(template, index) {
     const $depthBlock = $('<div class="template-form-control"></div>');
     const $depthLabel = $('<label class="template-header-title-mobile">@D:</label>');
     const $depthCheckbox = $('<input type="checkbox" class="template-depth-enabled">').prop('checked', template.injectAtDepth);
-    const $depthValue = $('<input class="template-depth-value" type="number" min="1" max="99">')
+    const $depthValue = $('<input class="template-depth-value" type="number" min="0" max="99">')
         .val(template.injectAtDepthValue)
         .prop('disabled', !template.injectAtDepth);
     const $variableNameInput = $('<input class="text_pole template-variable-name-input" type="text" placeholder="Var Name">')
@@ -164,15 +155,16 @@ function createTemplateEntry(template, index) {
 function attachTemplateHandlers() {
     $('#template-container').off('.templateSettings');
     $('#new-template-btn').off('click.templateSettings').on('click.templateSettings', function () {
-        const templateName = prompt('Enter template name:')?.trim();
-        if (!templateName)
-            return;
-        if (!validateTemplateName(templateName)) {
-            alert(`Template "${templateName}" already exists.`);
-            return;
+        var newTemplateName = 'New Template';
+        if (Templates.getTemplate(newTemplateName)) {
+            let counter = 1;
+            while (Templates.getTemplate(`${newTemplateName} (${counter})`)) {
+                counter++;
+            }
+            newTemplateName = `${newTemplateName} (${counter})`;
         }
         const newTemplate = new Template({
-            name: templateName,
+            name: newTemplateName,
             templateString: '',
             enabled: true,
             injectAtDepth: true,
@@ -180,9 +172,6 @@ function attachTemplateHandlers() {
             variableName: ''
         });
         Templates.addTemplate(newTemplate);
-        const $templatesList = $('#templates-list');
-        const $newEntry = createTemplateEntry(newTemplate, Templates.getAll().length - 1);
-        $templatesList.append($newEntry);
     });
     $('#templates-list').on('click.templateSettings', '.template-active-toggle', function () {
         const result = getTemplateFromElement($(this));
@@ -221,15 +210,6 @@ function attachTemplateHandlers() {
         if (!result)
             return;
         const isEnabled = $(this).prop('checked');
-        if (isEnabled) {
-            $('#templates-list .template-depth-enabled').not(this).each(function () {
-                const otherResult = getTemplateFromElement($(this));
-                if (otherResult) {
-                    otherResult.template.injectAtDepth = false;
-                    $(this).siblings('.template-depth-value').prop('disabled', true);
-                }
-            }).prop('checked', false);
-        }
         result.template.injectAtDepth = isEnabled;
         Templates.saveTemplateChanges();
         $(this).siblings('.template-depth-value').prop('disabled', !isEnabled);
@@ -238,8 +218,8 @@ function attachTemplateHandlers() {
         const result = getTemplateFromElement($(this));
         if (!result)
             return;
-        const value = parseInt($(this).val()?.toString() || '1');
-        result.template.injectAtDepthValue = Math.max(1, value);
+        const value = parseInt($(this).val()?.toString() || '0');
+        result.template.injectAtDepthValue = Math.max(0, value);
         Templates.saveTemplateChanges();
     });
     $('#templates-list').on('change.templateSettings', '.template-variable-name-input', function () {
@@ -261,10 +241,17 @@ function attachTemplateHandlers() {
             const templateString = $textarea.val()?.toString().trim() || '';
             if (result) {
                 result.template.templateString = templateString;
-                Templates.saveTemplateChanges();
             }
             renderTemplatePreview($previewArea, templateString);
         }, 500);
+    });
+    $('#templates-list').on('blur.templateSettings', '.template-string-editor', function () {
+        const result = getTemplateFromElement($(this));
+        if (!result)
+            return;
+        const templateString = $(this).val()?.toString().trim() || '';
+        result.template.templateString = templateString;
+        Templates.saveTemplateChanges();
     });
     $('#templates-list').on('click.templateSettings', '.duplicate-template-button', function () {
         const templateName = $(this).attr('data-template-name');
@@ -273,10 +260,13 @@ function attachTemplateHandlers() {
         const template = Templates.getTemplate(templateName);
         if (!template)
             return;
-        const newName = `${templateName} Copy`;
+        let newName = `${templateName} Copy`;
         if (!validateTemplateName(newName)) {
-            alert(`Template "${newName}" already exists.`);
-            return;
+            let counter = 1;
+            while (Templates.getTemplate(`${newName} (${counter})`)) {
+                counter++;
+            }
+            newName = `${newName} (${counter})`;
         }
         const duplicated = new Template({
             name: newName,
@@ -287,9 +277,6 @@ function attachTemplateHandlers() {
             variableName: template.variableName
         });
         Templates.addTemplate(duplicated);
-        const $templatesList = $('#templates-list');
-        const $newEntry = createTemplateEntry(duplicated, Templates.getAll().length - 1);
-        $templatesList.append($newEntry);
     });
     $('#templates-list').on('click.templateSettings', '.delete-template-button', function () {
         const templateName = $(this).attr('data-template-name');

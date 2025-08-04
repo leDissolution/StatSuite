@@ -406,7 +406,6 @@ export function displayStats(messageId, stats) {
     const summary = $('<summary class="stats-summary">Stats</summary>');
     container.append(summary);
     parentDiv.append(container);
-    // Use new helpers for header, body, and controls
     const table = $('<table class="stats-table"></table>');
     table.append(renderStatsTableHeader(sortedCharacters, messageId));
     const presentStats = getPresentStats(sortedCharacters, stats);

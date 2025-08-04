@@ -5,7 +5,7 @@ const defaultTemplateSettings = {
     name: 'Default',
     templateString: `<metadata>
 {{#each Characters}}
-    <stats character="{{@key}}" {{#each this}}{{@key}}="{{this}}" {{/each}}/>
+    <stats character="{{{@key}}}" {{#each this}}{{@key}}="{{{this}}}" {{/each}}/>
 {{/each}}
 </metadata>`,
     enabled: true,
@@ -60,12 +60,20 @@ export class TemplateRegistry {
     getAll() {
         return [...this._templates];
     }
+    getEnabledTemplates() {
+        return this._templates.filter(template => template.enabled);
+    }
     addTemplate(template) {
         this._templates.push(template);
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
     removeTemplate(name) {
+        const templateToRemove = this._templates.find(t => t.name === name);
+        if (!templateToRemove)
+            return;
+        const ctx = SillyTavern.getContext();
+        ctx.variables.local.set(templateToRemove.variableName, '');
         this._templates = this._templates.filter(t => t.name !== name);
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
@@ -81,6 +89,15 @@ export class TemplateRegistry {
         this._templates = [...templates];
         this.saveToMetadata();
         this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
+    }
+    renderTemplatesIntoVariables(stats) {
+        const ctx = SillyTavern.getContext();
+        this.getEnabledTemplates().forEach(template => {
+            const text = template.render(stats);
+            if (text) {
+                ctx.variables.local.set(template.variableName, text);
+            }
+        });
     }
     onTemplatesChanged(callback) {
         this._eventTarget.addEventListener('templatesChanged', callback);

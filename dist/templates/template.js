@@ -8,6 +8,12 @@ export class TemplateData {
         });
         this.Characters = characterStats;
     }
+    static fromMessageStatEntry(entry) {
+        const data = new TemplateData();
+        data.Characters = Object.fromEntries(Object.entries(entry.Characters ?? {})
+            .filter(([_, v]) => v !== null));
+        return data;
+    }
 }
 export class Template {
     constructor(settings) {
