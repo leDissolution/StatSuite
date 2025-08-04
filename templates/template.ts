@@ -16,6 +16,8 @@ export class Template {
     injectAtDepth: boolean = false;
     injectAtDepthValue: number = 0;
 
+    variableName: string = '';
+
     private _templateString: string;
     private _compiledTemplate: Handlebars.TemplateDelegate<TemplateData> | null;
     private _isDirty: boolean;
@@ -26,6 +28,7 @@ export class Template {
         this.enabled = settings.enabled ?? false;
         this.injectAtDepth = settings.injectAtDepth ?? false;
         this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
+        this.variableName = settings.variableName ?? '';
 
         this._compiledTemplate = null;
         this._isDirty = true;

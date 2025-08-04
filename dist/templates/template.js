@@ -35,6 +35,12 @@ export class Template {
             writable: true,
             value: 0
         });
+        Object.defineProperty(this, "variableName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: ''
+        });
         Object.defineProperty(this, "_templateString", {
             enumerable: true,
             configurable: true,
@@ -58,6 +64,7 @@ export class Template {
         this.enabled = settings.enabled ?? false;
         this.injectAtDepth = settings.injectAtDepth ?? false;
         this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
+        this.variableName = settings.variableName ?? '';
         this._compiledTemplate = null;
         this._isDirty = true;
     }

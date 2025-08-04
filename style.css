@@ -200,6 +200,43 @@ table.stats-table {
     margin-top: 10px;
 }
 
+.templates-list-header {
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+
+.template-header-row {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+}
+
+.template-header-label {
+    font-size: 0.9em;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.8;
+    text-transform: capitalize;
+}
+
+.template-header-label.name-label {
+    flex: 1;
+    margin-right: 10px;
+    margin-left: 60px;
+}
+
+.template-header-label.inject-label {
+    width: 85px;
+    text-align: center;
+    margin-right: 20px;
+}
+
+.template-header-label.variable-label {
+    width: 100px;
+    text-align: center;
+    margin-right: 50px;
+}
+
 .template-entry {
     margin-bottom: 2px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -236,7 +273,6 @@ table.stats-table {
 }
 
 .template-name-input {
-    background: transparent;
     border: 1px solid transparent;
     padding: 0px 4px;
     border-radius: 3px;
@@ -246,15 +282,24 @@ table.stats-table {
     min-width: 120px;
 }
 
-.template-name-input:focus {
-    background: var(--black30a);
+.template-variable-name-input {
+    border: 1px solid transparent;
+    padding: 0px 4px;
+    margin-left: 4px;
+    border-radius: 3px;
+    color: var(--SmartThemeBodyColor);
+    transition: border-color 0.2s, background-color 0.2s;
+    width: 100px;
+}
+
+.template-name-input:focus, .template-variable-name-input:focus {
     border-color: rgba(255, 255, 255, 0.2);
     outline: none;
 }
 
 .template-header-controls {
     display: flex;
-    gap: 10px;
+    gap: 4px;
     align-items: center;
     white-space: nowrap;
 }
@@ -269,14 +314,14 @@ table.stats-table {
 
 .template-header-title-mobile {
     white-space: nowrap;
-    margin-right: 5px;
+    margin-right: 0px;
     color: var(--SmartThemeBodyColor);
     opacity: 0.8;
 }
 
 .template-depth-value {
-    width: 60px;
-    padding: 2px 4px;
+    width: 48px;
+    padding: 2px 2px;
     border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: var(--black30a);
@@ -286,6 +331,10 @@ table.stats-table {
 .template-depth-value:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.template-depth-enabled {
+    margin: 0 4px !important;
 }
 
 .template-editor-section {

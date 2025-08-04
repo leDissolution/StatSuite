@@ -10,7 +10,8 @@ const defaultTemplateSettings = {
 </metadata>`,
     enabled: true,
     injectAtDepth: true,
-    injectAtDepthValue: 1
+    injectAtDepthValue: 1,
+    variableName: ''
 };
 export class TemplateRegistry {
     constructor() {
@@ -49,7 +50,8 @@ export class TemplateRegistry {
             templateString: template.templateString,
             enabled: template.enabled,
             injectAtDepth: template.injectAtDepth,
-            injectAtDepthValue: template.injectAtDepthValue
+            injectAtDepthValue: template.injectAtDepthValue,
+            variableName: template.variableName
         }));
         if (saveSettingsDebounced) {
             saveSettingsDebounced();

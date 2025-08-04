@@ -4,6 +4,7 @@ export interface TemplateSettings {
     enabled: boolean;
     injectAtDepth: boolean;
     injectAtDepthValue: number;
+    variableName: string;
 }
 
 export interface StatsSettings {
