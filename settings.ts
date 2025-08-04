@@ -1,24 +1,7 @@
 import { extension_settings } from "../../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../../../script.js"
 import { fetchAvailableModels } from "./api.js"
-
-export interface StatsSettings {
-    stats: Record<string, any>;
-    presets: PresetsSettings;
-}
-
-export interface TemplateSettings {
-    name: string;
-    templateString: string;
-}
-
-export interface PresetsSettings {
-    [presetName: string]: {
-        name: string;
-        stats: Record<string, any>;
-        characters: string[];
-    };
-}
+import { StatsSettings, TemplateSettings } from "./settings-dtos.js";
 
 export class SuiteSettings {
     offlineMode: boolean;

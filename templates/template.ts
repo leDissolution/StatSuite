@@ -1,7 +1,5 @@
-/**
- * Data Transfer Object for template rendering data.
- * Contains all the data that can be used in template rendering.
- */
+import { TemplateSettings } from '../settings-dtos.js';
+
 export class TemplateData {
     Characters: Record<string, import('../stats/stat-block.js').StatsBlock>;
 
@@ -13,13 +11,22 @@ export class TemplateData {
 export class Template {
     name: string;
 
+    enabled: boolean = true;
+
+    injectAtDepth: boolean = false;
+    injectAtDepthValue: number = 0;
+
     private _templateString: string;
     private _compiledTemplate: Handlebars.TemplateDelegate<TemplateData> | null;
     private _isDirty: boolean;
 
-    constructor(name: string, templateString: string) {
-        this.name = name;
-        this._templateString = templateString;
+    constructor(settings: TemplateSettings) {
+        this.name = settings.name;
+        this._templateString = settings.templateString;
+        this.enabled = settings.enabled ?? false;
+        this.injectAtDepth = settings.injectAtDepth ?? false;
+        this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
+
         this._compiledTemplate = null;
         this._isDirty = true;
     }

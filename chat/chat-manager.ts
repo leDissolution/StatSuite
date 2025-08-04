@@ -253,6 +253,10 @@ export class ChatManager {
         if (!chat_metadata['StatSuite']) {
             chat_metadata['StatSuite'] = new ChatMetadata();
         }
+
+        if (!(chat_metadata['StatSuite'] instanceof ChatMetadata)) {
+            chat_metadata['StatSuite'] = ChatMetadata.parse(chat_metadata['StatSuite']);
+        }
         
         return chat_metadata['StatSuite'];
     }

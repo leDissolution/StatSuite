@@ -1,7 +1,3 @@
-/**
- * Data Transfer Object for template rendering data.
- * Contains all the data that can be used in template rendering.
- */
 export class TemplateData {
     constructor(characterStats = {}) {
         Object.defineProperty(this, "Characters", {
@@ -14,12 +10,30 @@ export class TemplateData {
     }
 }
 export class Template {
-    constructor(name, templateString) {
+    constructor(settings) {
         Object.defineProperty(this, "name", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
+        });
+        Object.defineProperty(this, "enabled", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "injectAtDepth", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "injectAtDepthValue", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
         });
         Object.defineProperty(this, "_templateString", {
             enumerable: true,
@@ -39,8 +53,11 @@ export class Template {
             writable: true,
             value: void 0
         });
-        this.name = name;
-        this._templateString = templateString;
+        this.name = settings.name;
+        this._templateString = settings.templateString;
+        this.enabled = settings.enabled ?? false;
+        this.injectAtDepth = settings.injectAtDepth ?? false;
+        this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
         this._compiledTemplate = null;
         this._isDirty = true;
     }

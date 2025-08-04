@@ -120,7 +120,7 @@ export function bindSettingsUI() {
     Stats.addEventListener(EVENT_STAT_ADDED, () => renderStatsList());
     Stats.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList());
     Stats.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList());
-    Templates.onTemplatesChanged(() => renderTemplateSettings());
+    Templates.onTemplatesChanged(() => renderTemplateSettings(true));
     renderCharactersList();
     renderStatsList();
     renderTemplateSettings();

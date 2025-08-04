@@ -1,7 +1,8 @@
-import { ExtensionSettings, PresetsSettings } from '../settings.js';
+import { ExtensionSettings} from '../settings.js';
 import { saveSettingsDebounced } from '../../../../../../script.js';
 import { StatPreset, StatsPreset } from './preset.js';
 import { Chat } from '../chat/chat-manager.js';
+import { PresetsSettings } from '../settings-dtos.js';
 
 export class PresetRegistry {
     presets: { [s: string]: StatsPreset; };

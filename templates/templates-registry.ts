@@ -2,11 +2,17 @@ import { ExtensionSettings } from '../settings.js';
 import { Template } from './template.js';
 import { saveSettingsDebounced } from '../../../../../../script.js';
 
-const defaultTemplate = new Template('Default', `<metadata>
+const defaultTemplateSettings = {
+    name: 'Default',
+    templateString: `<metadata>
 {{#each Characters}}
     <stats character="{{@key}}" {{#each this}}{{@key}}="{{this}}" {{/each}}/>
 {{/each}}
-</metadata>`);
+</metadata>`,
+    enabled: true,
+    injectAtDepth: true,
+    injectAtDepthValue: 1
+};
 
 export class TemplateRegistry {
     private _templates: Template[];
@@ -22,15 +28,13 @@ export class TemplateRegistry {
             ExtensionSettings.templates = [];
         }
 
-        this._templates = ExtensionSettings.templates.map(templateData => 
-            new Template(templateData.name, templateData.templateString)
-        );
+        this._templates = ExtensionSettings.templates.map(templateData => new Template(templateData));
 
-        if (!this._templates.some(t => t.name === defaultTemplate.name)) {
-            this._templates.push(defaultTemplate);
+        if (!this._templates.some(t => t.name === defaultTemplateSettings.name)) {
+            this._templates.push(new Template(defaultTemplateSettings));
         }
         else {
-            this._templates.find(t => t.name === defaultTemplate.name)!.templateString = defaultTemplate.templateString;
+            this._templates.find(t => t.name === defaultTemplateSettings.name)!.templateString = defaultTemplateSettings.templateString;
         }
 
         this.saveToMetadata();
@@ -41,7 +45,10 @@ export class TemplateRegistry {
     saveToMetadata() {
         ExtensionSettings.templates = this._templates.map(template => ({
             name: template.name,
-            templateString: template.templateString
+            templateString: template.templateString,
+            enabled: template.enabled,
+            injectAtDepth: template.injectAtDepth,
+            injectAtDepthValue: template.injectAtDepthValue
         }));
         
         if (saveSettingsDebounced) {
@@ -67,6 +74,11 @@ export class TemplateRegistry {
 
     getTemplate(name: string): Template | null {
         return this._templates.find(t => t.name === name) || null;
+    }
+
+    saveTemplateChanges() {
+        this.saveToMetadata();
+        this._eventTarget.dispatchEvent(new CustomEvent('templatesChanged'));
     }
 
     setTemplates(templates: Template[]) {
