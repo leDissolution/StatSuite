@@ -1,10 +1,21 @@
-// StatSuite - Preset management for stat activation states
 import { ExtensionSettings } from '../settings.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
-import { saveMetadataDebounced } from '../../../../../extensions.js';
+import { saveSettingsDebounced } from '../../../../../../script.js';
 import { StatPreset, StatsPreset } from './preset.js';
+import { Chat } from '../chat/chat-manager.js';
 export class PresetRegistry {
     constructor() {
+        Object.defineProperty(this, "presets", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "selectedPreset", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.presets = {};
         this.selectedPreset = 'default';
     }
@@ -23,23 +34,17 @@ export class PresetRegistry {
                     for (const [statName, statData] of Object.entries(statsData)) {
                         if (!statData || typeof statData !== 'object')
                             continue;
-                        preset.set(new StatPreset({
-                            name: statName,
-                            displayName: statData.displayName ?? statName,
-                            active: Boolean(statData.active),
-                            manual: Boolean(statData.manual),
-                            defaultValue: statData.defaultValue ?? 'unspecified'
-                        }));
+                        preset.set(new StatPreset(statName, statData.displayName ?? statName, Boolean(statData.active), Boolean(statData.manual), statData.defaultValue ?? 'unspecified'));
                     }
                 }
                 this.presets[presetName] = preset;
             }
         }
-        (_a = this.presets).default ?? (_a.default = new StatsPreset('default', {}));
+        (_a = this.presets)['default'] ?? (_a['default'] = new StatsPreset('default', {}));
         this.selectedPreset = this.determineSelectedPreset();
     }
     determineSelectedPreset() {
-        const chatSelectedPreset = chat_metadata.StatSuite?.selectedPreset;
+        const chatSelectedPreset = Chat.Metadata.selectedPreset;
         if (chatSelectedPreset && this.presets[chatSelectedPreset]) {
             return chatSelectedPreset;
         }
@@ -66,18 +71,17 @@ export class PresetRegistry {
         });
         ExtensionSettings.stats.presets = presetsData;
         saveSettingsDebounced();
-        chat_metadata.StatSuite = chat_metadata.StatSuite || {};
-        chat_metadata.StatSuite.selectedPreset = this.selectedPreset;
-        saveMetadataDebounced();
+        Chat.Metadata.selectedPreset = this.selectedPreset;
+        Chat.Metadata.save();
     }
     getAllPresets() {
         return this.presets;
     }
     getPreset(name) {
-        return this.presets[name] || null;
+        return this.presets[name] ?? null;
     }
     getActivePreset() {
-        return this.getPreset(this.selectedPreset) || new StatsPreset(this.selectedPreset, {});
+        return this.getPreset(this.selectedPreset) ?? new StatsPreset(this.selectedPreset, {});
     }
     setActivePreset(name) {
         if (this.presets[name]) {

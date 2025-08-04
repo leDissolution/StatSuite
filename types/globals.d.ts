@@ -6,10 +6,24 @@ declare global {
             setExtensionPrompt(extension: string, prompt: string, location: any, depth: number): unknown;
             characters: Array<{ name: string }>;
             characterId: number;
+            variables: {
+                local: {
+                    set(name: string, value: string, args: any = {}): void;
+                    get(name: string): string | null;
+                };
+                global: {
+                    set(name: string, value: string, args: any = {}): void;
+                    get(name: string): string | null;
+                };
+            };
         };
     };
 
-    export const Handlebars: typeof Hb;
+    declare const Handlebars: typeof Hb;
+
+    interface Window {
+        animation_duration?: number;
+    }
 }
 
 export {};

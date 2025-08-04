@@ -1,4 +1,3 @@
-// StatSuite - Handles core application event listeners
 import { eventSource, event_types, chat } from '../../../../../script.js';
 import { ExtensionSettings } from './settings.js';
 import { makeStats } from './stats/stats-logic.js';
@@ -10,15 +9,13 @@ import { Chat } from './chat/chat-manager.js';
 import { Presets } from './stats/presets-registry.js';
 import { Templates } from './templates/templates-registry.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
+import { TemplateData } from './templates/template.js';
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
 export const EVENT_STAT_ADDED = 'stat-added';
 export const EVENT_STAT_REMOVED = 'stat-removed';
 export const EVENT_STATS_BATCH_LOADED = 'stats-batch-loaded';
 export var ExtensionInitialized = false;
-/**
- * Handles the CHAT_CHANGED event. Refreshes character registry from metadata and updates UI for all messages.
- */
 export function onChatChanged() {
     if (!ExtensionInitialized) {
         return;
@@ -49,15 +46,12 @@ export function onChatChanged() {
             console.warn("StatSuite Events Warning: addPasteButton function not available.");
         }
     });
+    const stats = Chat.getLatestStats();
+    if (stats) {
+        Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
+    }
 }
-/**
- * @type {boolean[]}
- */
 var messageLock = [];
-/**
- * Triggers automatic stat generation if enabled and adds UI buttons.
- * @param {number} message_id
- */
 async function processMessageForStats(message_id) {
     if (!Chat.isValidMessageForStats(message_id))
         return;
@@ -79,16 +73,16 @@ async function processMessageForStats(message_id) {
             await makeStats(message_id);
         }
         addPasteButton(message_id);
+        const stats = Chat.getMessageStats(message_id);
+        if (stats) {
+            Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
+        }
     }
     finally {
         latestMessageIndex = -1;
         messageLock[message_id] = false;
     }
 }
-/**
- * Handles MESSAGE_SWIPED event. Re-renders stats for the swiped message.
- * @param {number} messageId - The index of the message that was swiped
- */
 function onSwipeChanged(messageId) {
     if (!ExtensionInitialized)
         return;
@@ -96,24 +90,26 @@ function onSwipeChanged(messageId) {
         return;
     if (!Chat.isValidMessageForStats(messageId))
         return;
-    if (chat[messageId].swipe_id >= chat[messageId].swipes.length) // swipe_id out of bounds means new swipe request before message is generated
+    const message = chat[messageId];
+    if (message.swipe_id >= message.swipes.length) // swipe_id out of bounds means new swipe request before message is generated
      {
         displayStats(messageId, new ChatStatEntry({ '...': null }));
         return;
     }
-    const stats = Chat.getMessageStats(messageId);
-    if (stats && Object.keys(stats).length > 0) {
+    let stats = Chat.getMessageStats(messageId);
+    if (stats) {
         displayStats(messageId, stats);
     }
     else {
         makeStats(messageId);
     }
+    stats = Chat.getMessageStats(messageId);
+    if (stats) {
+        Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
+    }
 }
 var latestMessageIndex = -1;
 var generating = false;
-/**
- * Initializes the event listeners for StatSuite extension.
- */
 export function initializeEventListeners() {
     if (!eventSource) {
         console.error("StatSuite Events Error: eventSource is not available!");

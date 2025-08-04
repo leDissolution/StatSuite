@@ -1,17 +1,25 @@
-import { chat, saveChatConditional } from '../../../../../../script.js';
+import { chat, chat_metadata, saveChatConditional } from '../../../../../../script.js';
 import { StatsBlock } from '../stats/stat-block.js';
+import { ChatMetadata } from './chat-metadata.js';
 import { ChatStatEntry } from './chat-stat-entry.js';
+
+type ValidMessageIndex = number & { __validMessage: true };
 
 export interface MessageContext {
     previousName: string | null;
     previousMessage: string;
-    previousStats: ChatStatEntry;
+    previousStats: ChatStatEntry | null;
     previousIndex: number;
     newName: string;
     newMessage: string;
-    newStats: ChatStatEntry;
+    newStats: ChatStatEntry | null;
     newIndex: number;
 }
+
+export type IndexedChatMessage = {
+    message: ChatMessage;
+    index: number;
+};
 
 export class ChatManager {
     constructor() {
@@ -25,7 +33,7 @@ export class ChatManager {
         const chatArray = this.getCurrentChat();
         if (index < 0 || index >= chatArray.length) return null;
         
-        return chatArray[index];
+        return chatArray[index] ?? null;
     }
 
     getLatestMessage(): { message: ChatMessage | null; index: number; } | null {
@@ -39,6 +47,13 @@ export class ChatManager {
             }
         }
         return null;
+    }
+
+    getLatestStats(): ChatStatEntry | null {
+        const latestMessage = this.getLatestMessage();
+        if (!latestMessage) return null;
+
+        return Chat.getMessageStats(latestMessage.index);
     }
 
     private isChatStatEntryData(obj: any): obj is { Characters: Record<string, StatsBlock>, Scenes: Record<string, StatsBlock> } {
@@ -139,6 +154,9 @@ export class ChatManager {
         if (!this.isValidMessageForStats(messageIndex)) return false;
 
         const message = this.getMessage(messageIndex);
+
+        if (!message) return false;
+
         const swipeId = message.swipe_id ?? 0;
 
         if (!message.stats || !Array.isArray(message.stats)) {
@@ -157,12 +175,16 @@ export class ChatManager {
         if (!message) return false;
 
         const swipe_id = message.swipe_id ?? 0;
+        if (!message.stats || !Array.isArray(message.stats) || !message.stats[swipe_id]) {
+            return false;
+        }
+        
         delete message.stats[swipe_id];
 
         return true;
     }
 
-    getPreviousMessage(currentIndex: number): { message: ChatMessage; index: number; } | null {
+    getPreviousMessage(currentIndex: number): { message: ChatMessage | null; index: number; } | null {
         for (let i = currentIndex - 1; i >= 0; i--) {
             if (this.isValidMessageForStats(i)) {
                 return { 
@@ -178,12 +200,15 @@ export class ChatManager {
         if (!this.isValidMessageForStats(messageIndex)) return null;
 
         const current = this.getMessage(messageIndex);
+
+        if (!current) return null;
+
         const previous = this.getPreviousMessage(messageIndex);
         const previousStats = previous ? this.getMessageStats(previous.index) : new ChatStatEntry({}, {});
 
         return {
-            previousName: previous ? previous.message.name : null,
-            previousMessage: previous ? previous.message.mes : "",
+            previousName: previous?.message?.name ?? null,
+            previousMessage: previous?.message?.mes ?? "",
             previousStats: previousStats,
             previousIndex: previous ? previous.index : -1,
             newName: current.name,
@@ -193,17 +218,18 @@ export class ChatManager {
         };
     }
 
-    getStatEligibleMessages(): Array<{message: ChatMessage, index: number }> {
+    getStatEligibleMessages(): Array<IndexedChatMessage> {
         const chatArray = this.getCurrentChat();
         return chatArray
             .map((msg, index) => ({ 
                 message: this.getMessage(index), 
                 index 
             }))
-            .filter(item => this.isValidMessageForStats(item.index));
+            .filter(item => this.isValidMessageForStats(item.index))
+            .filter(item => item.message !== null) as { message: ChatMessage; index: number }[];
     }
 
-    isValidMessageForStats(messageIndex: number): boolean {
+    isValidMessageForStats(messageIndex: number): messageIndex is ValidMessageIndex {
         const message = this.getMessage(messageIndex);
         if (!message) return false;
         
@@ -228,6 +254,18 @@ export class ChatManager {
 
     getMessageCount(): number {
         return this.getCurrentChat().length;
+    }
+
+    get Metadata(): ChatMetadata {
+        if (!chat_metadata['StatSuite']) {
+            chat_metadata['StatSuite'] = new ChatMetadata();
+        }
+
+        if (!(chat_metadata['StatSuite'] instanceof ChatMetadata)) {
+            chat_metadata['StatSuite'] = ChatMetadata.parse(chat_metadata['StatSuite']);
+        }
+        
+        return chat_metadata['StatSuite'];
     }
 }
 

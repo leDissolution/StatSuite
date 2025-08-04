@@ -1,15 +1,25 @@
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
-import { chat_metadata } from '../../../../../../script.js';
-import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Character } from './character.js';
+import { Chat } from '../chat/chat-manager.js';
 export class CharacterRegistry {
     constructor() {
+        Object.defineProperty(this, "_characters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_eventTarget", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this._characters = new Set();
         this._eventTarget = new EventTarget();
     }
     initializeFromMetadata() {
-        const chatMetadata = chat_metadata.StatSuite;
-        const trackedChars = chatMetadata?.trackedCharacters || [];
+        const trackedChars = Chat.Metadata.trackedCharacters;
         this._characters.clear();
         trackedChars.forEach((char) => {
             if (char instanceof Character) {
@@ -97,13 +107,8 @@ export class CharacterRegistry {
         this._eventTarget.removeEventListener(type, callback);
     }
     saveToMetadata() {
-        if (!chat_metadata.StatSuite) {
-            chat_metadata.StatSuite = {};
-        }
-        chat_metadata.StatSuite.trackedCharacters = this.listTrackedCharacters();
-        if (saveMetadataDebounced) {
-            saveMetadataDebounced();
-        }
+        Chat.Metadata.trackedCharacters = this.listTrackedCharacters();
+        Chat.Metadata.save();
     }
     clear() {
         this._characters.clear();

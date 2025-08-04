@@ -1,16 +1,76 @@
-/**
- * Data Transfer Object for template rendering data.
- * Contains all the data that can be used in template rendering.
- */
 export class TemplateData {
     constructor(characterStats = {}) {
+        Object.defineProperty(this, "Characters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.Characters = characterStats;
+    }
+    static fromMessageStatEntry(entry) {
+        const data = new TemplateData();
+        data.Characters = Object.fromEntries(Object.entries(entry.Characters ?? {})
+            .filter(([_, v]) => v !== null));
+        return data;
     }
 }
 export class Template {
-    constructor(name, templateString) {
-        this.name = name;
-        this._templateString = templateString;
+    constructor(settings) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "enabled", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: true
+        });
+        Object.defineProperty(this, "injectAtDepth", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: false
+        });
+        Object.defineProperty(this, "injectAtDepthValue", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "variableName", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: ''
+        });
+        Object.defineProperty(this, "_templateString", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_compiledTemplate", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "_isDirty", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.name = settings.name;
+        this._templateString = settings.templateString;
+        this.enabled = settings.enabled ?? false;
+        this.injectAtDepth = settings.injectAtDepth ?? false;
+        this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
+        this.variableName = settings.variableName ?? '';
         this._compiledTemplate = null;
         this._isDirty = true;
     }
@@ -38,6 +98,9 @@ export class Template {
     }
     render(data) {
         this._ensureCompiled();
+        if (!this._compiledTemplate) {
+            throw new Error(`Template "${this.name}" is not compiled.`);
+        }
         try {
             return this._compiledTemplate(data);
         }

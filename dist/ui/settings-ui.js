@@ -1,5 +1,4 @@
-// Handles settings UI binding and popout for StatSuite
-import { ExtensionSettings, updateSetting, tryGetModels } from '../settings.js';
+import { ExtensionSettings, tryGetModels } from '../settings.js';
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
 import { renderCharactersList } from './characters-list.js';
 import { renderStatsList } from './stats-list.js';
@@ -10,38 +9,32 @@ import { dragElement } from '../../../../../../scripts/RossAscends-mods.js';
 import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Characters } from '../characters/characters-registry.js';
-import { StatRegistry } from '../stats/stats-registry.js';
-let _statsRegistryInstance = null;
-/**
- * Binds settings UI elements and character management UI.
- * @param {StatRegistry} statsRegistryInstance
- */
-export function bindSettingsUI(statsRegistryInstance) {
-    _statsRegistryInstance = statsRegistryInstance;
+import { Stats } from '../stats/stats-registry.js';
+export function bindSettingsUI() {
     // Bind Model URL input
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('modelUrl', $(this).prop("value"));
+        ExtensionSettings.modelUrl = $(this).prop("value");
     });
     // Bind Auto Track Authors checkbox
     $("#autoTrackAuthors").prop("checked", ExtensionSettings.autoTrackMessageAuthors);
     $("#autoTrackAuthors").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('autoTrackMessageAuthors', $(this).prop("checked"));
+        ExtensionSettings.autoTrackMessageAuthors = $(this).prop("checked");
     });
     // Bind Disable Auto Request Stats checkbox
     $("#enableAutoRequestStats").prop("checked", ExtensionSettings.enableAutoRequestStats);
     $("#enableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('enableAutoRequestStats', $(this).prop("checked"));
+        ExtensionSettings.enableAutoRequestStats = $(this).prop("checked");
     });
     // Bind Show Stats checkbox
     $("#showStats").prop("checked", ExtensionSettings.showStats);
     $("#showStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('showStats', $(this).prop("checked"));
+        ExtensionSettings.showStats = $(this).prop("checked");
     });
     // Bind Collapse Old Stats checkbox
     $("#collapseOldStats").prop("checked", ExtensionSettings.collapseOldStats);
     $("#collapseOldStats").off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('collapseOldStats', $(this).prop("checked"));
+        ExtensionSettings.collapseOldStats = $(this).prop("checked");
     });
     // Bind retry connection button
     $("#retryConnection").off("click.statSuite").on("click.statSuite", async function () {
@@ -66,8 +59,8 @@ export function bindSettingsUI(statsRegistryInstance) {
                     $(".online_status_text_stat_suite").text(`${ExtensionSettings.modelName}`);
                     modelStatusDiv.empty().append(modelSelect);
                     modelSelect.off("change.statSuite").on("change.statSuite", function () {
-                        const selectedModel = $(this).val();
-                        updateSetting('modelName', selectedModel);
+                        const selectedModel = String($(this).val());
+                        ExtensionSettings.modelName = selectedModel;
                         $(".online_status_text_stat_suite").text(`${selectedModel}`);
                     });
                 }
@@ -82,7 +75,7 @@ export function bindSettingsUI(statsRegistryInstance) {
     $("#offlineMode").prop("checked", ExtensionSettings.offlineMode);
     $("#offlineMode").off("input.statSuite").on("input.statSuite", function () {
         const isOffline = $(this).prop("checked");
-        updateSetting('offlineMode', isOffline);
+        ExtensionSettings.offlineMode = isOffline;
         if (isOffline) {
             $("#modelSettings").hide();
             $("#offlineExplanation").show();
@@ -113,41 +106,25 @@ export function bindSettingsUI(statsRegistryInstance) {
     // Bind Anonymize Clipboard Export checkbox
     $('#anonymizeClipboardExport').prop("checked", ExtensionSettings.anonymizeClipboardExport);
     $('#anonymizeClipboardExport').off("input.statSuite").on("input.statSuite", function () {
-        updateSetting('anonymizeClipboardExport', $(this).prop("checked"));
+        ExtensionSettings.anonymizeClipboardExport = $(this).prop("checked");
     });
     $('#clearMetadata').off("click.statSuite").on("click.statSuite", function () {
         if (confirm("Are you sure you want to clear all metadata? This action cannot be undone.")) {
-            chat_metadata.StatSuite = {};
+            chat_metadata['StatSuite'] = {};
             saveMetadataDebounced();
             location.reload();
         }
     });
-    // Custom stats UI
-    $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function () {
-        const name = String($('#customStatName').val()).trim();
-        const defaultValue = String($('#customStatValue').val()).trim();
-        if (!name)
-            return;
-        const config = { dependencies: [], order: Object.keys(_statsRegistryInstance._stats).length + 10, defaultValue };
-        if (_statsRegistryInstance.addStat(name, config)) {
-            $('#customStatName').val('');
-            $('#customStatValue').val('');
-        }
-    });
     Characters.addEventListener(EVENT_CHARACTER_ADDED, () => renderCharactersList());
     Characters.addEventListener(EVENT_CHARACTER_REMOVED, () => renderCharactersList());
-    _statsRegistryInstance.addEventListener(EVENT_STAT_ADDED, () => renderStatsList(_statsRegistryInstance));
-    _statsRegistryInstance.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList(_statsRegistryInstance));
-    _statsRegistryInstance.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList(_statsRegistryInstance));
-    Templates.onTemplatesChanged(() => renderTemplateSettings());
+    Stats.addEventListener(EVENT_STAT_ADDED, () => renderStatsList());
+    Stats.addEventListener(EVENT_STAT_REMOVED, () => renderStatsList());
+    Stats.addEventListener(EVENT_STATS_BATCH_LOADED, () => renderStatsList());
+    Templates.onTemplatesChanged(() => renderTemplateSettings(true));
     renderCharactersList();
-    renderStatsList(_statsRegistryInstance);
+    renderStatsList();
     renderTemplateSettings();
 }
-/**
- * Handles the popout of the settings drawer into a floating panel.
- * @param {JQuery.TriggeredEvent} e
- */
 export function doPopout(e) {
     const target = e.target;
     const statBarPopoutId = "statBarPopout";
@@ -180,18 +157,19 @@ export function doPopout(e) {
         originalElement.html('<div class="flex-container alignitemscenter justifyCenter wide100p"><small><i>StatSuite settings popped out</i></small></div>');
         $('#movingDivs').append(newElement);
         newElement.find('#statsDrawerContent').addClass('scrollY');
-        bindSettingsUI(_statsRegistryInstance);
+        bindSettingsUI();
         loadMovingUIState();
-        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(window['animation_duration'] || 200);
+        const animationDuration = window.animation_duration || 200;
+        $(statBarPopoutIdJ).css('display', 'flex').fadeIn(animationDuration);
         dragElement(newElement);
         $('#statBarPopoutClose').off('click').on('click', function () {
             $('#statsDrawerContent').removeClass('scrollY');
             const objectivePopoutHTML = $('#statsDrawerContent');
-            $(statBarPopoutIdJ).fadeOut(window['animation_duration'] || 200, () => {
+            $(statBarPopoutIdJ).fadeOut(animationDuration, () => {
                 originalElement.empty();
                 originalElement.html(objectivePopoutHTML.html());
                 $(statBarPopoutIdJ).remove();
-                bindSettingsUI(_statsRegistryInstance);
+                bindSettingsUI();
             });
         });
     }

@@ -1,25 +1,44 @@
-/**
- * Data Transfer Object for template rendering data.
- * Contains all the data that can be used in template rendering.
- */
+import { TemplateSettings } from '../settings-dtos.js';
+
 export class TemplateData {
     Characters: Record<string, import('../stats/stat-block.js').StatsBlock>;
 
     constructor(characterStats: Record<string, import('../stats/stat-block.js').StatsBlock> = {}) {
         this.Characters = characterStats;
     }
+
+    static fromMessageStatEntry(entry: import('../chat/chat-stat-entry.js').ChatStatEntry): TemplateData {
+        const data = new TemplateData();
+        data.Characters = Object.fromEntries(
+            Object.entries(entry.Characters ?? {})
+                .filter(([_, v]) => v !== null)
+        ) as Record<string, import('../stats/stat-block.js').StatsBlock>;
+        return data;
+    }
 }
 
 export class Template {
     name: string;
 
+    enabled: boolean = true;
+
+    injectAtDepth: boolean = false;
+    injectAtDepthValue: number = 0;
+
+    variableName: string = '';
+
     private _templateString: string;
     private _compiledTemplate: Handlebars.TemplateDelegate<TemplateData> | null;
     private _isDirty: boolean;
 
-    constructor(name: string, templateString: string) {
-        this.name = name;
-        this._templateString = templateString;
+    constructor(settings: TemplateSettings) {
+        this.name = settings.name;
+        this._templateString = settings.templateString;
+        this.enabled = settings.enabled ?? false;
+        this.injectAtDepth = settings.injectAtDepth ?? false;
+        this.injectAtDepthValue = settings.injectAtDepthValue ?? 0;
+        this.variableName = settings.variableName ?? '';
+
         this._compiledTemplate = null;
         this._isDirty = true;
     }
@@ -50,6 +69,11 @@ export class Template {
 
     render(data: TemplateData): string {
         this._ensureCompiled();
+
+        if (!this._compiledTemplate) {
+            throw new Error(`Template "${this.name}" is not compiled.`);
+        }
+
         try {            
             return this._compiledTemplate(data);
         } catch (error: any) {

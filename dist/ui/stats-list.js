@@ -1,19 +1,16 @@
 import { onChatChanged } from '../events.js';
 import { Presets } from '../stats/presets-registry.js';
 import { StatPreset, StatsPreset } from '../stats/preset.js';
-/**
- * Renders the list of stats in the UI, including toggles for isActive and isManual.
- * @param {import('../stats/stats-registry.js').StatRegistry} registryInstance - The StatRegistry instance to render.
- * @returns {void}
- */
-export function renderStatsList(registryInstance) {
-    if (!registryInstance) {
+import { StatEntry } from '../stats/stat-entry.js';
+import { Stats } from '../stats/stats-registry.js';
+export function renderStatsList() {
+    if (!Stats) {
         console.error("StatSuite UI Error: StatsRegistry instance not available for renderStatsList.");
         return;
     }
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = registryInstance.getAllStats();
+    const allStats = Stats.getAllStats();
     const $presetContainer = $('<div class="preset-container"></div>');
     const $presetLabel = $('<label>Preset:</label>');
     const $presetSelect = $('<select id="preset-selector" class="text_pole"></select>');
@@ -136,21 +133,21 @@ export function renderStatsList(registryInstance) {
     $table.append($tbody);
     $list.append($table);
     // Attach handler for adding custom stat
-    attachAddCustomStatHandler(registryInstance);
+    attachAddCustomStatHandler();
     $('.toggle-stat-active').off('change.statSuite').on('change.statSuite', function () {
         const key = $(this).data('key');
-        const stat = registryInstance.getStatEntry(key);
+        const stat = Stats.getStatEntry(key);
         if (stat) {
             stat.isActive = $(this).prop('checked');
-            registryInstance.saveToMetadata();
+            Stats.saveToMetadata();
         }
     });
     $('.toggle-stat-manual').off('change.statSuite').on('change.statSuite', function () {
         const key = $(this).data('key');
-        const stat = registryInstance.getStatEntry(key);
+        const stat = Stats.getStatEntry(key);
         if (stat) {
             stat.isManual = $(this).prop('checked');
-            registryInstance.saveToMetadata();
+            Stats.saveToMetadata();
         }
     });
     $('.edit-all-display-names').off('click.statSuite').on('click.statSuite', function () {
@@ -160,14 +157,14 @@ export function renderStatsList(registryInstance) {
                 const container = $(this).closest('.display-name-container');
                 const key = container.data('key');
                 const newVal = String($(this).val()).trim();
-                const stat = registryInstance.getStatEntry(key);
-                if (stat) {
-                    stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
-                }
-                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
+                const stat = Stats.getStatEntry(key);
+                if (!stat)
+                    return;
+                stat.displayName = (newVal == null || newVal === '') ? stat.name : newVal;
+                const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName);
                 $(this).replaceWith(newSpan);
             });
-            registryInstance.saveToMetadata();
+            Stats.saveToMetadata();
             onChatChanged();
             $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit all display names');
             $('.discard-display-name-changes').hide();
@@ -193,7 +190,9 @@ export function renderStatsList(registryInstance) {
         $('.display-name-input').each(function () {
             const container = $(this).closest('.display-name-container');
             const key = container.data('key');
-            const stat = registryInstance.getStatEntry(key);
+            const stat = Stats.getStatEntry(key);
+            if (!stat)
+                return;
             const newSpan = $('<span class="display-name-text"></span>').text(stat.displayName || stat.name);
             $(this).replaceWith(newSpan);
         });
@@ -207,13 +206,13 @@ export function renderStatsList(registryInstance) {
             $('.default-value-input').each(function () {
                 const key = $(this).data('key');
                 const val = String($(this).val()).trim();
-                const stat = registryInstance.getStatEntry(key);
+                const stat = Stats.getStatEntry(key);
                 if (stat)
                     stat.defaultValue = val;
                 const newCell = $('<i></i>').text(val);
                 $(this).replaceWith(newCell);
             });
-            registryInstance.saveToMetadata();
+            Stats.saveToMetadata();
             onChatChanged();
             $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
             $('.discard-default-value-changes-btn').hide();
@@ -221,7 +220,7 @@ export function renderStatsList(registryInstance) {
         else {
             $('.display-name-container').each(function () {
                 const key = $(this).data('key');
-                const stat = registryInstance.getStatEntry(key);
+                const stat = Stats.getStatEntry(key);
                 if (!stat || !stat.isCustom)
                     return;
                 const cell = $(this).closest('tr').find('td').eq(3);
@@ -245,7 +244,7 @@ export function renderStatsList(registryInstance) {
     $('.discard-default-value-changes-btn').off('click.statSuite').on('click.statSuite', function () {
         // Restore cached values
         Object.entries(defaultEditCache).forEach(([key, val]) => {
-            const stat = registryInstance.getStatEntry(key);
+            const stat = Stats.getStatEntry(key);
             if (!stat)
                 return;
             stat.defaultValue = val;
@@ -262,14 +261,14 @@ export function renderStatsList(registryInstance) {
     $('.remove-custom-stat').off('click.statSuite').on('click.statSuite', function () {
         const key = $(this).data('key');
         if (confirm(`Remove custom stat "${key}"? This cannot be undone.`)) {
-            registryInstance.removeStat(key);
+            Stats.removeStat(key);
         }
     });
     $('#preset-selector').off('change.statSuite').on('change.statSuite', function () {
         const selectedPreset = String($(this).val()).trim();
         if (selectedPreset && selectedPreset !== Presets.getActivePreset().name) {
-            registryInstance.applyPreset(selectedPreset);
-            renderStatsList(registryInstance);
+            Stats.applyPreset(selectedPreset);
+            renderStatsList();
         }
     });
     $savePresetBtn.off('click.statSuite').on('click.statSuite', function () {
@@ -282,18 +281,12 @@ export function renderStatsList(registryInstance) {
                 }
             }
             const newPreset = new StatsPreset(trimmedName);
-            registryInstance.getAllStats().forEach(stat => {
-                newPreset.set(new StatPreset({
-                    name: stat.name,
-                    displayName: stat.displayName,
-                    active: stat.isActive,
-                    manual: stat.isManual,
-                    defaultValue: stat.defaultValue
-                }));
+            Stats.getAllStats().forEach(stat => {
+                newPreset.set(new StatPreset(stat.name, stat.displayName, stat.isActive, stat.isManual, stat.defaultValue));
             });
             Presets.addPreset(newPreset);
             Presets.setActivePreset(trimmedName);
-            renderStatsList(registryInstance);
+            renderStatsList();
         }
     });
     $deletePresetBtn.off('click.statSuite').on('click.statSuite', function () {
@@ -304,8 +297,8 @@ export function renderStatsList(registryInstance) {
         }
         if (confirm(`Delete preset "${currentPreset}"? This cannot be undone.`)) {
             Presets.deletePreset(currentPreset);
-            registryInstance.applyPreset('default');
-            renderStatsList(registryInstance);
+            Stats.applyPreset('default');
+            renderStatsList();
         }
     });
     $lockToCharacterBtn.off('click.statSuite').on('click.statSuite', function () {
@@ -320,17 +313,17 @@ export function renderStatsList(registryInstance) {
         if (isCurrentlyLocked) {
             activePreset.characters = activePreset.characters.filter(name => name !== currentCharacter);
             Presets.saveToMetadata();
-            renderStatsList(registryInstance);
+            renderStatsList();
         }
         else {
             Presets.setPresetForCharacter(currentCharacter, activePreset.name);
-            renderStatsList(registryInstance);
+            renderStatsList();
         }
     });
 }
 let isDefaultEditMode = false;
 let defaultEditCache = {};
-function attachAddCustomStatHandler(registryInstance) {
+function attachAddCustomStatHandler() {
     $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function () {
         const name = String($('#customStatName').val()).trim();
         const displayName = String($('#customStatDisplayName').val()).trim();
@@ -340,19 +333,20 @@ function attachAddCustomStatHandler(registryInstance) {
             alert('Please enter a stat name.');
             return;
         }
-        if (registryInstance.getStatEntry(name)) {
+        if (Stats.getStatEntry(name)) {
             alert('A stat with this name already exists.');
             return;
         }
-        registryInstance.addStat(name, {
+        const newEntry = new StatEntry(name, {
             defaultValue: value || 'unspecified',
             displayName: displayName || name,
-            dependencies: [],
-            order: registryInstance.getAllStats().length,
-            isCustom: true,
+            isManual: isManual,
             isActive: true,
-            isManual: isManual
+            isCustom: true,
+            dependencies: [],
+            order: Stats.getAllStats().length
         });
+        Stats.addStat(newEntry);
         $('#customStatName').val('');
         $('#customStatDisplayName').val('');
         $('#customStatValue').val('');

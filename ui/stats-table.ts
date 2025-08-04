@@ -1,20 +1,13 @@
-// Handles rendering and editing of the stats table for messages
-
 import { setMessageStats, getRecentMessages, makeStats } from '../stats/stats-logic.js';
 import { exportSingleMessage } from '../export.js';
 import { chat, saveChatConditional } from '../../../../../../script.js';
 import { ExtensionSettings } from '../settings.js';
 import { Stats } from '../stats/stats-registry.js';
-import { Chat } from '../chat/chat-manager.js';
+import { Chat, IndexedChatMessage } from '../chat/chat-manager.js';
 import { Characters } from '../characters/characters-registry.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 
-/**
- * Sanitize stat input value before saving.
- * @param {string} value
- * @returns {string}
- */
-function sanitizeStatInput(value) {
+function sanitizeStatInput(value: string): string {
     if (typeof value !== 'string') return value;
 
     let sanitized = value.replace(/\t/g, '');
@@ -27,12 +20,7 @@ function sanitizeStatInput(value) {
     return sanitized;
 }
 
-/**
- * Batch regenerate stats for a set of messages.
- * @param {Array<number>} messageIndices - Indices of messages to process.
- * @param {Object} options - { char, stat, greedy, toastMessage }
- */
-async function regenerateStatsBatch(messageIndices, { char = null, stat = null, greedy = true, toastMessage = '', copyOver = false } = {}) {
+async function regenerateStatsBatch(messageIndices: Array<number>, char: string | null = null, stat: string | null = null, greedy: boolean = true, toastMessage: string = '', copyOver: boolean = false) {
     try {
         for (const idx of messageIndices) {
             await makeStats(idx, char, stat, greedy, copyOver);
@@ -46,13 +34,7 @@ async function regenerateStatsBatch(messageIndices, { char = null, stat = null, 
     }
 }
 
-/**
- * Utility to compute message indices for regeneration based on key modifiers.
- * @param {number} startIndex - The starting message index.
- * @param {JQuery.MouseDownEvent} e - The event object (for key modifiers).
- * @returns {{indices: number[], description: string}}
- */
-function getRegenerationIndices(startIndex, e) {
+function getRegenerationIndices(startIndex: number, e: JQuery.MouseDownEvent): { indices: number[]; description: string; } {
     let count = 1;
     let description = '';
     if (e.shiftKey) {
@@ -70,13 +52,7 @@ function getRegenerationIndices(startIndex, e) {
     return { indices, description };
 }
 
-/**
- * Renders the table header row with character columns and regen buttons.
- * @param {string[]} characters
- * @param {number} messageId
- * @returns {JQuery<HTMLElement>}
- */
-function renderStatsTableHeader(characters, messageId) {
+function renderStatsTableHeader(characters: string[], messageId: number): JQuery<HTMLElement> {
     const headerRow = $('<tr></tr>');
     headerRow.append($('<th></th>'));
     characters.forEach(char => {
@@ -97,7 +73,7 @@ function renderStatsTableHeader(characters, messageId) {
                     toastMessage = `Regenerated all stats for ${char} in ${description}`;
                 }
                 console.log(`StatSuite: Regenerating all stats for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
-                await regenerateStatsBatch(indices, { char, greedy, toastMessage, copyOver });
+                await regenerateStatsBatch(indices, char, null, greedy, toastMessage, copyOver);
             });
         th.append(colRegenBtn, $('<span></span>').text(char));
         headerRow.append(th);
@@ -105,15 +81,7 @@ function renderStatsTableHeader(characters, messageId) {
     return headerRow;
 }
 
-/**
- * Renders the table body rows for each stat.
- * @param {string[]} presentStats
- * @param {string[]} characters
- * @param {ChatStatEntry} stats
- * @param {number} messageId
- * @returns {JQuery<HTMLElement>[]}
- */
-function renderStatsTableBody(presentStats, characters, stats, messageId) {
+function renderStatsTableBody(presentStats: string[], characters: string[], stats: ChatStatEntry, messageId: number): JQuery<HTMLElement>[] {
     return presentStats.map(stat => {
         const row = $('<tr></tr>');
         // Row regen button (hidden by default, shown in edit mode)
@@ -133,7 +101,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
                     toastMessage = `Regenerated ${stat} for all characters in ${description}`;
                 }
                 console.log(`StatSuite: Regenerating ${stat} for all characters in ${description}${copyOver ? ' (copyOver)' : ''}`);
-                await regenerateStatsBatch(indices, { stat, greedy, toastMessage, copyOver });
+                await regenerateStatsBatch(indices, null, stat, greedy, toastMessage, copyOver);
             });
         const statLabelTd = $('<td></td>').addClass('stat-label').attr('data-stat-key', stat);
         statLabelTd.append(rowRegenBtn, $('<span></span>').text(Stats.getStatEntry(stat)?.displayName || stat));
@@ -141,7 +109,7 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
         characters.forEach(char => {
             const statValue = (stats.Characters[char] && stats.Characters[char][stat] !== undefined) ? stats.Characters[char][stat] : (Stats.getStatEntry(stat)?.defaultValue || 'unspecified');
             const cell = $('<td></td>')
-                .text(statValue)
+                .text(statValue!)
                 .attr('data-character', char)
                 .attr('data-stat', stat);
             row.append(cell);
@@ -150,14 +118,8 @@ function renderStatsTableBody(presentStats, characters, stats, messageId) {
     });
 }
 
-/**
- * Utility to get all present stats for the given characters and stats object, sorted by stat order.
- * @param {string[]} characters
- * @param {ChatStatEntry} stats
- * @returns {string[]}
- */
-function getPresentStats(characters, stats) {
-    const presentStats = characters.reduce((acc, char) => {
+function getPresentStats(characters: string[], stats: ChatStatEntry): string[] {
+    const presentStats = characters.reduce<string[]>((acc, char) => {
         const charStats = stats.Characters[char];
         if (charStats) {
             Object.keys(charStats).forEach(stat => {
@@ -178,15 +140,7 @@ function getPresentStats(characters, stats) {
     return presentStats;
 }
 
-/**
- * Renders the button bar (regenerate, edit, export, delete) and binds their events.
- * @param {number} messageId
- * @param {JQuery<HTMLElement>} container
- * @param {JQuery<HTMLElement>} table
- * @param {ChatStatEntry} stats
- * @returns {JQuery<HTMLElement>}
- */
-function renderStatsTableControls(messageId, container, table, stats) {
+function renderStatsTableControls(messageId: number, container: JQuery<HTMLElement>, table: JQuery<HTMLElement>, stats: ChatStatEntry): JQuery<HTMLElement> {
     const buttonContainer = $('<div class="stats-button-container"></div>');
     const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages\nRight Click: Copy stats from previous message(s)"></div>');
     const editButton = $('<div class="stats-edit-button fa-solid fa-pencil" title="Edit stats"></div>');
@@ -219,7 +173,7 @@ function renderStatsTableControls(messageId, container, table, stats) {
             toastMessage = `Regenerated stats for ${description}`;
         }
         console.log(`StatSuite: Regenerating stats for ${description}${copyOver ? ' (copyOver)' : ''}`);
-        await regenerateStatsBatch(indices, { greedy, toastMessage, copyOver });
+        await regenerateStatsBatch(indices, null, null, greedy, toastMessage, copyOver);
     });
     // Delete
     deleteButton.on('mousedown', function(e) {
@@ -259,16 +213,7 @@ function renderStatsTableControls(messageId, container, table, stats) {
     return buttonContainer;
 }
 
-/**
- * Handles toggling edit mode and saving edits for the stats table.
- * @param {JQuery<HTMLElement>} container
- * @param {JQuery<HTMLElement>} table
- * @param {ChatStatEntry} stats
- * @param {number} messageId
- * @param {JQuery<HTMLElement>} editButton
- * @param {JQuery<HTMLElement>} discardButton
- */
-function bindStatsTableEditMode(container, table, stats, messageId, editButton, discardButton) {
+function bindStatsTableEditMode(container: JQuery<HTMLElement>, table: JQuery<HTMLElement>, stats: ChatStatEntry, messageId: number, editButton: JQuery<HTMLElement>, discardButton: JQuery<HTMLElement>) {
     const isEditing = container.hasClass('editing');
     if (!isEditing) {
         container.addClass('editing');
@@ -282,28 +227,26 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                     .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.7'); })
                     .on('click', function(e) {
                         e.stopPropagation();
-                        var messagesToDelete = [];
+                        let messagesToDelete: Array<IndexedChatMessage> = [];
                         if (e.shiftKey) {
                             const confirmDelete = confirm(`Are you sure you want to remove ${charName} from ALL messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                                .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.message.is_system);
+                                .filter(({ message }) => !message.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove ${charName} from next 5 messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                                .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.message.is_system)
+                                .filter(({ message }) => !message.is_system)
                                 .slice(0, 5);
                         } else {
-                            messagesToDelete = [{ idx: messageId }];
+                            messagesToDelete = [{ message: Chat.getMessage(messageId)!, index: messageId }];
                         }
-                        for (const { idx } of messagesToDelete) {
-                            const currentStats = Chat.getMessageStats(idx);
+                        for (const { index } of messagesToDelete) {
+                            const currentStats = Chat.getMessageStats(index);
                             if (currentStats) {
                                 delete currentStats.Characters[charName];
-                                setMessageStats(currentStats, idx);
+                                setMessageStats(currentStats, index);
                             }
                         }
                         container.removeClass('editing');
@@ -318,38 +261,39 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
             const td = $(this);
             if (td.find('.remove-stat-btn').length === 0) {
                 const statKey = td.attr('data-stat-key');
+                if (!statKey) return;
+
                 const statName = td.find('span').text().trim();
                 const removeStatBtn = $('<i class="fas fa-times remove-stat-btn" title="Remove stat"></i>')
                     .css({ cursor: 'pointer', marginLeft: '5px', opacity: '0.7' })
                     .hover(function() { $(this).css('opacity', '1'); }, function() { $(this).css('opacity', '0.7'); })
                     .on('click', function(e) {
                         e.stopPropagation();
-                        var messagesToDelete = [];
+                        var messagesToDelete: Array<IndexedChatMessage> = [];
                         if (e.shiftKey) {
                             const confirmDelete = confirm(`Are you sure you want to remove stat '${statName}' from ALL messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                                .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.message.is_system);
+                                .filter(({ message }) => !message.is_system);
                         } else if (e.ctrlKey) {
                             const confirmDelete = confirm(`Remove stat '${statName}' from next 5 messages?`);
                             if (!confirmDelete) return;
                             messagesToDelete = Chat.getStatEligibleMessages().slice(messageId)
-                                .map((msg, idx) => ({ msg, idx: messageId + idx }))
-                                .filter(({ msg }) => !msg.message.is_system)
+                                .map(({ message }, idx) => ({ message, index: messageId + idx }))
+                                .filter(({ message }) => !message.is_system)
                                 .slice(0, 5);
                         } else {
-                            messagesToDelete = [{ idx: messageId }];
+                            messagesToDelete = [{ message: Chat.getMessage(messageId)!, index: messageId }];
                         }
-                        for (const { idx } of messagesToDelete) {
-                            const currentStats = Chat.getMessageStats(idx);
+                        for (const { index } of messagesToDelete) {
+                            const currentStats = Chat.getMessageStats(index);
                             if (currentStats) {
                                 for (const char in currentStats.Characters) {
                                     if (currentStats.Characters[char] && currentStats.Characters[char][statKey] !== undefined) {
                                         delete currentStats.Characters[char][statKey];
                                     }
                                 }
-                                setMessageStats(currentStats, idx);
+                                setMessageStats(currentStats, index);
                             }
                         }
                         container.removeClass('editing');
@@ -380,7 +324,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
                     toastMessage = `Regenerated ${stat} for ${char} in ${description}`;
                 }
                 console.log(`StatSuite: Regenerating ${stat} for ${char} in ${description}${copyOver ? ' (copyOver)' : ''}`);
-                await regenerateStatsBatch(indices, { char, stat, greedy, toastMessage, copyOver });
+                await regenerateStatsBatch(indices, char, stat, greedy, toastMessage, copyOver);
             });
             inputContainer.append(statRegenerateButton, input);
             cell.empty().append(inputContainer);
@@ -393,8 +337,12 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
         table.find('td[data-character]').each(function () {
             const cell = $(this);
             const char = cell.attr('data-character');
+            if (!char) return;
+
             const stat = cell.attr('data-stat');
-            const newValue = sanitizeStatInput(cell.find('input').val());
+            if (!stat) return;
+
+            const newValue = sanitizeStatInput(String(cell.find('input').val()));
             if (newStats.Characters[char][stat] !== newValue) {
                 newStats.Characters[char][stat] = newValue;
                 changed = true;
@@ -411,12 +359,7 @@ function bindStatsTableEditMode(container, table, stats, messageId, editButton, 
     }
 }
 
-/**
- * Renders the stats table and controls for a message.
- * @param {number} messageId
- * @param {ChatStatEntry} stats
- */
-export function displayStats(messageId, stats) {
+export function displayStats(messageId: number, stats: ChatStatEntry) {
     const messageDiv = $(`[mesid="${messageId}"]`);
     if (!messageDiv.length) return;
     messageDiv.find('.stats-table-container').remove();
@@ -436,10 +379,10 @@ export function displayStats(messageId, stats) {
     const container = $('<details class="stats-details"></details>');
     if (messageId === chat.length - 1) {
         container.on('toggle', function () {
-            if ((/** @type {HTMLDetailsElement} */ (this)).open) {
+            if ((this as HTMLDetailsElement).open) {
                 setTimeout(() => {
                     const chatDiv = $("#chat");
-                    chatDiv.scrollTop(chatDiv[0].scrollHeight);
+                    chatDiv.scrollTop(chatDiv[0]?.scrollHeight || 0);
                 }, 0);
             }
         });
@@ -450,7 +393,6 @@ export function displayStats(messageId, stats) {
     const summary = $('<summary class="stats-summary">Stats</summary>');
     container.append(summary);
     parentDiv.append(container);
-    // Use new helpers for header, body, and controls
     const table = $('<table class="stats-table"></table>');
     table.append(renderStatsTableHeader(sortedCharacters, messageId));
     const presentStats = getPresentStats(sortedCharacters, stats);
