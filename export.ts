@@ -124,7 +124,7 @@ export function statsToString(name: string, statsBlock: StatsBlock): string {
 }
 
 export function characterDescription(name: string): string {
-    var description = '';
+    let description = '';
 
     if (Characters.isPlayer(name)) {
         description = substituteParams("{{persona}}");

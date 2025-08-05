@@ -64,7 +64,7 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
     const sourcePreviousStats = context.previousStats || new ChatStatEntry({}, {});
     const activeStats = Stats.getActiveStats();
 
-    Characters.listActiveCharacterNames().forEach(char => {
+    Characters.listTrackedCharacterNames().forEach(char => {
         if (!sourcePreviousStats.Characters.hasOwnProperty(char)) {
             finalPreviousStats.Characters[char] = null;
         } else {
@@ -176,7 +176,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
         displayStats(messages.newIndex, new ChatStatEntry({'...': null}, {}));
     }
 
-    var activeStats = Stats.getActiveStats();
+    let activeStats = Stats.getActiveStats();
 
     if (ExtensionSettings.offlineMode) {
         activeStats = activeStats.filter(stat => stat.isManual);

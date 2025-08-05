@@ -51,7 +51,7 @@ export function onChatChanged() {
         Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
     }
 }
-var messageLock = [];
+const messageLock = [];
 async function processMessageForStats(message_id) {
     if (!Chat.isValidMessageForStats(message_id))
         return;
@@ -108,8 +108,8 @@ function onSwipeChanged(messageId) {
         Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
     }
 }
-var latestMessageIndex = -1;
-var generating = false;
+let latestMessageIndex = -1;
+let generating = false;
 export function initializeEventListeners() {
     if (!eventSource) {
         console.error("StatSuite Events Error: eventSource is not available!");

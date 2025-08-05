@@ -57,7 +57,7 @@ export function onChatChanged() {
     }
 }
 
-var messageLock: boolean[] = [];
+const messageLock: boolean[] = [];
 
 async function processMessageForStats(message_id: number) {
     if (!Chat.isValidMessageForStats(message_id)) return;
@@ -122,8 +122,8 @@ function onSwipeChanged(messageId: number) {
     }
 }
 
-var latestMessageIndex = -1;
-var generating = false;
+let latestMessageIndex = -1;
+let generating = false;
 
 export function initializeEventListeners() {
     if (!eventSource) {

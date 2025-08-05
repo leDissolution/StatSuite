@@ -12,8 +12,8 @@ export async function injectStats(chat, _ctx, abort, type) {
     if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;
     }
-    var messageId = chat.length - 1;
-    while (messageId >= 0 && Chat.getMessage(messageId)?.is_system) {
+    let messageId = chat.length - 1;
+    while (messageId >= 0 && !Chat.isValidMessageForStats(messageId)) {
         messageId--;
     }
     if (messageId > -1) {

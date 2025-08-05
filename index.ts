@@ -11,13 +11,13 @@ export const extensionFolderPath = `scripts/extensions/third-party/${extensionNa
 // @ts-ignore
 window.saveMetadataDebounced = saveMetadataDebounced;
 
-export async function injectStats(chat: any[], _ctx: any, abort: any, type: string) {
+export async function injectStats(chat: ChatMessage[], _ctx: any, abort: any, type: string) {
     if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;
     }
 
-    var messageId = chat.length - 1;
-    while (messageId >= 0 && Chat.getMessage(messageId)?.is_system) {
+    let messageId = chat.length - 1;
+    while (messageId >= 0 && !Chat.isValidMessageForStats(messageId)) {
         messageId--;
     }
 

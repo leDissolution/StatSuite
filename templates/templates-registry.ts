@@ -1,7 +1,6 @@
 import { ExtensionSettings } from '../settings.js';
 import { Template, TemplateData } from './template.js';
 import { saveSettingsDebounced } from '../../../../../../script.js';
-import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 
 const defaultTemplateSettings = {
     name: 'Default',

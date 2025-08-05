@@ -197,7 +197,7 @@ function attachTemplateHandlers() {
     $('#template-container').off('.templateSettings');
     
     $('#new-template-btn').off('click.templateSettings').on('click.templateSettings', function() {
-        var newTemplateName = 'New Template';
+        let newTemplateName = 'New Template';
 
         if (Templates.getTemplate(newTemplateName)) {
             let counter = 1;
