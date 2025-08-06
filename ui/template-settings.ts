@@ -3,6 +3,7 @@ import { Characters } from "../characters/characters-registry.js";
 import { Template, TemplateData } from "../templates/template.js";
 import { Stats } from "../stats/stats-registry.js";
 import { StatsBlock } from "../stats/stat-block.js";
+import { ChatStatEntry } from "../chat/chat-stat-entry.js";
 
 function getScrollContainer(): HTMLElement {
     return $('#rm_extensions_block')[0] || document.documentElement;
@@ -359,7 +360,7 @@ function attachTemplateHandlers() {
 function getSampleStatsData(): TemplateData {
     const allStats = Stats.getAllStats();
     const allCharacters = Characters.listActiveCharacterNames();
-    const sampleCharacterStats: Record<string, StatsBlock> = {};
+    const sampleCharacterStats: ChatStatEntry = new ChatStatEntry();
     
     if (allCharacters.length === 0) {
         allCharacters.push('Sample Character');
@@ -370,10 +371,10 @@ function getSampleStatsData(): TemplateData {
         allStats.forEach(stat => {
             statsBlock[stat.name] = stat.defaultValue;
         });
-        sampleCharacterStats[character] = statsBlock;
+        sampleCharacterStats.Characters[character] = statsBlock;
     });
 
-    return new TemplateData(sampleCharacterStats);
+    return TemplateData.fromMessageStatEntry(sampleCharacterStats);
 }
 
 function escapeHtml(text: string): string {

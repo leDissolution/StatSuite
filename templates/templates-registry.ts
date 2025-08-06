@@ -6,7 +6,7 @@ const defaultTemplateSettings = {
     name: 'Default',
     templateString: `<metadata>
 {{#each Characters}}
-    <stats character="{{{@key}}}" {{#each this}}{{@key}}="{{{this}}}" {{/each}}/>
+    <stats character="{{{@key}}}" {{#each this.Stats}}{{@key}}="{{{this}}}" {{/each}}/>
 {{/each}}
 </metadata>`,
     enabled: true,
@@ -22,6 +22,10 @@ export class TemplateRegistry {
     constructor() {
         this._templates = [];
         this._eventTarget = new EventTarget();
+
+        Handlebars.registerHelper('ifEquals', (a: any, b: any, options: Handlebars.HelperOptions) => {
+            return a == b ? options.fn(this) : options.inverse(this);
+        });
     }
 
     initializeFromMetadata() {
@@ -76,8 +80,10 @@ export class TemplateRegistry {
         const templateToRemove = this._templates.find(t => t.name === name);
         if (!templateToRemove) return;
 
-        const ctx = SillyTavern.getContext();
-        ctx.variables.local.set(templateToRemove.variableName, '');
+        if (templateToRemove.variableName) {
+            const ctx = SillyTavern.getContext();
+            ctx.variables.local.set(templateToRemove.variableName, '');
+        }
 
         this._templates = this._templates.filter(t => t.name !== name);
         this.saveToMetadata();

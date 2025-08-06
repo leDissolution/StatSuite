@@ -1,9 +1,29 @@
 import { TemplateSettings } from '../settings-dtos.js';
+import { Characters } from '../characters/characters-registry.js';
+import { substituteParams } from '../../../../../../script.js';
+
+export class TemplateCharacterDto {
+    name: string;
+    room: string = '';
+    Stats: import('../stats/stat-block.js').StatsBlock;
+    isPlayer: boolean;
+
+    constructor(name: string, isPlayer: boolean, stats: import('../stats/stat-block.js').StatsBlock) {
+        this.name = name;
+        this.Stats = stats;
+        this.isPlayer = isPlayer;
+
+        if (this.Stats) {
+            let location = this.Stats['location'] || '';
+            this.room = location.split(';')[0] || '';
+        }
+    }
+}
 
 export class TemplateData {
-    Characters: Record<string, import('../stats/stat-block.js').StatsBlock>;
+    Characters: Record<string, TemplateCharacterDto>;
 
-    constructor(characterStats: Record<string, import('../stats/stat-block.js').StatsBlock> = {}) {
+    constructor(characterStats: Record<string, TemplateCharacterDto> = {}) {
         this.Characters = characterStats;
     }
 
@@ -12,7 +32,14 @@ export class TemplateData {
         data.Characters = Object.fromEntries(
             Object.entries(entry.Characters ?? {})
                 .filter(([_, v]) => v !== null)
-        ) as Record<string, import('../stats/stat-block.js').StatsBlock>;
+                .map(([name, stats]) => {
+                    const character = Characters.getCharacter(name);
+                    if (character) {
+                        return [name, new TemplateCharacterDto(name, character.isPlayer, stats!)];
+                    }
+                    return [name, new TemplateCharacterDto(name, false, stats!)];
+                })
+        ) as Record<string, TemplateCharacterDto>;
         return data;
     }
 }
@@ -58,7 +85,16 @@ export class Template {
     private _ensureCompiled() {
         if (this._isDirty || !this._compiledTemplate) {
             try {
-                this._compiledTemplate = Handlebars.compile(this._templateString);
+                const processedValue = this._templateString.replace(/\{\$(\w+)\}/g, (match, varName) => {
+                    try {
+                        return substituteParams(`{{${varName}}}`);
+                    } catch (error) {
+                        console.warn(`Failed to substitute parameter ${varName}:`, error);
+                        return match;
+                    }
+                });
+
+                this._compiledTemplate = Handlebars.compile(processedValue);
                 this._isDirty = false;
             } catch (error: any) {
                 console.error(`Template "${this.name}" compilation failed:`, error);
