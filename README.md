@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/alpha-0.2-orange)
+![Version](https://img.shields.io/badge/alpha-0.4-orange)
 
 # Stat Tracker (Open Alpha)
 
@@ -46,6 +46,19 @@ List of stats to track. You can disable ones you find not very useful for the pl
 "manual" checkbox means that this field will not be requested from the model, but just copied over from previous message. You can store whatever you want that way - think of it as per-character author note @depth 1.
 
 Mood is turned off by default. I can see it potentially being useful, but it is extremely unstable as of now, I'm very bad at labeling the mood. I might or might not just remove it altogether to not confuse the model during training, feedback is welcome.
+
+##### Presets
+You can create presets of stats to quickly switch between them. It is useful for different characters having different stats, or if you want to track some stats only in certain scenes (e.g., exposure in ERP, but not in regular chat). Preset stores:
+- Whether the stat is enabled or not
+- Whether the stat is manual or not
+- Display name of the stat
+- Default value of the custom stats (default values for the built-in stats are set in the model, and cannot be changed)
+
+To make a preset, click the "Save As" button next to the preset selector, and give it a name. It will copy the current stats list, and you can then modify it as you like. You can also lock the preset to the current character, and it will be selected by default for all the new chats with that character.
+
+### Templates
+Templates are used to format the stats into a string that will be injected into the context.
+Fiddling with them requires some Handlebars knowledge and is totally optional - the default template will work just fine for most cases. But if you feel like power user, heres a detailed readme: [Readme/Templates.md](Readme/Templates.md).
 
 ### Usage
 
