@@ -1,5 +1,5 @@
 import { eventSource, event_types, chat } from '../../../../../script.js';
-import { ExtensionSettings } from './settings.js';
+import { ExtensionSettings, shouldRequestStats } from './settings.js';
 import { makeStats } from './stats/stats-logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
@@ -10,6 +10,7 @@ import { Presets } from './stats/presets-registry.js';
 import { Templates } from './templates/templates-registry.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
 import { TemplateData } from './templates/template.js';
+import { initializeUI } from './ui/init.js';
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
 export const EVENT_STAT_ADDED = 'stat-added';
@@ -24,7 +25,8 @@ export function onChatChanged() {
         console.error("StatSuite Events Error: CharacterRegistry instance not available for onChatChanged.");
         return;
     }
-    Presets.loadFromMetadata();
+    Chat.initializeFromMetadata();
+    Presets.initializeFromMetadata();
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
     Templates.initializeFromMetadata();
@@ -50,6 +52,7 @@ export function onChatChanged() {
     if (stats) {
         Templates.renderTemplatesIntoVariables(TemplateData.fromMessageStatEntry(stats));
     }
+    initializeUI();
 }
 const messageLock = [];
 async function processMessageForStats(message_id) {
@@ -69,7 +72,7 @@ async function processMessageForStats(message_id) {
                 Characters.addCharacter(message.name, message.is_user);
             }
         }
-        if (ExtensionSettings.enableAutoRequestStats === true) {
+        if (shouldRequestStats(Chat.currentCharacter)) {
             await makeStats(message_id);
         }
         addPasteButton(message_id);

@@ -1,7 +1,6 @@
 import { saveMetadataDebounced } from "../../../../extensions.js";
 import { initializeSettings } from './settings.js';
 import { injectStatsFromMessage } from './stats/stats-logic.js';
-import { initializeUI } from './ui/init.js';
 import { initializeEventListeners, onChatChanged } from './events.js';
 import { Chat } from './chat/chat-manager.js';
 export const extensionName = "StatSuite";
@@ -31,7 +30,6 @@ jQuery(async () => {
         console.error("StatSuite Error: Failed to load settings.html", error);
     }
     await initializeSettings();
-    initializeUI();
     initializeEventListeners();
     onChatChanged();
     console.log("StatSuite: Extension initialized.");

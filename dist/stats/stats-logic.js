@@ -1,5 +1,5 @@
 import { extension_prompt_types } from '../../../../../../script.js';
-import { ExtensionSettings } from '../settings.js';
+import { ExtensionSettings, shouldRequestStats } from '../settings.js';
 import { generateStat, checkApiConnection, shouldSkipApiCalls, resetConnectionFailure } from '../api.js';
 import { displayStats } from '../ui/stats-table.js';
 import { Characters } from '../characters/characters-registry.js';
@@ -122,7 +122,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         console.error("StatSuite Error: CharacterRegistry not initialized in stats_logic.");
         return;
     }
-    if (!ExtensionSettings.enableAutoRequestStats && specificMessageIndex === null && specificChar === null && specificStat === null) {
+    if (!shouldRequestStats(Chat.currentCharacter) && specificMessageIndex === null && specificChar === null && specificStat === null) {
         console.log("StatSuite: Automatic stat generation is disabled.");
         return;
     }
@@ -245,7 +245,7 @@ export async function injectStatsFromMessage(messageId) {
     ctx.setExtensionPrompt("StatSuite", "", extension_prompt_types.IN_CHAT, 0);
     const stats = Chat.getMessageStats(messageId);
     if (!stats || Object.keys(stats).length === 0) {
-        if (ExtensionSettings.enableAutoRequestStats) {
+        if (shouldRequestStats(Chat.currentCharacter)) {
             await makeStats(messageId);
         }
     }

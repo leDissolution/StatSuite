@@ -9,6 +9,7 @@ export class SuiteSettings {
     modelName: string;
     autoTrackMessageAuthors: boolean;
     enableAutoRequestStats: boolean;
+    alwaysDisabledCharacters: string[];
     showStats: boolean;
     collapseOldStats: boolean;
     anonymizeClipboardExport: boolean;
@@ -26,6 +27,7 @@ export class SuiteSettings {
         this.anonymizeClipboardExport = true;
         this.stats = { stats: {}, presets: {} };
         this.templates = [];
+        this.alwaysDisabledCharacters = [];
     }
 }
 
@@ -33,6 +35,10 @@ const extensionName = "StatSuite";
 
 export const ExtensionSettings: SuiteSettings = extension_settings[extensionName] ??= new SuiteSettings();
 const defaultSettings = new SuiteSettings();
+
+export function shouldRequestStats(charName: string | null): boolean {
+    return ExtensionSettings.enableAutoRequestStats && !ExtensionSettings.alwaysDisabledCharacters.includes(charName ?? '');
+}
 
 export async function tryGetModels(): Promise<Array<any>> {
     try {

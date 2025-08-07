@@ -1,3 +1,4 @@
+import { initial } from 'lodash';
 import { chat, chat_metadata, saveChatConditional } from '../../../../../../script.js';
 import { StatsBlock } from '../stats/stat-block.js';
 import { ChatMetadata } from './chat-metadata.js';
@@ -22,7 +23,21 @@ export type IndexedChatMessage = {
 };
 
 export class ChatManager {
+    private _currentCharacter: string | null = null;
+
     constructor() {
+        this.initializeFromMetadata();
+    }
+
+    initializeFromMetadata(): void {
+        const ctx = SillyTavern.getContext();
+        if (ctx) {
+            this._currentCharacter = ctx.characters[ctx.characterId]?.name ?? null;
+        }
+    }
+
+    get currentCharacter(): string | null {
+        return this._currentCharacter;
     }
 
     getCurrentChat(): Array<ChatMessage> {

@@ -13,7 +13,7 @@ export class PresetRegistry {
         this.selectedPreset = 'default';
     }
 
-    loadFromMetadata(): void {
+    initializeFromMetadata(): void {
         this.presets = {};
         
         const presetsData = ExtensionSettings.stats?.presets;

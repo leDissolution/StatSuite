@@ -33,6 +33,12 @@ export class SuiteSettings {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "alwaysDisabledCharacters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.defineProperty(this, "showStats", {
             enumerable: true,
             configurable: true,
@@ -73,11 +79,15 @@ export class SuiteSettings {
         this.anonymizeClipboardExport = true;
         this.stats = { stats: {}, presets: {} };
         this.templates = [];
+        this.alwaysDisabledCharacters = [];
     }
 }
 const extensionName = "StatSuite";
 export const ExtensionSettings = extension_settings[extensionName] ?? (extension_settings[extensionName] = new SuiteSettings());
 const defaultSettings = new SuiteSettings();
+export function shouldRequestStats(charName) {
+    return ExtensionSettings.enableAutoRequestStats && !ExtensionSettings.alwaysDisabledCharacters.includes(charName ?? '');
+}
 export async function tryGetModels() {
     try {
         const models = await fetchAvailableModels();

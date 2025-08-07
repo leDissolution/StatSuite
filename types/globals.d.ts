@@ -21,6 +21,10 @@ declare global {
 
     declare const Handlebars: typeof Hb;
 
+    declare const toastr: {
+        error(message: string): void;
+    };
+
     interface Window {
         animation_duration?: number;
     }

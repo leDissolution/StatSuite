@@ -10,6 +10,7 @@ import { chat_metadata } from '../../../../../../script.js';
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Characters } from '../characters/characters-registry.js';
 import { Stats } from '../stats/stats-registry.js';
+import { Chat } from '../chat/chat-manager.js';
 
 export function bindSettingsUI() {
     // Bind Model URL input
@@ -27,6 +28,15 @@ export function bindSettingsUI() {
     $("#enableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.enableAutoRequestStats = $(this).prop("checked");
     });
+    $("#alwaysDisableForChar").prop("checked", ExtensionSettings.alwaysDisabledCharacters.includes(Chat.currentCharacter || ''));
+    $("#alwaysDisableForChar").off("input.statSuite").on("input.statSuite", function () {
+        if ($(this).prop("checked")) {
+            ExtensionSettings.alwaysDisabledCharacters.push(Chat.currentCharacter || '');
+        } else {
+            ExtensionSettings.alwaysDisabledCharacters = ExtensionSettings.alwaysDisabledCharacters.filter(char => char !== (Chat.currentCharacter || ''));
+        }
+    });
+    $("#alwaysDisableForCharTooltip").prop("title", "Following characters will not automatically request stats, regardless the main toggle: " + ExtensionSettings.alwaysDisabledCharacters.join(', '));
     // Bind Show Stats checkbox
     $("#showStats").prop("checked", ExtensionSettings.showStats);
     $("#showStats").off("input.statSuite").on("input.statSuite", function () {

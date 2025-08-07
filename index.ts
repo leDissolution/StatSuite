@@ -38,7 +38,6 @@ jQuery(async () => {
     }
 
     await initializeSettings();
-    initializeUI();
     initializeEventListeners();
 
     onChatChanged();

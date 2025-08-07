@@ -3,6 +3,22 @@ import { ChatMetadata } from './chat-metadata.js';
 import { ChatStatEntry } from './chat-stat-entry.js';
 export class ChatManager {
     constructor() {
+        Object.defineProperty(this, "_currentCharacter", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: null
+        });
+        this.initializeFromMetadata();
+    }
+    initializeFromMetadata() {
+        const ctx = SillyTavern.getContext();
+        if (ctx) {
+            this._currentCharacter = ctx.characters[ctx.characterId]?.name ?? null;
+        }
+    }
+    get currentCharacter() {
+        return this._currentCharacter;
     }
     getCurrentChat() {
         return chat || [];
