@@ -22,15 +22,12 @@ export async function exportChat() {
             previousName = currentMessage.name;
             previousMes = '';
             previousStats = new ChatStatEntry();
-            Object.keys(currentStats.Characters).forEach(charName => {
-                previousStats.Characters[charName] = null;
-            });
         }
         else {
             const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = Chat.getMessageStats(previousIndex);
+            previousStats = Chat.getMessageStats(previousIndex) ?? new ChatStatEntry();
         }
         // Add missing characters from currentStats to previousStats with null value
         for (const charName of Object.keys(currentStats.Characters)) {

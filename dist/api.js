@@ -96,7 +96,7 @@ export async function generateStat(stat, char, messages, existingStats, greedy =
             method: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            timeout: 15000, // 15 second timeout to fail faster
+            timeout: 60000,
             data: JSON.stringify({
                 model: ExtensionSettings.modelName,
                 prompt: statPrompt,
