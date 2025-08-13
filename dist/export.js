@@ -7,6 +7,7 @@ import { Stats } from './stats/stats-registry.js';
 import { substituteParams } from '../../../../../script.js';
 import { Chat } from './chat/chat-manager.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
+import { StatScope } from './stats/stat-entry.js';
 export async function exportChat() {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
@@ -115,7 +116,7 @@ export function statsToStringFull(stats) {
         .map(([charName, stats]) => {
         const hadNoStats = !stats;
         const block = hadNoStats ? new StatsBlock() : stats;
-        for (const statEntry of Stats.getActiveStats()) {
+        for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
             if (block[statEntry.name] === undefined) {
                 block[statEntry.name] = statEntry.defaultValue;
             }

@@ -15,6 +15,7 @@ export class SuiteSettings {
     anonymizeClipboardExport: boolean;
     stats: StatsSettings;
     templates: TemplateSettings[];
+    enableScenes: boolean;
 
     constructor() {
         this.offlineMode = false;
@@ -28,6 +29,7 @@ export class SuiteSettings {
         this.stats = { stats: {}, presets: {} };
         this.templates = [];
         this.alwaysDisabledCharacters = [];
+        this.enableScenes = false;
     }
 }
 
