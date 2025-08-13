@@ -4,6 +4,7 @@ import { Template, TemplateData } from "../templates/template.js";
 import { Stats } from "../stats/stats-registry.js";
 import { StatsBlock } from "../stats/stat-block.js";
 import { ChatStatEntry } from "../chat/chat-stat-entry.js";
+import { StatScope } from "../stats/stat-entry.js";
 function getScrollContainer() {
     return $('#rm_extensions_block')[0] || document.documentElement;
 }
@@ -290,7 +291,7 @@ function attachTemplateHandlers() {
     });
 }
 function getSampleStatsData() {
-    const allStats = Stats.getAllStats();
+    const allStats = Stats.getAllStats(StatScope.Character);
     const allCharacters = Characters.listActiveCharacterNames();
     const sampleCharacterStats = new ChatStatEntry();
     if (allCharacters.length === 0) {

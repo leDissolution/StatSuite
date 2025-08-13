@@ -4,6 +4,7 @@ import { makeStats } from './stats/stats-logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
 import { Characters } from './characters/characters-registry.js';
+import { Scenes } from './scenes/scene-registry.js';
 import { Stats } from './stats/stats-registry.js';
 import { Chat } from './chat/chat-manager.js';
 import { Presets } from './stats/presets-registry.js';
@@ -14,6 +15,8 @@ import { initializeUI } from './ui/init.js';
 
 export const EVENT_CHARACTER_ADDED = 'character-added';
 export const EVENT_CHARACTER_REMOVED = 'character-removed';
+export const EVENT_SCENE_ADDED = 'scene-added';
+export const EVENT_SCENE_REMOVED = 'scene-removed';
 export const EVENT_STAT_ADDED = 'stat-added';
 export const EVENT_STAT_REMOVED = 'stat-removed';
 export const EVENT_STATS_BATCH_LOADED = 'stats-batch-loaded';
@@ -32,6 +35,7 @@ export function onChatChanged() {
 
     Chat.initializeFromMetadata();
     Presets.initializeFromMetadata();
+    Scenes.initializeFromMetadata();
     Characters.initializeFromMetadata();
     Stats.initializeFromMetadata();
     Templates.initializeFromMetadata();

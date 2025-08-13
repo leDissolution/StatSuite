@@ -1,7 +1,7 @@
 import { onChatChanged } from '../events.js';
 import { Presets } from '../stats/presets-registry.js';
 import { StatPreset, StatsPreset } from '../stats/preset.js';
-import { StatEntry } from '../stats/stat-entry.js';
+import { StatEntry, StatScope } from '../stats/stat-entry.js';
 import { Stats } from '../stats/stats-registry.js';
 export function renderStatsList() {
     if (!Stats) {
@@ -10,7 +10,7 @@ export function renderStatsList() {
     }
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = Stats.getAllStats();
+    const allStats = Stats.getAllStats(StatScope.Character);
     const $presetContainer = $('<div class="preset-container"></div>');
     const $presetLabel = $('<label>Preset:</label>');
     const $presetSelect = $('<select id="preset-selector" class="text_pole"></select>');
@@ -281,7 +281,7 @@ export function renderStatsList() {
                 }
             }
             const newPreset = new StatsPreset(trimmedName);
-            Stats.getAllStats().forEach(stat => {
+            Stats.getAllStats(null).forEach(stat => {
                 newPreset.set(new StatPreset(stat.name, stat.displayName, stat.isActive, stat.isManual, stat.defaultValue));
             });
             Presets.addPreset(newPreset);
@@ -344,7 +344,8 @@ function attachAddCustomStatHandler() {
             isActive: true,
             isCustom: true,
             dependencies: [],
-            order: Stats.getAllStats().length
+            order: Stats.getAllStats(null).length,
+            scope: StatScope.Character
         });
         Stats.addStat(newEntry);
         $('#customStatName').val('');

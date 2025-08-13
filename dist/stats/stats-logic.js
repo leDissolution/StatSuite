@@ -9,6 +9,7 @@ import { Chat } from '../chat/chat-manager.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 import { Templates } from '../templates/templates-registry.js';
 import { TemplateData } from '../templates/template.js';
+import { StatScope } from './stat-entry.js';
 export function parseSingleStatsString(statsString) {
     const result = {};
     const charMatch = statsString.match(/character="([^"]+)"/);
@@ -57,7 +58,6 @@ export function getRecentMessages(specificMessageIndex = null) {
     }
     const finalPreviousStats = new ChatStatEntry({}, {});
     const sourcePreviousStats = context.previousStats || new ChatStatEntry({}, {});
-    const activeStats = Stats.getActiveStats();
     Characters.listTrackedCharacterNames().forEach(char => {
         if (!sourcePreviousStats.Characters.hasOwnProperty(char)) {
             finalPreviousStats.Characters[char] = null;
@@ -65,7 +65,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         else {
             const charSourceStats = sourcePreviousStats.Characters[char] || {};
             const statsBlock = new StatsBlock();
-            activeStats.forEach(statEntry => {
+            Stats.getActiveStats(StatScope.Character).forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
             finalPreviousStats.Characters[char] = new StatsBlock(statsBlock);
@@ -156,9 +156,9 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     if (!messages.newStats) {
         displayStats(messages.newIndex, new ChatStatEntry({ '...': null }, {}));
     }
-    let activeStats = Stats.getActiveStats();
+    let activeCharacterStats = Stats.getActiveStats(StatScope.Character);
     if (ExtensionSettings.offlineMode) {
-        activeStats = activeStats.filter(stat => stat.isManual);
+        activeCharacterStats = activeCharacterStats.filter(stat => stat.isManual);
     }
     charsToProcess.forEach(charName => {
         let charStats = resultingStats.Characters[charName];
@@ -168,7 +168,7 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
         else if (!(charStats instanceof StatsBlock)) {
             charStats = new StatsBlock(charStats);
         }
-        activeStats.forEach(statEntry => {
+        activeCharacterStats.forEach(statEntry => {
             if (!charStats.hasOwnProperty(statEntry.name)) {
                 charStats[statEntry.name] = statEntry.defaultValue;
             }
@@ -182,8 +182,8 @@ export async function makeStats(specificMessageIndex = null, specificChar = null
     });
     let statsActuallyGenerated = false;
     if (!ExtensionSettings.offlineMode) {
-        const statsToGenerate = Array.isArray(activeStats)
-            ? activeStats.filter(s => !s.isManual).map(s => s.name)
+        const statsToGenerate = Array.isArray(activeCharacterStats)
+            ? activeCharacterStats.filter(s => !s.isManual).map(s => s.name)
             : [];
         for (const char of charsToProcess) {
             if (shouldSkipApiCalls()) {

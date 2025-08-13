@@ -1,7 +1,7 @@
 import { onChatChanged } from '../events.js';
 import { Presets } from '../stats/presets-registry.js';
 import { StatPreset, StatsPreset } from '../stats/preset.js';
-import { StatEntry } from '../stats/stat-entry.js';
+import { StatEntry, StatScope } from '../stats/stat-entry.js';
 import { Stats } from '../stats/stats-registry.js';
 
 export function renderStatsList(): void {
@@ -12,7 +12,7 @@ export function renderStatsList(): void {
 
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = Stats.getAllStats();
+    const allStats = Stats.getAllStats(StatScope.Character);
 
     const $presetContainer = $('<div class="preset-container"></div>');
     const $presetLabel = $('<label>Preset:</label>');
@@ -308,7 +308,7 @@ export function renderStatsList(): void {
             }
             
             const newPreset = new StatsPreset(trimmedName);
-            Stats.getAllStats().forEach(stat => {
+            Stats.getAllStats(null).forEach(stat => {
                 newPreset.set(new StatPreset(
                     stat.name,
                     stat.displayName,
@@ -387,7 +387,8 @@ function attachAddCustomStatHandler() {
             isActive: true,
             isCustom: true,
             dependencies: [],
-            order: Stats.getAllStats().length
+            order: Stats.getAllStats(null).length,
+            scope: StatScope.Character
         });
 
         Stats.addStat(newEntry);

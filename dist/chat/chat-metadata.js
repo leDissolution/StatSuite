@@ -1,5 +1,6 @@
 import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Character } from '../characters/character.js';
+import { Scene } from '../scenes/scene.js';
 export class ChatMetadata {
     constructor() {
         Object.defineProperty(this, "selectedPreset", {
@@ -9,6 +10,12 @@ export class ChatMetadata {
             value: null
         });
         Object.defineProperty(this, "trackedCharacters", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: []
+        });
+        Object.defineProperty(this, "trackedScenes", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -36,6 +43,20 @@ export class ChatMetadata {
                 }
                 return null;
             }).filter((char) => char !== null);
+        }
+        if (Array.isArray(data.trackedScenes)) {
+            metadata.trackedScenes = data.trackedScenes.map((scene) => {
+                if (scene instanceof Scene) {
+                    return scene;
+                }
+                else if (typeof scene === 'object' && scene !== null && 'name' in scene) {
+                    return new Scene(scene.name, scene.isActive);
+                }
+                else if (typeof scene === 'string') {
+                    return new Scene(scene);
+                }
+                return null;
+            }).filter((scene) => scene !== null);
         }
         return metadata;
     }
