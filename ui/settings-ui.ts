@@ -121,6 +121,11 @@ export function bindSettingsUI() {
         ExtensionSettings.anonymizeClipboardExport = $(this).prop("checked");
     });
 
+    $('#enableScenes').prop("checked", ExtensionSettings.enableScenes);
+    $('#enableScenes').off("input.statSuite").on("input.statSuite", function () {
+        ExtensionSettings.enableScenes = $(this).prop("checked");
+    });
+
     $('#clearMetadata').off("click.statSuite").on("click.statSuite", function () {
         if (confirm("Are you sure you want to clear all metadata? This action cannot be undone.")) {
             chat_metadata['StatSuite'] = {};

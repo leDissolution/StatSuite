@@ -69,6 +69,12 @@ export class SuiteSettings {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "enableScenes", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.offlineMode = false;
         this.modelUrl = '';
         this.modelName = '';
@@ -80,6 +86,7 @@ export class SuiteSettings {
         this.stats = { stats: {}, presets: {} };
         this.templates = [];
         this.alwaysDisabledCharacters = [];
+        this.enableScenes = false;
     }
 }
 const extensionName = "StatSuite";

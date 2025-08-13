@@ -4,15 +4,18 @@ import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { ExtensionSettings } from '../settings.js';
 import { Presets } from './presets-registry.js';
 import { StatPreset } from './preset.js';
-import { StatEntry } from './stat-entry.js';
+import { StatEntry, StatScope } from './stat-entry.js';
 const DEFAULT_STATS = [
-    new StatEntry('pose', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true }),
-    new StatEntry('location', { dependencies: ['pose'], order: 1, defaultValue: 'unspecified', isActive: true }),
-    new StatEntry('outfit', { dependencies: [], order: 2, defaultValue: 'unspecified', isActive: true }),
-    new StatEntry('exposure', { dependencies: ['outfit'], order: 3, defaultValue: 'none', isActive: true }),
-    new StatEntry('accessories', { dependencies: ['outfit'], order: 4, defaultValue: 'unspecified', isActive: true }),
-    new StatEntry('bodyState', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false }),
-    new StatEntry('mood', { dependencies: [], order: 6, defaultValue: 'neutral', isActive: false }),
+    // Default character stats
+    new StatEntry('pose', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
+    new StatEntry('location', { dependencies: ['pose'], order: 1, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
+    new StatEntry('outfit', { dependencies: [], order: 2, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
+    new StatEntry('exposure', { dependencies: ['outfit'], order: 3, defaultValue: 'none', isActive: true, scope: StatScope.Character }),
+    new StatEntry('accessories', { dependencies: ['outfit'], order: 4, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
+    new StatEntry('bodyState', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false, scope: StatScope.Character }),
+    new StatEntry('mood', { dependencies: [], order: 6, defaultValue: 'neutral', isActive: false, scope: StatScope.Character }),
+    // Default scene stats
+    new StatEntry('furniture', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene })
 ];
 export class StatRegistry {
     constructor() {
@@ -69,7 +72,8 @@ export class StatRegistry {
                         isActive: statPreset.active,
                         isManual: statPreset.manual,
                         defaultValue: statPreset.defaultValue || 'unspecified',
-                        displayName: statPreset.displayName || stat.name
+                        displayName: statPreset.displayName || stat.name,
+                        scope: stat.scope || 'character'
                     });
                 }
             });
@@ -96,16 +100,17 @@ export class StatRegistry {
         if (!ExtensionSettings.stats.stats)
             ExtensionSettings.stats.stats = {};
         ExtensionSettings.stats.stats = {};
-        this.getAllStats().forEach(stat => {
+        this.getAllStats(null).forEach(stat => {
             ExtensionSettings.stats.stats[stat.name] = {
                 name: stat.name,
                 dependencies: stat.dependencies,
                 order: stat.order,
-                isCustom: stat.isCustom
+                isCustom: stat.isCustom,
+                scope: stat.scope
             };
         });
         const preset = Presets.getActivePreset();
-        this.getAllStats().forEach(stat => {
+        this.getAllStats(null).forEach(stat => {
             preset.set(new StatPreset(stat.name, stat.displayName, stat.isActive, stat.isManual, stat.defaultValue));
         });
         Presets.saveToMetadata();
@@ -133,7 +138,8 @@ export class StatRegistry {
                 displayName: (!entry.displayName || entry.displayName.trim() === '') ? name : entry.displayName,
                 isCustom: entry.isCustom !== undefined ? !!entry.isCustom : true,
                 isActive: entry.isActive !== undefined ? !!entry.isActive : true,
-                isManual: entry.isManual !== undefined ? !!entry.isManual : false
+                isManual: entry.isManual !== undefined ? !!entry.isManual : false,
+                scope: entry.scope !== undefined ? entry.scope : StatScope.Character
             });
         }
         catch (error) {
@@ -154,18 +160,19 @@ export class StatRegistry {
     hasStat(name) {
         return !!this._stats[name];
     }
-    getAllStats() {
+    getAllStats(scope) {
         return Object.values(this._stats)
+            .filter(stat => scope === null || stat.scope === scope)
             .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     }
-    getAllStatNames() {
-        return this.getAllStats().map(stat => stat.name);
+    getAllStatNames(scope) {
+        return this.getAllStats(scope).map(stat => stat.name);
     }
-    getActiveStats() {
-        return this.getAllStats().filter(stat => stat.isActive);
+    getActiveStats(scope) {
+        return this.getAllStats(scope).filter(stat => stat.isActive);
     }
-    getActiveStatNames() {
-        return this.getActiveStats().map(stat => stat.name);
+    getActiveStatNames(scope) {
+        return this.getActiveStats(scope).map(stat => stat.name);
     }
     getStatEntry(name) {
         return this._stats[name] || null;
@@ -187,7 +194,7 @@ export class StatRegistry {
             console.warn(`StatSuite Warning: Preset "${presetName}" not found.`);
             return;
         }
-        this.getAllStats().forEach(stat => {
+        this.getAllStats(null).forEach(stat => {
             const statPreset = preset.get(stat.name);
             if (statPreset) {
                 stat.isActive = statPreset.active;
