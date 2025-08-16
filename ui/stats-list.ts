@@ -12,7 +12,7 @@ export function renderStatsList(): void {
 
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = Stats.getAllStats(StatScope.Character);
+    const allStats = Stats.getAllStats(null);
 
     const $presetContainer = $('<div class="preset-container"></div>');
     const $presetLabel = $('<label>Preset:</label>');

@@ -8,6 +8,7 @@ import { substituteParams } from '../../../../../script.js';
 import { Chat } from './chat/chat-manager.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
 import { StatScope } from './stats/stat-entry.js';
+import { Scenes } from './scenes/scene-registry.js';
 export async function exportChat() {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
@@ -36,6 +37,11 @@ export async function exportChat() {
                 previousStats.Characters[charName] = null;
             }
         }
+        for (const sceneName of Object.keys(currentStats.Scenes)) {
+            if (!(sceneName in previousStats.Scenes)) {
+                previousStats.Scenes[sceneName] = Scenes.getLatestSceneStats(sceneName, currentIndex);
+            }
+        }
         const prevStatsString = statsToStringFull(previousStats);
         const currStatsString = statsToStringFull(currentStats);
         if (!prevStatsString && !currStatsString)
@@ -62,6 +68,9 @@ export async function exportSingleMessage(messageContext) {
     for (const charName of Object.keys(newStats.Characters)) {
         filteredPreviousStats.Characters[charName] = previousStats.Characters?.[charName] !== undefined ? previousStats.Characters?.[charName] : null;
     }
+    for (const sceneName of Object.keys(newStats.Scenes)) {
+        filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes?.[sceneName] !== undefined ? previousStats.Scenes?.[sceneName] : Scenes.getLatestSceneStats(sceneName, messageContext.previousIndex);
+    }
     let exportPrompt = generateExportPrompt(messageContext.previousName ?? '', messageContext.previousMessage ?? '', messageContext.newName ?? '', messageContext.newMessage ?? '', statsToStringFull(filteredPreviousStats), statsToStringFull(newStats));
     if (ExtensionSettings.anonymizeClipboardExport) {
         let characterMap = {};
@@ -81,7 +90,7 @@ export async function exportSingleMessage(messageContext) {
         toastr.error('Failed to copy to clipboard');
     }
 }
-export function statsToString(name, statsBlock) {
+export function statsToString(name, statsBlock, subject) {
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
         let strValue = String(value)
@@ -90,7 +99,7 @@ export function statsToString(name, statsBlock) {
         return `${key.toLowerCase()}="${strValue}"`;
     })
         .join(' ');
-    return `<stats character="${name}" ${attributes} />`;
+    return `<stats ${subject}="${name}" ${attributes} />`;
 }
 export function characterDescription(name) {
     let description = '';
@@ -109,17 +118,29 @@ export function characterDescription(name) {
 export function statsToStringFull(stats) {
     if (!stats)
         return '';
-    return Object.entries(stats.Characters)
+    const chars = Object.entries(stats.Characters)
         .map(([charName, stats]) => {
         const hadNoStats = !stats;
-        const block = hadNoStats ? new StatsBlock() : stats;
+        const block = stats ?? new StatsBlock();
         for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
             if (block[statEntry.name] === undefined) {
                 block[statEntry.name] = statEntry.defaultValue;
             }
         }
-        const base = statsToString(charName, block);
+        const base = statsToString(charName, block, StatScope.Character);
         return hadNoStats ? base + characterDescription(charName) : base;
     })
         .join('\n');
+    const scenes = Object.entries(stats.Scenes)
+        .map(([sceneName, stats]) => {
+        const block = stats ?? new StatsBlock();
+        for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
+            if (block[statEntry.name] === undefined) {
+                block[statEntry.name] = statEntry.defaultValue;
+            }
+        }
+        return statsToString(sceneName, block, StatScope.Scene);
+    })
+        .join('\n');
+    return scenes + '\n' + chars;
 }

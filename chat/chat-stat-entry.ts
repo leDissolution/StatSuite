@@ -1,4 +1,5 @@
 import { StatsBlock } from "../stats/stat-block.js";
+import { StatScope } from "../stats/stat-entry.js";
 
 export class ChatStatEntry {
     Characters: Record<string, StatsBlock | null>;
@@ -15,6 +16,15 @@ export class ChatStatEntry {
         for (const [key, value] of Object.entries(scenesStats)) {
             this.Scenes[key] = StatsBlock.fromObject(value);
         }
+    }
+
+    ofScope(scope: StatScope): Record<string, StatsBlock | null> {
+        if (scope === StatScope.Character) {
+            return this.Characters;
+        } else if (scope === StatScope.Scene) {
+            return this.Scenes;
+        }
+        throw new Error(`Unknown scope: ${scope}`);
     }
 
     clone(): ChatStatEntry {

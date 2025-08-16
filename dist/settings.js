@@ -1,6 +1,7 @@
 import { extension_settings } from "../../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../../../../../script.js";
 import { fetchAvailableModels } from "./api.js";
+import { StatScope } from "./stats/stat-entry.js";
 export class SuiteSettings {
     constructor() {
         Object.defineProperty(this, "offlineMode", {
@@ -92,6 +93,9 @@ export class SuiteSettings {
 const extensionName = "StatSuite";
 export const ExtensionSettings = extension_settings[extensionName] ?? (extension_settings[extensionName] = new SuiteSettings());
 const defaultSettings = new SuiteSettings();
+export function getActiveScopes() {
+    return ExtensionSettings.enableScenes ? [StatScope.Character, StatScope.Scene] : [StatScope.Character];
+}
 export function shouldRequestStats(charName) {
     return ExtensionSettings.enableAutoRequestStats && !ExtensionSettings.alwaysDisabledCharacters.includes(charName ?? '');
 }
@@ -143,4 +147,7 @@ export async function initializeSettings() {
         saveSettingsDebounced();
     }
     console.log(`StatSuite: Settings initialized/verified.`, ExtensionSettings);
+}
+export function saveSettings() {
+    saveSettingsDebounced();
 }

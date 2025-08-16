@@ -4,6 +4,7 @@ import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
 import { statsToStringFull } from './export.js';
 import { Stats } from './stats/stats-registry.js';
+import { StatScope } from './stats/stat-entry.js';
 import { MessageContext } from './chat/chat-manager.js';
 import { StatsBlock } from './stats/stat-block.js';
 
@@ -84,7 +85,7 @@ export async function fetchAvailableModels(): Promise<Array<{id: string}>> {
 
 const noop_token = '!!no_change!!';
 
-export async function generateStat(stat: string, char: string, messages: MessageContext, existingStats: StatsBlock, greedy: boolean = true): Promise<string> {
+export async function generateStat(stat: string, subject: string, messages: MessageContext, existingStats: StatsBlock, greedy: boolean = true): Promise<string> {
     const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
         console.error(`StatSuite API Error: StatRegistry not loaded or stat "${stat}" invalid.`);
@@ -102,17 +103,20 @@ export async function generateStat(stat: string, char: string, messages: Message
         });
     }
 
+    const subjectAttr = statConfig.scope === StatScope.Scene ? 'scene' : 'character';
+
     const statPrompt = generateStatPrompt(
         stat,
-        char,
+        subject,
         messages.previousName ?? '',
         messages.previousMessage ?? '',
         messages.newName ?? '',
         messages.newMessage ?? '',
         statsToStringFull(messages.previousStats),
-        dependencies
+        dependencies,
+        subjectAttr
     );
-    console.log(`Generating ${stat} for ${char}:`, statPrompt);
+    console.log(`Generating ${stat} for ${subject}:`, statPrompt);
 
     try {
         if (!ExtensionSettings.modelUrl) {
@@ -142,16 +146,16 @@ export async function generateStat(stat: string, char: string, messages: Message
             result = result.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 
             if (result === noop_token) {
-                result = messages.previousStats?.Characters[char]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+                result = messages.previousStats?.Characters[subject]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
             }
 
             return result;
         } else {
-            console.error(`Error generating ${stat} for ${char}: Invalid API response structure`, response);
+            console.error(`Error generating ${stat} for ${subject}: Invalid API response structure`, response);
             return 'error_invalid_response';
         }
     } catch (/** @type {any} */ error: any) {
-        console.error(`Error generating ${stat} for ${char}:`, error);
+        console.error(`Error generating ${stat} for ${subject}:`, error);
         
         // Mark connection as failed for quick bailout in subsequent calls
         if (error.status === 0 || error.statusText === 'timeout' || error.readyState === 0) {

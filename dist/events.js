@@ -1,5 +1,5 @@
 import { eventSource, event_types, chat } from '../../../../../script.js';
-import { ExtensionSettings, shouldRequestStats } from './settings.js';
+import { ExtensionSettings, shouldRequestStats, getActiveScopes } from './settings.js';
 import { makeStats } from './stats/stats-logic.js';
 import { displayStats } from './ui/stats-table.js';
 import { addPasteButton } from './ui/message-buttons.js';
@@ -39,7 +39,7 @@ export function onChatChanged() {
         const stats = Chat.getMessageStats(index);
         if (stats && Object.keys(stats).length > 0) {
             if (typeof displayStats === 'function') {
-                displayStats(index, stats);
+                displayStats(index, stats, getActiveScopes());
             }
             else {
                 console.warn("StatSuite Events Warning: displayStats function not available.");
@@ -100,12 +100,12 @@ function onSwipeChanged(messageId) {
     const message = chat[messageId];
     if (message.swipe_id >= message.swipes.length) // swipe_id out of bounds means new swipe request before message is generated
      {
-        displayStats(messageId, new ChatStatEntry({ '...': null }));
+        displayStats(messageId, new ChatStatEntry({ '...': null }), getActiveScopes());
         return;
     }
     let stats = Chat.getMessageStats(messageId);
     if (stats) {
-        displayStats(messageId, stats);
+        displayStats(messageId, stats, getActiveScopes());
     }
     else {
         makeStats(messageId);

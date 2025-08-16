@@ -8,6 +8,7 @@ import { substituteParams } from '../../../../../script.js';
 import { Chat, MessageContext } from './chat/chat-manager.js';
 import { ChatStatEntry } from './chat/chat-stat-entry.js';
 import { StatScope } from './stats/stat-entry.js';
+import { Scenes } from './scenes/scene-registry.js';
 
 export async function exportChat(): Promise<void> {
     const exportableMessages = Chat.getStatEligibleMessages();
@@ -40,6 +41,11 @@ export async function exportChat(): Promise<void> {
         for (const charName of Object.keys(currentStats.Characters)) {
             if (!(charName in previousStats.Characters)) {
                 previousStats.Characters[charName] = null;
+            }
+        }
+        for (const sceneName of Object.keys(currentStats.Scenes)) {
+            if (!(sceneName in previousStats.Scenes)) {
+                previousStats.Scenes[sceneName] = Scenes.getLatestSceneStats(sceneName, currentIndex);
             }
         }
 
@@ -78,6 +84,9 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
     for (const charName of Object.keys(newStats.Characters)) {
         filteredPreviousStats.Characters[charName] = previousStats.Characters?.[charName] !== undefined ? previousStats.Characters?.[charName] : null;
     }
+    for (const sceneName of Object.keys(newStats.Scenes)) {
+        filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes?.[sceneName] !== undefined ? previousStats.Scenes?.[sceneName] : Scenes.getLatestSceneStats(sceneName, messageContext.previousIndex);
+    }
 
     let exportPrompt = generateExportPrompt(
         messageContext.previousName ?? '',
@@ -107,7 +116,7 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
     }
 }
 
-export function statsToString(name: string, statsBlock: StatsBlock): string {
+export function statsToString(name: string, statsBlock: StatsBlock, subject: string): string {
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
             let strValue = String(value)
@@ -117,7 +126,7 @@ export function statsToString(name: string, statsBlock: StatsBlock): string {
         })
         .join(' ');
 
-    return `<stats character="${name}" ${attributes} />`;
+    return `<stats ${subject}="${name}" ${attributes} />`;
 }
 
 export function characterDescription(name: string): string {
@@ -142,10 +151,10 @@ export function characterDescription(name: string): string {
 export function statsToStringFull(stats: ChatStatEntry | null): string {
     if (!stats) return '';
 
-    return Object.entries(stats.Characters)
+    const chars = Object.entries(stats.Characters)
         .map(([charName, stats]) => {
             const hadNoStats = !stats;
-            const block = hadNoStats ? new StatsBlock() : stats;
+            const block = stats ?? new StatsBlock();
 
             for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
                 if (block[statEntry.name] === undefined) {
@@ -153,8 +162,24 @@ export function statsToStringFull(stats: ChatStatEntry | null): string {
                 }
             }
 
-            const base = statsToString(charName, block);
+            const base = statsToString(charName, block, StatScope.Character);
             return hadNoStats ? base + characterDescription(charName) : base;
         })
         .join('\n');
+
+    const scenes = Object.entries(stats.Scenes)
+        .map(([sceneName, stats]) => {
+            const block = stats ?? new StatsBlock();
+
+            for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
+                if (block[statEntry.name] === undefined) {
+                    block[statEntry.name] = statEntry.defaultValue;
+                }
+            }
+
+            return statsToString(sceneName, block, StatScope.Scene);
+        })
+        .join('\n');
+
+    return scenes + '\n' + chars;
 }

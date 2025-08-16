@@ -10,7 +10,7 @@ export function renderStatsList() {
     }
     const $list = $('#custom-stats-list');
     $list.empty();
-    const allStats = Stats.getAllStats(StatScope.Character);
+    const allStats = Stats.getAllStats(null);
     const $presetContainer = $('<div class="preset-container"></div>');
     const $presetLabel = $('<label>Preset:</label>');
     const $presetSelect = $('<select id="preset-selector" class="text_pole"></select>');

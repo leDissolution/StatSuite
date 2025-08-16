@@ -1,4 +1,4 @@
-import { ExtensionSettings, tryGetModels } from '../settings.js';
+import { ExtensionSettings, tryGetModels, saveSettings } from '../settings.js';
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED, EVENT_STAT_ADDED, EVENT_STAT_REMOVED, EVENT_STATS_BATCH_LOADED } from '../events.js';
 import { renderCharactersList } from './characters-list.js';
 import { renderStatsList } from './stats-list.js';
@@ -17,16 +17,19 @@ export function bindSettingsUI() {
     $("#modelUrl").prop("value", ExtensionSettings.modelUrl || '');
     $("#modelUrl").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.modelUrl = $(this).prop("value");
+        saveSettings();
     });
     // Bind Auto Track Authors checkbox
     $("#autoTrackAuthors").prop("checked", ExtensionSettings.autoTrackMessageAuthors);
     $("#autoTrackAuthors").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.autoTrackMessageAuthors = $(this).prop("checked");
+        saveSettings();
     });
     // Bind Disable Auto Request Stats checkbox
     $("#enableAutoRequestStats").prop("checked", ExtensionSettings.enableAutoRequestStats);
     $("#enableAutoRequestStats").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.enableAutoRequestStats = $(this).prop("checked");
+        saveSettings();
     });
     $("#alwaysDisableForChar").prop("checked", ExtensionSettings.alwaysDisabledCharacters.includes(Chat.currentCharacter || ''));
     $("#alwaysDisableForChar").off("input.statSuite").on("input.statSuite", function () {
@@ -35,17 +38,20 @@ export function bindSettingsUI() {
         } else {
             ExtensionSettings.alwaysDisabledCharacters = ExtensionSettings.alwaysDisabledCharacters.filter(char => char !== (Chat.currentCharacter || ''));
         }
+        saveSettings();
     });
     $("#alwaysDisableForCharTooltip").prop("title", "Following characters will not automatically request stats, regardless the main toggle: " + ExtensionSettings.alwaysDisabledCharacters.join(', '));
     // Bind Show Stats checkbox
     $("#showStats").prop("checked", ExtensionSettings.showStats);
     $("#showStats").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.showStats = $(this).prop("checked");
+        saveSettings();
     });
     // Bind Collapse Old Stats checkbox
     $("#collapseOldStats").prop("checked", ExtensionSettings.collapseOldStats);
     $("#collapseOldStats").off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.collapseOldStats = $(this).prop("checked");
+        saveSettings();
     });
     // Bind retry connection button
     $("#retryConnection").off("click.statSuite").on("click.statSuite", async function () {
@@ -95,6 +101,7 @@ export function bindSettingsUI() {
             $("#modelSettings").show();
             $("#offlineExplanation").hide();
         }
+        saveSettings();
     });
 
     // Show or hide offline explanation based on current setting    
@@ -119,11 +126,13 @@ export function bindSettingsUI() {
     $('#anonymizeClipboardExport').prop("checked", ExtensionSettings.anonymizeClipboardExport);
     $('#anonymizeClipboardExport').off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.anonymizeClipboardExport = $(this).prop("checked");
+        saveSettings();
     });
 
     $('#enableScenes').prop("checked", ExtensionSettings.enableScenes);
     $('#enableScenes').off("input.statSuite").on("input.statSuite", function () {
         ExtensionSettings.enableScenes = $(this).prop("checked");
+        saveSettings();
     });
 
     $('#clearMetadata').off("click.statSuite").on("click.statSuite", function () {

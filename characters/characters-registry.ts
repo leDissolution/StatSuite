@@ -1,6 +1,4 @@
 import { EVENT_CHARACTER_ADDED, EVENT_CHARACTER_REMOVED } from '../events.js';
-import { chat_metadata } from '../../../../../../script.js';
-import { saveMetadataDebounced } from '../../../../../extensions.js';
 import { Character } from './character.js';
 import { Chat } from '../chat/chat-manager.js';
 

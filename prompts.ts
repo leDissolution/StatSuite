@@ -1,14 +1,14 @@
 const NON_INSTRUCT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_message}</previousMessage>
 {previous_stats}
 <message from="{name}">{message}</message>
-<stats character="{req_name}" {existingNewStats}{stat}="`;
+<stats {subject}="{req_name}" {existingNewStats}{stat}="`;
 
 const EXPORT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_message}</previousMessage>
 {previous_stats}
 <message from="{name}">{message}</message>
 {new_stats}`;
 
-export function generateStatPrompt(stat: string, reqName: string, previousName: string, previousMessage: string, name: string, message: string, previousStats: string, existingNewStats: object): string {
+export function generateStatPrompt(stat: string, reqName: string, previousName: string, previousMessage: string, name: string, message: string, previousStats: string, existingNewStats: object, subject: string): string {
     let existingNewStatsString = "";
     if (existingNewStats) {
         existingNewStatsString = Object.entries(existingNewStats)
@@ -24,7 +24,8 @@ export function generateStatPrompt(stat: string, reqName: string, previousName: 
         .replace('{message}', message ?? '')
         .replace('{req_name}', reqName)
         .replace('{existingNewStats}', existingNewStatsString)
-        .replace('{stat}', stat);
+        .replace('{stat}', stat)
+        .replace('{subject}', subject);
     return userPrompt;
 }
 

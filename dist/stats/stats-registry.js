@@ -15,7 +15,8 @@ const DEFAULT_STATS = [
     new StatEntry('bodyState', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false, scope: StatScope.Character }),
     new StatEntry('mood', { dependencies: [], order: 6, defaultValue: 'neutral', isActive: false, scope: StatScope.Character }),
     // Default scene stats
-    new StatEntry('furniture', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene })
+    new StatEntry('fixtures', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene }),
+    new StatEntry('items', { dependencies: [], order: 1, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene })
 ];
 export class StatRegistry {
     constructor() {
