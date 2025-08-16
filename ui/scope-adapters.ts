@@ -12,7 +12,6 @@ export interface ScopeAdapter {
     getBucket(entry: ChatStatEntry): Record<string, StatsBlock | null>;
 
     listTrackedNames(): string[];
-    listActiveNames(stats: ChatStatEntry, oldStats: ChatStatEntry | null): string[];
     isKnown(name: string): boolean;
     getIndex(name: string): number;
 
@@ -30,10 +29,6 @@ export const CharacterScopeAdapter: ScopeAdapter = {
 
     listTrackedNames() {
         return Characters.listTrackedCharacterNames();
-    },
-
-    listActiveNames(stats: ChatStatEntry, oldStats: ChatStatEntry | null) {
-        return Characters.listActiveCharacterNames();
     },
 
     isKnown(name: string) {
@@ -60,10 +55,6 @@ export const SceneScopeAdapter: ScopeAdapter = {
 
     listTrackedNames() {
         return Scenes.listTrackedSceneNames();
-    },
-
-    listActiveNames(stats: ChatStatEntry, oldStats: ChatStatEntry | null) {
-        return Scenes.listActiveSceneNames(stats, oldStats);
     },
 
     isKnown(name: string) {

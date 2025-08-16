@@ -11,9 +11,6 @@ export const CharacterScopeAdapter = {
     listTrackedNames() {
         return Characters.listTrackedCharacterNames();
     },
-    listActiveNames(stats, oldStats) {
-        return Characters.listActiveCharacterNames();
-    },
     isKnown(name) {
         return Characters.getCharacterIx(name) !== -1;
     },
@@ -33,9 +30,6 @@ export const SceneScopeAdapter = {
     },
     listTrackedNames() {
         return Scenes.listTrackedSceneNames();
-    },
-    listActiveNames(stats, oldStats) {
-        return Scenes.listActiveSceneNames(stats, oldStats);
     },
     isKnown(name) {
         return Scenes.hasScene(name);

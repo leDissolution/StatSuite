@@ -1,4 +1,3 @@
-import { Chat } from "../chat/chat-manager";
 function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = (Math.random() * 16) | 0;
@@ -7,27 +6,26 @@ function uuidv4() {
     });
 }
 export class SceneManager {
-    constructor(hooks) {
-        Object.defineProperty(this, "getMessageStats", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+    constructor(getStats, hooks) {
         Object.defineProperty(this, "sceneGraphCache", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: new Map()
         });
-        // Purely algorithmic mobility by default; allow an optional hook to guide ambiguous cases
         Object.defineProperty(this, "isPotentiallyMobile", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: () => false
         });
-        this.getMessageStats = Chat.getMessageStats;
+        Object.defineProperty(this, "getMessageStats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.getMessageStats = getStats;
         if (hooks?.isPotentiallyMobile)
             this.isPotentiallyMobile = hooks.isPotentiallyMobile;
     }
@@ -184,12 +182,12 @@ export class SceneManager {
         const stripped = (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))))
             ? s.slice(1, -1)
             : s;
-        return stripped.trim().toLowerCase();
+        return stripped.trim();
     }
     extractOwner(segment) {
-        // Start-anchored owner extractor; only consider a leading "Owner's " pattern.
+        // Owner's
         const match = segment.match(/^\s*([^,;]+?)'s\s+/i);
-        return match ? match[1].trim().toLowerCase() : null;
+        return match ? match[1].trim() : null;
     }
     // Normalize a name for matching keys by removing a single leading owner prefix
     ownerlessBase(name) {
@@ -548,8 +546,27 @@ export class SceneManager {
         }
         return parentId;
     }
-    getActiveScenes(messageId) {
-        const { scenes } = this.getSceneGraphForMessage(messageId);
+    buildDisplayName(scenes, id) {
+        if (!scenes[id])
+            return null;
+        const chain = [];
+        let cur = id;
+        while (cur && scenes[cur]) {
+            const curScene = scenes[cur];
+            chain.push(curScene.baseName);
+            if (curScene.isMobile) {
+                break;
+            }
+            cur = curScene.parentId ?? null;
+        }
+        chain.reverse();
+        return chain.join(', ');
+    }
+    getActiveScenes(messageId, scenes) {
+        if (!scenes) {
+            const graph = this.getSceneGraphForMessage(messageId);
+            scenes = graph.scenes;
+        }
         const latest = {};
         // Determine latest leaf scene per character
         for (let id = 0; id <= messageId; id++) {
@@ -568,12 +585,10 @@ export class SceneManager {
             }
         }
         const result = new Set();
-        // For each character, split the active scene into sub-scenes
         for (const val of Object.values(latest)) {
             if (!val)
                 continue;
             const leafId = val;
-            // Reconstruct the chain from root -> leaf using parentId
             const chain = [];
             let cur = leafId;
             const guard = new Set();
@@ -585,7 +600,6 @@ export class SceneManager {
             chain.reverse();
             if (chain.length === 0)
                 continue;
-            // Find indices of mobile nodes in the chain
             const mobileIdx = [];
             for (let i = 0; i < chain.length; i++) {
                 const sc = scenes[chain[i]];
@@ -593,12 +607,10 @@ export class SceneManager {
                     mobileIdx.push(i);
             }
             if (mobileIdx.length > 0) {
-                // Static prefix up to just before the first mobile node
                 const firstMobile = mobileIdx[0];
                 if (firstMobile > 0) {
                     result.add(chain[firstMobile - 1]);
                 }
-                // For each mobile segment, include up to the node before the next mobile (or leaf)
                 for (let m = 0; m < mobileIdx.length; m++) {
                     const endExclusive = (m + 1 < mobileIdx.length) ? mobileIdx[m + 1] : chain.length;
                     const lastNode = chain[endExclusive - 1];
@@ -606,15 +618,7 @@ export class SceneManager {
                 }
                 continue;
             }
-            // No mobile nodes: if the leaf is explicitly owned and has a parent, split into container + owned leaf
-            const firstOwnedIdx = chain.findIndex((id) => scenes[id]?.explicitOwner != null);
-            if (firstOwnedIdx > 0) {
-                result.add(chain[firstOwnedIdx - 1]);
-                result.add(chain[chain.length - 1]);
-            }
-            else {
-                result.add(chain[chain.length - 1]);
-            }
+            result.add(chain[chain.length - 1]);
         }
         return Array.from(result);
     }

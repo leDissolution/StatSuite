@@ -171,7 +171,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
             if (currentScope === StatScope.Character)
                 return Characters.listActiveCharacterNames();
             if (currentScope === StatScope.Scene)
-                return Scenes.listActiveSceneNames(resultingStats, messages.previousStats);
+                return Scenes.listActiveSceneNames(messages.newIndex);
             return [];
         })();
         let activeStats = Stats.getActiveStats(currentScope);

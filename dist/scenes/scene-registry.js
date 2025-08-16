@@ -1,6 +1,7 @@
 import { Scene } from './scene.js';
 import { Chat } from '../chat/chat-manager.js';
 import { EVENT_SCENE_ADDED, EVENT_SCENE_REMOVED } from '../events.js';
+import { SceneManager } from './scene-manager.js';
 export class SceneRegistry {
     constructor() {
         Object.defineProperty(this, "_scenes", {
@@ -103,47 +104,17 @@ export class SceneRegistry {
             .map(sc => sc.name)
             .sort();
     }
-    listActiveSceneNames(stats, oldStats) {
-        const newLocations = new Set();
-        if (!stats || !stats.Characters)
-            return [];
-        for (const charStats of Object.values(stats.Characters).concat(Object.values(oldStats?.Characters || {}))) {
-            if (!charStats)
-                continue;
-            const loc = charStats["location"];
-            if (typeof loc === 'string' && loc.length > 0) {
-                const sepIx = loc.indexOf(';');
-                const firstPart = (sepIx >= 0 ? loc.substring(0, sepIx) : loc).trim();
-                if (firstPart)
-                    newLocations.add(firstPart);
-            }
-        }
-        const oldLocations = oldStats?.Scenes ? new Set(Object.keys(oldStats.Scenes)) : new Set();
-        const relevantLocations = new Set();
-        // For each new location, if it ends with any old location, split into prefix and the matched old location.
-        for (const nl of newLocations) {
-            let bestMatch = null;
-            for (const ol of oldLocations) {
-                if (!ol)
-                    continue;
-                if (nl.endsWith(ol)) {
-                    if (!bestMatch || ol.length > bestMatch.length)
-                        bestMatch = ol; // prefer the longest suffix match
-                }
-            }
-            if (bestMatch) {
-                const prefixRaw = nl.slice(0, nl.length - bestMatch.length);
-                // Trim common separators (comma, semicolon, spaces, dashes, underscores, colons) at the end of the prefix
-                const prefix = prefixRaw.replace(/[\s,;:_-]+$/g, '').trim();
-                if (prefix)
-                    relevantLocations.add(prefix);
-                relevantLocations.add(bestMatch);
-            }
-            else {
-                relevantLocations.add(nl);
-            }
-        }
-        return Array.from(relevantLocations);
+    listActiveSceneNames(messageId) {
+        const locations = new Set();
+        const sceneManager = new SceneManager(Chat.getMessageStats);
+        const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
+        const activeSceneIds = sceneManager.getActiveScenes(messageId, scenes);
+        activeSceneIds.forEach(sceneId => {
+            const name = sceneManager.buildDisplayName(scenes, sceneId);
+            if (name)
+                locations.add(name);
+        });
+        return Array.from(locations);
     }
     listTrackedScenes() {
         return Array.from(this._scenes);

@@ -108,46 +108,18 @@ export class SceneRegistry {
 			.sort();
 	}
 
-	listActiveSceneNames(stats: ChatStatEntry, oldStats: ChatStatEntry | null): string[] {
-		const newLocations = new Set<string>();
+	listActiveSceneNames(messageId: number): string[] {
+		const locations = new Set<string>();
 
-		if (!stats || !stats.Characters) return [];
+		const sceneManager = new SceneManager(Chat.getMessageStats);
+		const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
+		const activeSceneIds = sceneManager.getActiveScenes(messageId, scenes);
+		activeSceneIds.forEach(sceneId => {
+			const name = sceneManager.buildDisplayName(scenes, sceneId);
+			if (name) locations.add(name);
+		});
 
-		for (const charStats of Object.values(stats.Characters).concat(Object.values(oldStats?.Characters || {}))) {
-			if (!charStats) continue;
-			const loc = charStats["location"];
-			if (typeof loc === 'string' && loc.length > 0) {
-				const sepIx = loc.indexOf(';');
-				const firstPart = (sepIx >= 0 ? loc.substring(0, sepIx) : loc).trim();
-				if (firstPart) newLocations.add(firstPart);
-			}
-		}
-
-		const oldLocations = oldStats?.Scenes ? new Set<string>(Object.keys(oldStats.Scenes)) : new Set<string>();
-		const relevantLocations = new Set<string>();
-
-		// For each new location, if it ends with any old location, split into prefix and the matched old location.
-		for (const nl of newLocations) {
-			let bestMatch: string | null = null;
-			for (const ol of oldLocations) {
-				if (!ol) continue;
-				if (nl.endsWith(ol)) {
-					if (!bestMatch || ol.length > bestMatch.length) bestMatch = ol; // prefer the longest suffix match
-				}
-			}
-
-			if (bestMatch) {
-				const prefixRaw = nl.slice(0, nl.length - bestMatch.length);
-				// Trim common separators (comma, semicolon, spaces, dashes, underscores, colons) at the end of the prefix
-				const prefix = prefixRaw.replace(/[\s,;:_-]+$/g, '').trim();
-				if (prefix) relevantLocations.add(prefix);
-				relevantLocations.add(bestMatch);
-			} else {
-				relevantLocations.add(nl);
-			}
-		}
-
-		return Array.from(relevantLocations);
+		return Array.from(locations);
 	}
 
 	listTrackedScenes(): Scene[] {

@@ -189,7 +189,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
         const subjectsToProcess = (() => {
             if (specificSubject) return [specificSubject];
             if (currentScope === StatScope.Character) return Characters.listActiveCharacterNames();
-            if (currentScope === StatScope.Scene) return Scenes.listActiveSceneNames(resultingStats, messages.previousStats);
+            if (currentScope === StatScope.Scene) return Scenes.listActiveSceneNames(messages.newIndex);
             return [] as string[];
         })();
 
