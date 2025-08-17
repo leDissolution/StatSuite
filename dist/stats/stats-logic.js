@@ -50,7 +50,7 @@ export function getRecentMessages(specificMessageIndex = null) {
     if (!context)
         return null;
     if (ExtensionSettings.autoTrackMessageAuthors) {
-        if (context.previousName) {
+        if (context.previousIndex && context.previousName) {
             const previousMessage = Chat.getMessage(context.previousIndex);
             Characters.addCharacter(context.previousName, previousMessage?.is_user || false);
         }
@@ -171,7 +171,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
             if (currentScope === StatScope.Character)
                 return Characters.listActiveCharacterNames();
             if (currentScope === StatScope.Scene)
-                return Scenes.listActiveSceneNames(messages.newIndex);
+                return Scenes.listActiveSceneNames(messages.newIndex, messages.previousIndex);
             return [];
         })();
         let activeStats = Stats.getActiveStats(currentScope);
@@ -203,7 +203,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
             const oldBucket = messages.previousStats?.ofScope(currentScope);
             if (!oldBucket[subjectName]) {
                 if (currentScope == StatScope.Scene)
-                    oldBucket[subjectName] = Scenes.getLatestSceneStats(subjectName, messages.previousIndex);
+                    oldBucket[subjectName] = Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1);
                 else
                     oldBucket[subjectName] = null;
             }

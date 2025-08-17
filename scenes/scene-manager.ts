@@ -9,7 +9,7 @@ export interface Scene {
     createdAt: number;
     updatedAt: number;
     messageVersion: number;
-    isMobile: boolean; 
+    isMobile: boolean;
     parentHistory?: Array<{
         parentId: string | null;
         messageId: number;
@@ -19,21 +19,28 @@ export interface Scene {
 export type ScenesMap = Record<string, Scene>;
 
 function uuidv4(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
 }
 
 export class SceneManager {
     private sceneGraphCache: Map<number, { scenes: ScenesMap; hierarchy: Record<string, string[]>; messageVersion: number }> = new Map();
+    // Tiebreaker heuristic: should this base be considered potentially mobile when deciding relocations
     private isPotentiallyMobile: (baseKey: string) => boolean = () => false;
+    // Hard override: return true to force mobile, false to force non-mobile, null for no override
+    private mobileOverride: (baseKey: string) => boolean | null = () => null;
     private getMessageStats: (messageId: number) => ChatStatEntry | null;
 
-    constructor(getStats: (messageId: number) => ChatStatEntry | null, hooks?: { isPotentiallyMobile?: (baseKey: string) => boolean }) {
+    constructor(
+        getStats: (messageId: number) => ChatStatEntry | null,
+        hooks?: { isPotentiallyMobile?: (baseKey: string) => boolean; mobileOverride?: (baseKey: string) => boolean | null }
+    ) {
         this.getMessageStats = getStats;
         if (hooks?.isPotentiallyMobile) this.isPotentiallyMobile = hooks.isPotentiallyMobile;
+        if (hooks?.mobileOverride) this.mobileOverride = hooks.mobileOverride;
     }
 
     private isAncestor(descendantId: string | null, ancestorId: string | null, scenes?: ScenesMap): boolean {
@@ -76,6 +83,13 @@ export class SceneManager {
         scene.visitors[character] = Math.max(scene.visitors[character] || 0, messageId);
     }
 
+    private enforceMobilityOverride(scene: Scene) {
+        const baseKey = this.ownerlessBase(scene.baseName);
+        const override = this.mobileOverride(baseKey);
+        if (override === true) scene.isMobile = true;
+        else if (override === false) scene.isMobile = false;
+    }
+
     private changeParent(
         sceneId: string,
         newParentId: string | null,
@@ -101,7 +115,11 @@ export class SceneManager {
         const oldParent = scene.parentId;
         const justRefined = oldParent != null && newParentId != null && (this.isAncestor(oldParent, newParentId, scenes) || this.isAncestor(newParentId, oldParent, scenes));
         const movedByOwnerlessTail = !!opts?.movedByOwnerlessTail && oldParent == null && newParentId != null;
-        if ((oldParent != null && !justRefined) || movedByOwnerlessTail) {
+
+        const baseKeyForMobility = this.ownerlessBase(scene.baseName);
+        const override = this.mobileOverride(baseKeyForMobility);
+        const shouldForceMobile = override === true || (override === null && this.isPotentiallyMobile(baseKeyForMobility));
+        if ((oldParent != null && !justRefined) || movedByOwnerlessTail || (oldParent == null && newParentId != null && shouldForceMobile)) {
             if (oldParent != null) {
                 if (!scene.parentHistory) scene.parentHistory = [];
                 scene.parentHistory.push({ parentId: oldParent, messageId });
@@ -111,6 +129,7 @@ export class SceneManager {
 
         scene.parentId = newParentId;
         this.updateVisit(scene, character, messageId, messageVersion);
+        this.enforceMobilityOverride(scene);
 
         const newKey = this.compositeKey(scene.parentId, baseKey, scene.explicitOwner);
         index.set(newKey, sceneId);
@@ -199,12 +218,7 @@ export class SceneManager {
     }
 
     private normalizeName(segment: string): string {
-        // Trim, strip surrounding quotes, and lowercase; preserve internal apostrophes for ownership.
-        const s = segment.trim();
-        const stripped = (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))))
-            ? s.slice(1, -1)
-            : s;
-        return stripped.trim();
+        return segment.trim();
     }
 
     private extractOwner(segment: string): string | null {
@@ -277,6 +291,7 @@ export class SceneManager {
                 scene.explicitOwner = explicitOwner;
                 const ownedKey = this.compositeKey(scene.parentId, baseKey, explicitOwner);
                 index.set(ownedKey, sceneId);
+                this.enforceMobilityOverride(scene);
                 return sceneId;
             }
         }
@@ -324,21 +339,21 @@ export class SceneManager {
 
                 const newKey = this.compositeKey(scene.parentId, baseKey, explicitOwner);
                 index.set(newKey, sceneId);
+                this.enforceMobilityOverride(scene);
                 return sceneId;
             }
         }
 
         // 3) Optional: unowned relocation (only when allowed)
-    if (!explicitOwner && allowUnownedRelocation) {
+        if (!explicitOwner && allowUnownedRelocation) {
             const byBase = unownedIndex.get(baseKey);
             if (byBase) {
                 let best: { id: string; score: number } | null = null;
                 for (const ids of byBase.values()) {
                     for (const id of ids) {
                         const s = scenes[id];
-            if (!s) continue;
-            // Only relocate unowned nodes if the base is inherently mobile, or the node is already marked mobile
-                        // Purely algorithmic + hook: relocate unowned nodes if already mobile or considered potentially mobile
+                        if (!s) continue;
+                        // Only relocate unowned nodes if the base is inherently mobile, or the node is already marked mobile
                         if (!s.isMobile && !this.isPotentiallyMobile(this.ownerlessBase(s.baseName))) continue;
                         const score = this.scoreFor(s, character);
                         if (!best || score > best.score) best = { id, score };
@@ -347,6 +362,8 @@ export class SceneManager {
                 if (best) {
                     const sceneId = best.id;
                     this.changeParent(sceneId, parentId, character, messageId, messageVersion, scenes, index, unownedIndex);
+                    const s = scenes[sceneId]!;
+                    this.enforceMobilityOverride(s);
                     return sceneId;
                 }
             }
@@ -368,6 +385,9 @@ export class SceneManager {
 
         scenes[id] = newScene;
         index.set(key, id);
+
+        // Apply override right after creation
+        this.enforceMobilityOverride(newScene);
 
         if (!explicitOwner) {
             if (!unownedIndex.has(baseKey)) unownedIndex.set(baseKey, new Map());
@@ -463,6 +483,8 @@ export class SceneManager {
                         if (canMove) {
                             this.changeParent(reparentId, desiredParent, character, messageId, messageVersion, currentScenes, index, unownedIndex, { movedByOwnerlessTail });
                             movedRoot = true;
+                            const moved = currentScenes[reparentId]!;
+                            this.enforceMobilityOverride(moved);
                         }
                     }
                 }

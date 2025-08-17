@@ -54,7 +54,7 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
     if (!context) return null;
 
     if (ExtensionSettings.autoTrackMessageAuthors) {
-        if (context.previousName) {
+        if (context.previousIndex && context.previousName) {
             const previousMessage = Chat.getMessage(context.previousIndex);
             Characters.addCharacter(context.previousName, previousMessage?.is_user || false);
         }
@@ -189,7 +189,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
         const subjectsToProcess = (() => {
             if (specificSubject) return [specificSubject];
             if (currentScope === StatScope.Character) return Characters.listActiveCharacterNames();
-            if (currentScope === StatScope.Scene) return Scenes.listActiveSceneNames(messages.newIndex);
+            if (currentScope === StatScope.Scene) return Scenes.listActiveSceneNames(messages.newIndex, messages.previousIndex);
             return [] as string[];
         })();
 
@@ -227,7 +227,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
             const oldBucket = messages.previousStats?.ofScope(currentScope) as Record<string, StatsBlock | null>;
             if (!oldBucket[subjectName]) {
                 if (currentScope == StatScope.Scene)
-                    oldBucket[subjectName] = Scenes.getLatestSceneStats(subjectName, messages.previousIndex);
+                    oldBucket[subjectName] = Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1);
                 else
                     oldBucket[subjectName] = null;
             }

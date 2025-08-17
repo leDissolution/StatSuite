@@ -108,12 +108,24 @@ export class SceneRegistry {
 			.sort();
 	}
 
-	listActiveSceneNames(messageId: number): string[] {
+	private static potentiallyMobileBaseHeuristic(base: string): boolean {
+		const keywords = ['car', 'bus', 'train', 'ship', 'spaceship', 'van'];
+		return keywords.some(keyword => base == keyword);
+	}
+
+	listActiveSceneNames(messageId: number, previousMessageId: number | null): string[] {
 		const locations = new Set<string>();
 
-		const sceneManager = new SceneManager(Chat.getMessageStats);
+		const sceneManager = new SceneManager(Chat.getMessageStats.bind(Chat), {
+			isPotentiallyMobile: SceneRegistry.potentiallyMobileBaseHeuristic
+		});
 		const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
 		const activeSceneIds = sceneManager.getActiveScenes(messageId, scenes);
+
+		if (previousMessageId !== null) {
+			activeSceneIds.push(...sceneManager.getActiveScenes(previousMessageId, scenes));
+		}
+
 		activeSceneIds.forEach(sceneId => {
 			const name = sceneManager.buildDisplayName(scenes, sceneId);
 			if (name) locations.add(name);

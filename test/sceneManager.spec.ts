@@ -24,8 +24,7 @@ function runCase(messages: MessageDef[]) {
 }
 
 describe('SceneManager DSL cases', () => {
-    //1
-    it('apartment, bedroom nesting; active bedroom', () => {
+    it('[1] apartment, bedroom nesting; active bedroom', () => {
         const messages: MessageDef[] = [
             ['Alex', 'bedroom'],
             ['Alex', "apartment, bedroom"],
@@ -37,8 +36,7 @@ describe('SceneManager DSL cases', () => {
         expectActiveToMatch(active, ['bedroom'], graph.scenes);
     });
 
-    //2
-    it("Alex's apartment, unowned bedroom -> unowned bedroom", () => {
+    it("[2] Alex's apartment, unowned bedroom -> unowned bedroom", () => {
         const messages: MessageDef[] = [
             ['Alex', "Alex's apartment"],
             ['Alex', "Alex's apartment, bedroom"],
@@ -51,8 +49,7 @@ describe('SceneManager DSL cases', () => {
         expectOwnership(["Alex's apartment", 'bedroom'], graph.scenes, { explicitOwner: null, effectiveOwner: 'Alex' });
     });
 
-    //3
-    it("car -> Alex's car -> parking nesting; not mobile", () => {
+    it("[3] car -> Alex's car -> parking nesting; mobile with override", () => {
         const messages: Array<[string, string]> = [
             ['Alex', 'car'],
             ['Alex', "Alex's car"],
@@ -63,11 +60,10 @@ describe('SceneManager DSL cases', () => {
 
         assertGraphMatches({ school: { parking: { "Alex's car": {} } } }, graph.scenes, null);
         expectActiveToMatch(active, ["school, parking, Alex's car"], graph.scenes);
-        expectMobility(["Alex's car"], graph.scenes, { isMobile: false });
+        expectMobility(["Alex's car"], graph.scenes, { isMobile: true });
     });
 
-    //3.5
-    it("car -> city, Alex's car -> parking nesting; mobile", () => {
+    it("[3.5] car -> city, Alex's car -> parking nesting; mobile", () => {
         const messages: Array<[string, string]> = [
             ['Alex', 'car'],
             ['Alex', "city, Alex's car"],
@@ -81,8 +77,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(["Alex's car"], graph.scenes, { isMobile: true });
     });
 
-    //4
-    it("Car moving between locations", () => {
+    it("[4] Car moving between locations", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "Alex's house, car"],
             ['Alex', "school, parking, car"],
@@ -95,8 +90,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(["school", "parking", "car"], graph.scenes, { isMobile: true });
     });
 
-    //4.1
-    it("Car moving between locations", () => {
+    it("[4.1] Car moving between locations", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "restaurant, parking, car"],
             ['Alex', "city, car"],
@@ -104,13 +98,12 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "restaurant": { "parking": { } }, "city": { "car": {} } }, graph.scenes, null);
+        assertGraphMatches({ "restaurant": { "parking": {} }, "city": { "car": {} } }, graph.scenes, null);
         expectActiveToMatch(active, ["city", "car"], graph.scenes);
         expectMobility(["city", "car"], graph.scenes, { isMobile: true });
     });
 
-    //4.2
-    it("Car moving between locations", () => {
+    it("[4.2] Car moving between locations", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "alley, car"],
             ['Alex', "city, car"],
@@ -118,14 +111,13 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "alley": { }, "city": { "car": {} } }, graph.scenes, null);
+        assertGraphMatches({ "alley": {}, "city": { "car": {} } }, graph.scenes, null);
         expectActiveToMatch(active, ["city", "car"], graph.scenes);
         expectMobility(["city", "car"], graph.scenes, { isMobile: true });
     });
 
 
-    //5
-    it("Two different bedrooms in different hierarchies", () => {
+    it("[5] Two different bedrooms in different hierarchies", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "Alex's apartment, bedroom"],
             ['Jordan', "Jordan's apartment, bedroom"],
@@ -139,8 +131,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(["Jordan's apartment", "bedroom"], graph.scenes, { isMobile: false });
     });
 
-    //6
-    it("Spaceship moving between stations", () => {
+    it("[6] Spaceship moving between stations", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "spaceship, engine bay"],
             ['Alex', "ISS, spaceship, bridge"],
@@ -156,8 +147,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "bridge"], graph.scenes, { isMobile: false });
     });
 
-    //6.1
-    it("Spaceship moving between stations, hangar stays in place", () => {
+    it("[6.1] Spaceship moving between stations, hangar stays in place", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "ISS, hangar, spaceship, bridge"],
             ['Alex', '"Tipiti" station, hangar, spaceship, bridge'],
@@ -173,8 +163,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "bridge"], graph.scenes, { isMobile: false });
     });
 
-    //6.2
-    it("Shuttle inside spaceship moving between hangars", () => {
+    it("[6.2] Shuttle inside spaceship moving between hangars", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "space near Earth, shuttle"],
             ['Alex', "ISS, hangar, spaceship, hangar, shuttle"],
@@ -183,7 +172,7 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "ISS": { "hangar": { } }, '"Tipiti" station': { "hangar": { "spaceship": { "hangar": { "shuttle": {} } } } } }, graph.scenes, null);
+        assertGraphMatches({ "ISS": { "hangar": {} }, '"Tipiti" station': { "hangar": { "spaceship": { "hangar": { "shuttle": {} } } } } }, graph.scenes, null);
         expectActiveToMatch(active, ['"Tipiti" station, hangar', '"Tipiti" station, hangar, spaceship, hangar', 'shuttle'], graph.scenes);
         expectMobility(['"Tipiti" station', "hangar"], graph.scenes, { isMobile: false });
         expectMobility(['"Tipiti" station', "hangar", "spaceship"], graph.scenes, { isMobile: true });
@@ -191,8 +180,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "hangar", "shuttle"], graph.scenes, { isMobile: true });
     });
 
-    //6.3
-    it("Shuttle inside spaceship moving between hangars, named", () => {
+    it("[6.3] Shuttle inside spaceship moving between hangars, named", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "space near Earth, shuttle"],
             ['Alex', "ISS, hangar, spaceship, hangar, Alex's shuttle"],
@@ -201,7 +189,7 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "ISS": { "hangar": { } }, '"Tipiti" station': { "hangar": { "spaceship": { "hangar": { "Alex's shuttle": {} } } } } }, graph.scenes, null);
+        assertGraphMatches({ "ISS": { "hangar": {} }, '"Tipiti" station': { "hangar": { "spaceship": { "hangar": { "Alex's shuttle": {} } } } } }, graph.scenes, null);
         expectActiveToMatch(active, ['"Tipiti" station, hangar', '"Tipiti" station, hangar, spaceship, hangar', "Alex's shuttle"], graph.scenes);
         expectMobility(['"Tipiti" station', "hangar"], graph.scenes, { isMobile: false });
         expectMobility(['"Tipiti" station', "hangar", "spaceship"], graph.scenes, { isMobile: true });
@@ -209,8 +197,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "hangar", "Alex's shuttle"], graph.scenes, { isMobile: true });
     });
 
-    //6.4
-    it("Cubicle inside spaceship", () => {
+    it("[6.4] Cubicle inside spaceship", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "ISS, hangar, spaceship, cubicle"],
             ['Alex', '"Tipiti" station, hangar, spaceship, cubicle'],
@@ -218,15 +205,14 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "ISS": { "hangar": { } }, '"Tipiti" station': { "hangar": { "spaceship": { "cubicle": {} } } } }, graph.scenes, null);
+        assertGraphMatches({ "ISS": { "hangar": {} }, '"Tipiti" station': { "hangar": { "spaceship": { "cubicle": {} } } } }, graph.scenes, null);
         expectActiveToMatch(active, ['"Tipiti" station, hangar', '"Tipiti" station, hangar, spaceship, cubicle'], graph.scenes);
         expectMobility(['"Tipiti" station', "hangar"], graph.scenes, { isMobile: false });
         expectMobility(['"Tipiti" station', "hangar", "spaceship"], graph.scenes, { isMobile: true });
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "cubicle"], graph.scenes, { isMobile: false });
     });
 
-    //6.5
-    it("Cubicle inside spaceship moving between hangars, named", () => {
+    it("[6.5] Cubicle inside spaceship moving between hangars, named", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "ISS, hangar, spaceship, Alex's cubicle"],
             ['Alex', '"Tipiti" station, hangar, spaceship, Alex\'s cubicle'],
@@ -234,15 +220,14 @@ describe('SceneManager DSL cases', () => {
 
         const { graph, active } = runCase(messages);
 
-        assertGraphMatches({ "ISS": { "hangar": { } }, '"Tipiti" station': { "hangar": { "spaceship": { "Alex's cubicle": {} } } } }, graph.scenes, null);
+        assertGraphMatches({ "ISS": { "hangar": {} }, '"Tipiti" station': { "hangar": { "spaceship": { "Alex's cubicle": {} } } } }, graph.scenes, null);
         expectActiveToMatch(active, [['"Tipiti" station', 'hangar'], ['"Tipiti" station', 'hangar', 'spaceship', "Alex's cubicle"]], graph.scenes);
         expectMobility(['"Tipiti" station', "hangar"], graph.scenes, { isMobile: false });
         expectMobility(['"Tipiti" station', "hangar", "spaceship"], graph.scenes, { isMobile: true });
         expectMobility(['"Tipiti" station', "hangar", "spaceship", "Alex's cubicle"], graph.scenes, { isMobile: false });
     });
 
-    //7
-    it("Discovering middle hierarchy", () => {
+    it("[7] Discovering middle hierarchy", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "school, math class"],
             ['Alex', 'school, second floor, math class'],
@@ -255,8 +240,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(['school', "second floor", "math class"], graph.scenes, { isMobile: false });
     });
 
-    // 8
-    it('Adoption: unowned room later becomes owned without duplication', () => {
+    it('[8] Adoption: unowned room later becomes owned without duplication', () => {
         const messages: Array<[string, string]> = [
             ['Alex', 'apartment, bedroom'],
             ['Alex', "Alex's apartment, bedroom"],
@@ -271,8 +255,7 @@ describe('SceneManager DSL cases', () => {
         expectNoCycles(graph.scenes);
     });
 
-    // 9
-    it('Unowned relocation: same base under different parents creates separate non-mobile nodes', () => {
+    it('[9] Unowned relocation: same base under different parents creates separate non-mobile nodes', () => {
         const messages: Array<[string, string]> = [
             ['Alex', 'house, garage'],
             ['Alex', 'school, garage'],
@@ -289,8 +272,7 @@ describe('SceneManager DSL cases', () => {
         expectNoCycles(graph.scenes);
     });
 
-    // 10
-    it("Owned-first then unowned path reuses the owned node and sets mobile", () => {
+    it("[10] Owned-first then unowned path reuses the owned node and sets mobile", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "Alex's car"],
             ['Alex', 'parking, car'],
@@ -304,8 +286,7 @@ describe('SceneManager DSL cases', () => {
         expectNoCycles(graph.scenes);
     });
 
-    // 11
-    it("Basic character movement", () => {
+    it("[11] Basic character movement", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "apartment, Alex's bedroom"],
             ['Alex', "apartment, living room"],
@@ -319,8 +300,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(["apartment", "living room"], graph.scenes, { isMobile: false });
     });
 
-    // 11.5
-    it("Basic character movement", () => {
+    it("[11.5] Basic character movement", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "apartment, living room"],
             ['Alex', "apartment, Alex's bedroom"],
@@ -334,8 +314,7 @@ describe('SceneManager DSL cases', () => {
         expectMobility(["apartment", "living room"], graph.scenes, { isMobile: false });
     });
 
-    //12
-    it("Multi-part inference", () => {
+    it("[12] Multi-part inference", () => {
         const messages: Array<[string, string]> = [
             ['Alex', "bedroom"],
             ['Alex', "city, Alex's apartment, living room"],

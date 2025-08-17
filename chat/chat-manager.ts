@@ -9,7 +9,7 @@ export interface MessageContext {
     previousName: string | null;
     previousMessage: string;
     previousStats: ChatStatEntry | null;
-    previousIndex: number;
+    previousIndex: number | null;
     newName: string;
     newMessage: string;
     newStats: ChatStatEntry | null;

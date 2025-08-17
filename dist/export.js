@@ -69,7 +69,7 @@ export async function exportSingleMessage(messageContext) {
         filteredPreviousStats.Characters[charName] = previousStats.Characters?.[charName] !== undefined ? previousStats.Characters?.[charName] : null;
     }
     for (const sceneName of Object.keys(newStats.Scenes)) {
-        filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes?.[sceneName] !== undefined ? previousStats.Scenes?.[sceneName] : Scenes.getLatestSceneStats(sceneName, messageContext.previousIndex);
+        filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes?.[sceneName] !== undefined ? previousStats.Scenes?.[sceneName] : Scenes.getLatestSceneStats(sceneName, messageContext.previousIndex ?? -1);
     }
     let exportPrompt = generateExportPrompt(messageContext.previousName ?? '', messageContext.previousMessage ?? '', messageContext.newName ?? '', messageContext.newMessage ?? '', statsToStringFull(filteredPreviousStats), statsToStringFull(newStats));
     if (ExtensionSettings.anonymizeClipboardExport) {
