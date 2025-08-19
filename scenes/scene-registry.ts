@@ -4,6 +4,8 @@ import { EVENT_SCENE_ADDED, EVENT_SCENE_REMOVED } from '../events.js';
 import { StatsBlock } from '../stats/stat-block.js';
 import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 import { SceneManager } from './scene-manager.js';
+import { stat } from 'fs';
+import { string } from 'yargs';
 
 export class SceneRegistry {
 	private _scenes: Set<Scene>;
@@ -80,7 +82,7 @@ export class SceneRegistry {
 	}
 
 	getLatestSceneStats(name: string, messageId: number): StatsBlock | null {
-		for (let ix = messageId - 1; ix >= 0; ix--) {
+		for (let ix = messageId; ix >= 0; ix--) {
 			const stats = Chat.getMessageStats(ix);
 			if (!stats) continue;
 
@@ -108,16 +110,78 @@ export class SceneRegistry {
 			.sort();
 	}
 
+	private static overrideMobileBase(base: string): boolean | null {
+		const mobileBases = ['elevator'];
+		
+		return mobileBases.includes(base) ? true : null;
+	}
+
 	private static potentiallyMobileBaseHeuristic(base: string): boolean {
-		const keywords = ['car', 'bus', 'train', 'ship', 'spaceship', 'van'];
+		const keywords = ['car', 'bus', 'train', 'ship', 'spaceship', 'van', 'elevator'];
 		return keywords.some(keyword => base == keyword);
+	}
+
+	private static containsWholeWord(hay: string, needle: string): boolean {
+		hay = hay.toLowerCase();
+		needle = needle.toLowerCase();
+
+		let idx = hay.indexOf(needle);
+		while (idx !== -1) {
+			const before = idx === 0 ? '' : hay[idx - 1]!;
+			const after = idx + needle.length >= hay.length ? '' : hay[idx + needle.length]!;
+			const isBoundary = (c: string) => !/[a-z0-9"']/i.test(c);
+			if ((before === '' || isBoundary(before)) && (after === '' || isBoundary(after))) return true;
+			idx = hay.indexOf(needle, idx + needle.length);
+		}
+		return false;
+	}
+
+	prefetchSceneNames(messageId: number): string[] {
+		const stats = Chat.getMessageStats(messageId);
+		if (!stats) return [];
+
+		const sceneManager = new SceneManager(Chat.getMessageStats.bind(Chat), {
+			isPotentiallyMobile: SceneRegistry.potentiallyMobileBaseHeuristic,
+			mobileOverride: SceneRegistry.overrideMobileBase
+		});
+		const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
+		const allScenes = new Set<string>();
+		for (const s of Object.values(scenes)) allScenes.add(s.baseName);
+		if (allScenes.size === 0) return [];
+
+		const sceneCandidates = new Set<string>();
+		const tryMatch = (text?: string) => {
+			if (!text) return;
+			const t = text;
+			for (const name of allScenes) {
+				if (SceneRegistry.containsWholeWord(t, name)) sceneCandidates.add(name);
+			}
+		};
+
+		const sceneStats = stats.Scenes ?? {};
+		for (const sName in sceneStats) {
+			const block = sceneStats[sName] ?? {};
+			for (const statKey in block) tryMatch(statKey);
+		}
+
+		const chars = stats.Characters ?? {};
+		for (const cName in chars) {
+			const location = chars[cName]?.['location'];
+			if (typeof location !== 'string') continue;
+			const parts = location.split(';');
+			const headingTo = parts.length > 1 && parts[1] ? parts[1].trim() : '';
+			tryMatch(headingTo);
+		}
+
+		return Array.from(sceneCandidates);
 	}
 
 	listActiveSceneNames(messageId: number, previousMessageId: number | null): string[] {
 		const locations = new Set<string>();
 
 		const sceneManager = new SceneManager(Chat.getMessageStats.bind(Chat), {
-			isPotentiallyMobile: SceneRegistry.potentiallyMobileBaseHeuristic
+			isPotentiallyMobile: SceneRegistry.potentiallyMobileBaseHeuristic,
+			mobileOverride: SceneRegistry.overrideMobileBase
 		});
 		const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
 		const activeSceneIds = sceneManager.getActiveScenes(messageId, scenes);

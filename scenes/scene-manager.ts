@@ -28,9 +28,7 @@ function uuidv4(): string {
 
 export class SceneManager {
     private sceneGraphCache: Map<number, { scenes: ScenesMap; hierarchy: Record<string, string[]>; messageVersion: number }> = new Map();
-    // Tiebreaker heuristic: should this base be considered potentially mobile when deciding relocations
     private isPotentiallyMobile: (baseKey: string) => boolean = () => false;
-    // Hard override: return true to force mobile, false to force non-mobile, null for no override
     private mobileOverride: (baseKey: string) => boolean | null = () => null;
     private getMessageStats: (messageId: number) => ChatStatEntry | null;
 

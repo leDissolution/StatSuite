@@ -91,15 +91,13 @@ export async function exportSingleMessage(messageContext) {
     }
 }
 export function statsToString(name, statsBlock, subject) {
+    const escapeQuotes = (str) => str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
-        let strValue = String(value)
-            .replace(/\\/g, "\\\\")
-            .replace(/"/g, '\\"');
-        return `${key.toLowerCase()}="${strValue}"`;
+        return `${key.toLowerCase()}="${escapeQuotes(String(value))}"`;
     })
         .join(' ');
-    return `<stats ${subject}="${name}" ${attributes} />`;
+    return `<stats ${subject}="${escapeQuotes(name)}" ${attributes} />`;
 }
 export function characterDescription(name) {
     let description = '';

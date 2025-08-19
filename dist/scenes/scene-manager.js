@@ -13,14 +13,12 @@ export class SceneManager {
             writable: true,
             value: new Map()
         });
-        // Tiebreaker heuristic: should this base be considered potentially mobile when deciding relocations
         Object.defineProperty(this, "isPotentiallyMobile", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: () => false
         });
-        // Hard override: return true to force mobile, false to force non-mobile, null for no override
         Object.defineProperty(this, "mobileOverride", {
             enumerable: true,
             configurable: true,
@@ -75,7 +73,6 @@ export class SceneManager {
         scene.messageVersion = messageVersion;
         scene.visitors[character] = Math.max(scene.visitors[character] || 0, messageId);
     }
-    // Apply tri-state override to set or lock mobility
     enforceMobilityOverride(scene) {
         const baseKey = this.ownerlessBase(scene.baseName);
         const override = this.mobileOverride(baseKey);
@@ -99,10 +96,6 @@ export class SceneManager {
         const oldParent = scene.parentId;
         const justRefined = oldParent != null && newParentId != null && (this.isAncestor(oldParent, newParentId, scenes) || this.isAncestor(newParentId, oldParent, scenes));
         const movedByOwnerlessTail = !!opts?.movedByOwnerlessTail && oldParent == null && newParentId != null;
-        // Decide mobility on reparent:
-        // - Standard: any real move (oldParent != null) marks mobile, unless it's just a refinement in the same chain
-        // - Ownerless tail from root also marks mobile
-        // - Additionally, if the base is overridden as mobile, or (no override) isPotentiallyMobile, mark as mobile even for root->child moves
         const baseKeyForMobility = this.ownerlessBase(scene.baseName);
         const override = this.mobileOverride(baseKeyForMobility);
         const shouldForceMobile = override === true || (override === null && this.isPotentiallyMobile(baseKeyForMobility));
@@ -116,7 +109,6 @@ export class SceneManager {
         }
         scene.parentId = newParentId;
         this.updateVisit(scene, character, messageId, messageVersion);
-        // Enforce mobility override after any reparenting or visit update
         this.enforceMobilityOverride(scene);
         const newKey = this.compositeKey(scene.parentId, baseKey, scene.explicitOwner);
         index.set(newKey, sceneId);
@@ -329,7 +321,6 @@ export class SceneManager {
                         if (!s)
                             continue;
                         // Only relocate unowned nodes if the base is inherently mobile, or the node is already marked mobile
-                        // Purely algorithmic + hook: relocate unowned nodes if already mobile or considered potentially mobile
                         if (!s.isMobile && !this.isPotentiallyMobile(this.ownerlessBase(s.baseName)))
                             continue;
                         const score = this.scoreFor(s, character);
@@ -444,7 +435,6 @@ export class SceneManager {
                         if (canMove) {
                             this.changeParent(reparentId, desiredParent, character, messageId, messageVersion, currentScenes, index, unownedIndex, { movedByOwnerlessTail });
                             movedRoot = true;
-                            // After a successful move, ensure override is enforced for the moved node
                             const moved = currentScenes[reparentId];
                             this.enforceMobilityOverride(moved);
                         }

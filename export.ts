@@ -117,16 +117,15 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
 }
 
 export function statsToString(name: string, statsBlock: StatsBlock, subject: string): string {
+    const escapeQuotes = (str: string) => str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
-            let strValue = String(value)
-                .replace(/\\/g, "\\\\")
-                .replace(/"/g, '\\"');
-            return `${key.toLowerCase()}="${strValue}"`;
+            return `${key.toLowerCase()}="${escapeQuotes(String(value))}"`;
         })
         .join(' ');
 
-    return `<stats ${subject}="${name}" ${attributes} />`;
+    return `<stats ${subject}="${escapeQuotes(name)}" ${attributes} />`;
 }
 
 export function characterDescription(name: string): string {

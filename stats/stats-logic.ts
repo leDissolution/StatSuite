@@ -78,7 +78,22 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
         }
     });
 
-    finalPreviousStats.Scenes = JSON.parse(JSON.stringify(sourcePreviousStats.Scenes || {}));
+    const previousScenes = new Set<string>();
+    for (const sceneName of Object.keys(sourcePreviousStats.Scenes || {})) {
+        previousScenes.add(sceneName);
+    }
+
+    if (context.previousIndex && context.previousIndex > 0) {
+        const prefetchedScenes = Scenes.prefetchSceneNames(context.previousIndex);
+        for (const sceneName of prefetchedScenes) {
+            previousScenes.add(sceneName);
+        }
+    }
+
+    finalPreviousStats.Scenes = Array.from(previousScenes).reduce((acc, sceneName) => {
+        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? null;
+        return acc;
+    }, {} as Record<string, StatsBlock | null>);
 
     return {
         ...context,
