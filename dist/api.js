@@ -1,7 +1,7 @@
 // StatSuite API - Handles communication with the external stat generation API
 import { ExtensionSettings } from './settings.js';
 import { generateStatPrompt } from './prompts.js';
-import { statsToStringFull } from './export.js';
+import { statsToString, statsToStringFull } from './export.js';
 import { Stats } from './stats/stats-registry.js';
 import { StatScope } from './stats/stat-entry.js';
 const API_URL = '{0}/v1/completions';
@@ -87,7 +87,19 @@ export async function generateStat(stat, subject, messages, existingStats, greed
         });
     }
     const subjectAttr = statConfig.scope === StatScope.Scene ? 'scene' : 'character';
-    const statPrompt = generateStatPrompt(stat, subject, messages.previousName ?? '', messages.previousMessage ?? '', messages.newName ?? '', messages.newMessage ?? '', statsToStringFull(messages.previousStats), dependencies, subjectAttr);
+    let contextStr = '';
+    if (statConfig.scope === StatScope.Scene) {
+        let statStrings = [];
+        if (messages.newStats?.Characters) {
+            for (const [char, stats] of Object.entries(messages.newStats.Characters)) {
+                if (stats) {
+                    statStrings.push(statsToString(char, stats, StatScope.Character));
+                }
+            }
+        }
+        contextStr = `\n${statStrings.join('\n')}`;
+    }
+    const statPrompt = generateStatPrompt(stat, subject, messages.previousName ?? '', messages.previousMessage ?? '', messages.newName ?? '', messages.newMessage ?? '', statsToStringFull(messages.previousStats), contextStr, dependencies, subjectAttr);
     console.log(`Generating ${stat} for ${subject}:`, statPrompt);
     try {
         if (!ExtensionSettings.modelUrl) {

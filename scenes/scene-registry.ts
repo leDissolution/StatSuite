@@ -2,10 +2,7 @@ import { Scene } from './scene.js';
 import { Chat } from '../chat/chat-manager.js';
 import { EVENT_SCENE_ADDED, EVENT_SCENE_REMOVED } from '../events.js';
 import { StatsBlock } from '../stats/stat-block.js';
-import { ChatStatEntry } from '../chat/chat-stat-entry.js';
 import { SceneManager } from './scene-manager.js';
-import { stat } from 'fs';
-import { string } from 'yargs';
 
 export class SceneRegistry {
 	private _scenes: Set<Scene>;

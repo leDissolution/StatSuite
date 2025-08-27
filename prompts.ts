@@ -1,6 +1,6 @@
 const NON_INSTRUCT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_message}</previousMessage>
 {previous_stats}
-<message from="{name}">{message}</message>
+<message from="{name}">{message}</message>{context}
 <stats {subject}="{req_name}" {existingNewStats}{stat}="`;
 
 const EXPORT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_message}</previousMessage>
@@ -8,7 +8,7 @@ const EXPORT_TEMPLATE = `<previousMessage from="{previous_from}">{previous_messa
 <message from="{name}">{message}</message>
 {new_stats}`;
 
-export function generateStatPrompt(stat: string, reqName: string, previousName: string, previousMessage: string, name: string, message: string, previousStats: string, existingNewStats: object, subject: string): string {
+export function generateStatPrompt(stat: string, reqName: string, previousName: string, previousMessage: string, name: string, message: string, previousStats: string, context: string, existingNewStats: object, subject: string): string {
     let existingNewStatsString = "";
     if (existingNewStats) {
         existingNewStatsString = Object.entries(existingNewStats)
@@ -22,6 +22,7 @@ export function generateStatPrompt(stat: string, reqName: string, previousName: 
         .replace('{previous_stats}', previousStats ?? '')
         .replace('{name}', name)
         .replace('{message}', message ?? '')
+        .replace('{context}', context ?? '')
         .replace('{req_name}', reqName)
         .replace('{existingNewStats}', existingNewStatsString)
         .replace('{stat}', stat)
