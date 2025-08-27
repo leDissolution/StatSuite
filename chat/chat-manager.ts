@@ -1,4 +1,3 @@
-import { initial } from 'lodash';
 import { chat, chat_metadata, saveChatConditional } from '../../../../../../script.js';
 import { StatsBlock } from '../stats/stat-block.js';
 import { ChatMetadata } from './chat-metadata.js';

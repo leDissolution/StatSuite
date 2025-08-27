@@ -82,6 +82,8 @@ export async function fetchAvailableModels(): Promise<Array<{id: string}>> {
     }
 }
 
+const noop_token = '!!no_change!!';
+
 export async function generateStat(stat: string, char: string, messages: MessageContext, existingStats: StatsBlock, greedy: boolean = true): Promise<string> {
     const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
@@ -138,6 +140,11 @@ export async function generateStat(stat: string, char: string, messages: Message
             let result = quoteIndex !== -1 ? text.substring(0, quoteIndex).trim() : text.trim();
             // unescape quotes and backslashes
             result = result.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
+            if (result === noop_token) {
+                result = messages.previousStats?.Characters[char]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+            }
+
             return result;
         } else {
             console.error(`Error generating ${stat} for ${char}: Invalid API response structure`, response);

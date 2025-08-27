@@ -69,6 +69,7 @@ export async function fetchAvailableModels() {
         throw error;
     }
 }
+const noop_token = '!!no_change!!';
 export async function generateStat(stat, char, messages, existingStats, greedy = true) {
     const statConfig = Stats.getStatEntry(stat);
     if (!statConfig) {
@@ -111,6 +112,9 @@ export async function generateStat(stat, char, messages, existingStats, greedy =
             let result = quoteIndex !== -1 ? text.substring(0, quoteIndex).trim() : text.trim();
             // unescape quotes and backslashes
             result = result.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            if (result === noop_token) {
+                result = messages.previousStats?.Characters[char]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+            }
             return result;
         }
         else {
