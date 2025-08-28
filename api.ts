@@ -160,7 +160,11 @@ export async function generateStat(stat: string, subject: string, messages: Mess
             result = result.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 
             if (result === noop_token) {
-                result = messages.previousStats?.Characters[subject]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+                if (statConfig.scope === StatScope.Character) {
+                    result = messages.previousStats?.Characters[subject]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+                } else if (statConfig.scope === StatScope.Scene) {
+                    result = messages.previousStats?.Scenes[subject]?.[stat] ?? Stats.getStatEntry(stat)?.defaultValue ?? '';
+                }
             }
 
             return result;
