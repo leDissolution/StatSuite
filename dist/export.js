@@ -16,7 +16,7 @@ export async function exportChat() {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i];
         let previousName, previousMes;
         let previousStats;
-        const currentStats = Chat.getMessageStats(currentIndex);
+        const currentStats = Chat.getMessageStats(currentIndex)?.clone();
         if (!currentStats) {
             continue; // Skip if no stats or invalid stats
         }
@@ -29,12 +29,16 @@ export async function exportChat() {
             const { message: previousMessage, index: previousIndex } = exportableMessages[i - 1];
             previousName = previousMessage.name;
             previousMes = previousMessage.mes;
-            previousStats = Chat.getMessageStats(previousIndex) ?? new ChatStatEntry();
+            previousStats = Chat.getMessageStats(previousIndex)?.clone() ?? new ChatStatEntry();
         }
         // Add missing characters from currentStats to previousStats with null value
         for (const charName of Object.keys(currentStats.Characters)) {
             if (!(charName in previousStats.Characters)) {
                 previousStats.Characters[charName] = null;
+            }
+            if (!currentStats.Characters[charName] && !previousStats.Characters[charName]) {
+                delete currentStats.Characters[charName];
+                delete previousStats.Characters[charName];
             }
         }
         for (const sceneName of Object.keys(currentStats.Scenes)) {
@@ -90,14 +94,21 @@ export async function exportSingleMessage(messageContext) {
         toastr.error('Failed to copy to clipboard');
     }
 }
+export function sanitizeForXML(input) {
+    return input.replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .trim();
+}
 export function statsToString(name, statsBlock, subject) {
-    const escapeQuotes = (str) => str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const attributes = Object.entries(statsBlock)
         .map(([key, value]) => {
-        return `${key.toLowerCase()}="${escapeQuotes(String(value))}"`;
+        return `${key.toLowerCase()}="${sanitizeForXML(String(value))}"`;
     })
         .join(' ');
-    return `<stats ${subject}="${escapeQuotes(name)}" ${attributes} />`;
+    return `<stats ${subject}="${sanitizeForXML(name)}" ${attributes} />`;
 }
 export function characterDescription(name) {
     let description = '';
@@ -110,7 +121,7 @@ export function characterDescription(name) {
             description = substituteParams("{{description}}");
         }
     }
-    description = `\n<character name="${name}" description="${description}" />`;
+    description = `<character name="${sanitizeForXML(name)}" description="${sanitizeForXML(description)}" />`;
     return description;
 }
 export function statsToStringFull(stats) {
@@ -118,19 +129,21 @@ export function statsToStringFull(stats) {
         return '';
     const chars = Object.entries(stats.Characters)
         .map(([charName, stats]) => {
-        const hadNoStats = !stats;
+        if (!stats)
+            return characterDescription(charName);
         const block = stats ?? new StatsBlock();
         for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
             if (block[statEntry.name] === undefined) {
                 block[statEntry.name] = statEntry.defaultValue;
             }
         }
-        const base = statsToString(charName, block, StatScope.Character);
-        return hadNoStats ? base + characterDescription(charName) : base;
+        return statsToString(charName, block, StatScope.Character);
     })
         .join('\n');
     const scenes = Object.entries(stats.Scenes)
         .map(([sceneName, stats]) => {
+        if (!stats)
+            return ''; // No scene description for now
         const block = stats ?? new StatsBlock();
         for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
             if (block[statEntry.name] === undefined) {
@@ -140,5 +153,5 @@ export function statsToStringFull(stats) {
         return statsToString(sceneName, block, StatScope.Scene);
     })
         .join('\n');
-    return scenes + '\n' + chars;
+    return [chars, scenes].join('\n').trim();
 }

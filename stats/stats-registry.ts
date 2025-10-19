@@ -19,7 +19,8 @@ const DEFAULT_STATS: StatEntry[] = [
 
     // Default scene stats
     new StatEntry('fixtures', { dependencies: [], order: 0, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene }),
-    new StatEntry('items', { dependencies: [], order: 1, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene })
+    new StatEntry('items', { dependencies: [], order: 1, defaultValue: 'unspecified', isActive: true, scope: StatScope.Scene }),
+    new StatEntry('passages', { dependencies: [], order: 2, defaultValue: 'unspecified', isActive: false, scope: StatScope.Scene })
 ];
 
 export class StatRegistry {

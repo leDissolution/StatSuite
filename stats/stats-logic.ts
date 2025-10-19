@@ -65,7 +65,9 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
     const finalPreviousStats = new ChatStatEntry({}, {});
     const sourcePreviousStats = context.previousStats || new ChatStatEntry({}, {});
 
-    Characters.listActiveCharacterNames().forEach(char => {
+    const characters = Array.from(new Set(Characters.listActiveCharacterNames().concat(sourcePreviousStats ? Object.keys(sourcePreviousStats.Characters) : [])));
+
+    characters.forEach(char => {
         if (!sourcePreviousStats.Characters.hasOwnProperty(char)) {
             finalPreviousStats.Characters[char] = null;
         } else {
@@ -84,8 +86,7 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
     }
 
     if (context.previousIndex && context.previousIndex > 0) {
-        const prefetchedScenes = Scenes.prefetchSceneNames(context.previousIndex);
-        for (const sceneName of prefetchedScenes) {
+        for (const sceneName of Scenes.prefetchSceneNames(context.previousIndex)) {
             previousScenes.add(sceneName);
         }
     }
@@ -342,14 +343,23 @@ export async function injectStatsFromMessage(messageId: number) {
         if (shouldRequestStats(Chat.currentCharacter)) {
             await makeStats(messageId);
         }
-    } else {
-        console.log("StatSuite: Stats already present in the last message. No action taken.");
     }
 
-    const finalStats = Chat.getMessageStats(messageId);
+    const finalStats = Chat.getMessageStats(messageId)?.clone();
     if (!finalStats) {
         console.warn("StatSuite: No stats found in the last message.");
         return;
+    }
+
+    if (finalStats.Scenes && Object.keys(finalStats.Scenes).length > 0) {
+        for (const sceneName of Scenes.prefetchSceneNames(messageId)) {
+            if (!finalStats.Scenes[sceneName]) {
+                let stats = Scenes.getLatestSceneStats(sceneName, messageId);
+                if (stats) {
+                    finalStats.Scenes[sceneName] = stats;
+                }
+            }
+        }
     }
 
     Templates.getEnabledTemplates().forEach(template => {

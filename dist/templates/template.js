@@ -35,15 +35,40 @@ export class TemplateCharacterDto {
         }
     }
 }
+export class TemplateSceneDto {
+    constructor(name, stats) {
+        Object.defineProperty(this, "name", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "Stats", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.name = name;
+        this.Stats = stats;
+    }
+}
 export class TemplateData {
-    constructor(characterStats = {}) {
+    constructor(characterStats = {}, sceneStats = {}) {
         Object.defineProperty(this, "Characters", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "Scenes", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.Characters = characterStats;
+        this.Scenes = sceneStats;
     }
     static fromMessageStatEntry(entry) {
         const data = new TemplateData();
@@ -56,6 +81,9 @@ export class TemplateData {
             }
             return [name, new TemplateCharacterDto(name, false, stats)];
         }));
+        data.Scenes = Object.fromEntries(Object.entries(entry.Scenes ?? {})
+            .filter(([_, v]) => v !== null)
+            .map(([name, stats]) => [name, new TemplateSceneDto(name, stats)]));
         return data;
     }
 }

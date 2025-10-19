@@ -20,11 +20,23 @@ export class TemplateCharacterDto {
     }
 }
 
+export class TemplateSceneDto {
+    name: string;
+    Stats: import('../stats/stat-block.js').StatsBlock;
+
+    constructor(name: string, stats: import('../stats/stat-block.js').StatsBlock) {
+        this.name = name;
+        this.Stats = stats;
+    }
+}
+
 export class TemplateData {
     Characters: Record<string, TemplateCharacterDto>;
+    Scenes: Record<string, TemplateSceneDto>;
 
-    constructor(characterStats: Record<string, TemplateCharacterDto> = {}) {
+    constructor(characterStats: Record<string, TemplateCharacterDto> = {}, sceneStats: Record<string, TemplateSceneDto> = {}) {
         this.Characters = characterStats;
+        this.Scenes = sceneStats;
     }
 
     static fromMessageStatEntry(entry: import('../chat/chat-stat-entry.js').ChatStatEntry): TemplateData {
@@ -40,6 +52,11 @@ export class TemplateData {
                     return [name, new TemplateCharacterDto(name, false, stats!)];
                 })
         ) as Record<string, TemplateCharacterDto>;
+        data.Scenes = Object.fromEntries(
+            Object.entries(entry.Scenes ?? {})
+                .filter(([_, v]) => v !== null)
+                .map(([name, stats]) => [name, new TemplateSceneDto(name, stats!)])
+        ) as Record<string, TemplateSceneDto>;
         return data;
     }
 }

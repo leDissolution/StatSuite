@@ -2,6 +2,7 @@ import { Scene } from './scene.js';
 import { Chat } from '../chat/chat-manager.js';
 import { EVENT_SCENE_ADDED, EVENT_SCENE_REMOVED } from '../events.js';
 import { SceneManager } from './scene-manager.js';
+const PREFETCH_PASSAGE_SCAN_DEPTH = 3;
 export class SceneRegistry {
     constructor() {
         Object.defineProperty(this, "_scenes", {
@@ -126,6 +127,42 @@ export class SceneRegistry {
         }
         return false;
     }
+    static normalizeSceneName(name) {
+        return name
+            .split(',')
+            .map(part => part.trim())
+            .filter(Boolean)
+            .join(', ')
+            .toLowerCase();
+    }
+    static normalizeBaseName(name) {
+        return name.trim().toLowerCase();
+    }
+    static extractPassageTargets(passageText) {
+        if (typeof passageText !== 'string')
+            return [];
+        const targets = new Set();
+        const segments = passageText.split(';');
+        for (const segment of segments) {
+            const trimmed = segment.trim();
+            if (!trimmed)
+                continue;
+            const regex = /\bto\b\s*([^;\[\]]+)/gi;
+            let match;
+            while ((match = regex.exec(trimmed)) !== null) {
+                const raw = match[1]?.trim() ?? '';
+                if (!raw)
+                    continue;
+                const cleaned = raw
+                    .replace(/\s*\[.*$/, '')
+                    .replace(/[.,;:]+$/, '')
+                    .trim();
+                if (cleaned)
+                    targets.add(cleaned);
+            }
+        }
+        return Array.from(targets);
+    }
     prefetchSceneNames(messageId) {
         const stats = Chat.getMessageStats(messageId);
         if (!stats)
@@ -134,12 +171,136 @@ export class SceneRegistry {
             isPotentiallyMobile: SceneRegistry.potentiallyMobileBaseHeuristic,
             mobileOverride: SceneRegistry.overrideMobileBase
         });
-        const { scenes } = sceneManager.getSceneGraphForMessage(messageId);
+        const sceneGraph = sceneManager.getSceneGraphForMessage(messageId);
+        const scenes = sceneGraph.scenes;
+        const hierarchy = sceneGraph.hierarchy;
+        const sceneEntries = Object.entries(scenes);
         const allScenes = new Set();
-        for (const s of Object.values(scenes))
-            allScenes.add(s.baseName);
+        for (const [, scene] of sceneEntries)
+            allScenes.add(scene.baseName);
         if (allScenes.size === 0)
             return [];
+        const chainCache = new Map();
+        const fullNameToIds = new Map();
+        const baseNameToIds = new Map();
+        const neighbors = new Map();
+        const idToFullName = new Map();
+        const pushToMap = (map, key, value) => {
+            if (!map.has(key))
+                map.set(key, []);
+            map.get(key).push(value);
+        };
+        const buildChain = (id) => {
+            if (chainCache.has(id))
+                return chainCache.get(id);
+            const chain = [];
+            const guard = new Set();
+            let current = id;
+            while (current && !guard.has(current)) {
+                guard.add(current);
+                const scene = scenes[current];
+                if (!scene)
+                    break;
+                chain.push(scene.baseName);
+                current = scene.parentId ?? null;
+            }
+            chain.reverse();
+            chainCache.set(id, chain);
+            return chain;
+        };
+        const getFullName = (id) => {
+            const cached = idToFullName.get(id);
+            if (cached && cached.trim() !== '')
+                return cached;
+            const chain = buildChain(id);
+            if (chain.length === 0)
+                return null;
+            const full = chain.join(', ');
+            idToFullName.set(id, full);
+            return full;
+        };
+        for (const [id, scene] of sceneEntries) {
+            const chain = buildChain(id);
+            idToFullName.set(id, chain.join(', '));
+            if (chain.length > 0) {
+                const normalizedFullName = SceneRegistry.normalizeSceneName(chain.join(', '));
+                if (normalizedFullName)
+                    pushToMap(fullNameToIds, normalizedFullName, id);
+            }
+            const baseKey = SceneRegistry.normalizeBaseName(scene.baseName);
+            if (baseKey)
+                pushToMap(baseNameToIds, baseKey, id);
+            const adjacency = new Set();
+            if (scene.parentId)
+                adjacency.add(scene.parentId);
+            const children = hierarchy[id] ?? [];
+            for (const childId of children)
+                adjacency.add(childId);
+            neighbors.set(id, Array.from(adjacency));
+        }
+        const chainEntries = Array.from(chainCache.entries());
+        const findSceneIdsForName = (name) => {
+            const normalizedName = SceneRegistry.normalizeSceneName(name);
+            let ids = fullNameToIds.get(normalizedName) ?? [];
+            if (ids.length > 0)
+                return ids;
+            const segments = name
+                .split(',')
+                .map(part => part.trim())
+                .filter(Boolean);
+            if (segments.length === 0)
+                return [];
+            const segLower = segments.map(seg => seg.toLowerCase());
+            const suffixMatches = [];
+            for (const [id, chain] of chainEntries) {
+                if (chain.length < segments.length)
+                    continue;
+                let idx = chain.length - segments.length;
+                let matches = true;
+                for (let i = 0; i < segLower.length; i++) {
+                    if (chain[idx + i].toLowerCase() !== segLower[i]) {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches)
+                    suffixMatches.push(id);
+            }
+            if (suffixMatches.length > 0)
+                return suffixMatches;
+            const lastSegment = segLower[segLower.length - 1];
+            return baseNameToIds.get(lastSegment) ?? [];
+        };
+        const findNearbyScenes = (startId, targetName) => {
+            const targetKey = SceneRegistry.normalizeBaseName(targetName);
+            if (!targetKey)
+                return [];
+            const matches = new Set();
+            const queue = [{ id: startId, depth: 0 }];
+            const visited = new Set([startId]);
+            while (queue.length > 0) {
+                const { id, depth } = queue.shift();
+                const node = scenes[id];
+                if (!node)
+                    continue;
+                if (depth > 0) {
+                    if (SceneRegistry.normalizeBaseName(node.baseName) === targetKey) {
+                        const fullName = getFullName(id) ?? node.baseName;
+                        matches.add(fullName);
+                    }
+                }
+                if (depth >= PREFETCH_PASSAGE_SCAN_DEPTH)
+                    continue;
+                const next = neighbors.get(id) ?? [];
+                for (const nextId of next) {
+                    if (!visited.has(nextId)) {
+                        visited.add(nextId);
+                        queue.push({ id: nextId, depth: depth + 1 });
+                    }
+                }
+            }
+            return Array.from(matches);
+        };
         const sceneCandidates = new Set();
         const tryMatch = (text) => {
             if (!text)
@@ -153,6 +314,20 @@ export class SceneRegistry {
         const sceneStats = stats.Scenes ?? {};
         for (const sName in sceneStats) {
             const block = sceneStats[sName] ?? {};
+            const passagesRaw = block['passages'];
+            if (typeof passagesRaw === 'string' && passagesRaw.trim()) {
+                const startIds = findSceneIdsForName(sName);
+                if (startIds.length > 0) {
+                    const targets = SceneRegistry.extractPassageTargets(passagesRaw);
+                    for (const target of targets) {
+                        for (const startId of startIds) {
+                            const nearby = findNearbyScenes(startId, target);
+                            for (const match of nearby)
+                                sceneCandidates.add(match);
+                        }
+                    }
+                }
+            }
             for (const statKey in block)
                 tryMatch(statKey);
         }

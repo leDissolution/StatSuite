@@ -8,6 +8,9 @@ const defaultTemplateSettings = {
 {{#each Characters}}
     <stats character="{{{@key}}}" {{#each this.Stats}}{{@key}}="{{{this}}}" {{/each}}/>
 {{/each}}
+{{#each Scenes}}
+    <stats scene="{{{@key}}}" {{#each this.Stats}}{{@key}}="{{{this}}}" {{/each}}/>
+{{/each}}
 </metadata>`,
     enabled: true,
     injectAtDepth: true,
@@ -109,9 +112,13 @@ export class TemplateRegistry {
         const ctx = SillyTavern.getContext();
 
         this.getEnabledTemplates().forEach(template => {
-            const text = template.render(stats);
-            if (text) {
-                ctx.variables.local.set(template.variableName, text);
+            try {
+                const text = template.render(stats);
+                if (text) {
+                    ctx.variables.local.set(template.variableName, text);
+                }
+            } catch (e) { 
+                console.error(`Error rendering template "${template.name}":`, e);
             }
         });
     }

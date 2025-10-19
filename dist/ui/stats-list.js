@@ -3,6 +3,8 @@ import { Presets } from '../stats/presets-registry.js';
 import { StatPreset, StatsPreset } from '../stats/preset.js';
 import { StatEntry, StatScope } from '../stats/stat-entry.js';
 import { Stats } from '../stats/stats-registry.js';
+let isDefaultEditMode = false;
+let defaultEditCache = {};
 export function renderStatsList() {
     if (!Stats) {
         console.error("StatSuite UI Error: StatsRegistry instance not available for renderStatsList.");
@@ -40,47 +42,55 @@ export function renderStatsList() {
     }
     $presetContainer.append($presetLabel, $presetSelect, $presetActions);
     $list.append($presetContainer);
-    // Always show the table, even if empty, to allow adding custom stats
-    const $table = $('<table style="width:100%; border-collapse:collapse; background:none;"></table>');
-    const $thead = $(`
-        <thead>
-            <tr style="border:none; background:none;">
-                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Enable</th>
-                <th style="padding: 6px 0; border:none; background:none; text-align:left;">Stat</th>
-                <th style="padding: 6px 0; border:none; background:none; text-align:left;">
-                    <i class="fa-solid fa-pencil edit-all-display-names" title="Edit all display names" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
-                    <i class="fa-solid fa-times discard-display-name-changes" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
-                    Display
-                </th>
-                <th style="padding: 6px 0; border:none; background:none; text-align:left;">
-                    <i class="fa-solid fa-pencil edit-default-values-btn" title="Edit defaults for custom stats" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
-                    <i class="fa-solid fa-times discard-default-value-changes-btn" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
-                    Default
-                </th>
-                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Manual</th>
-                <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:right;"></th>
-            </tr>
-        </thead>
-    `);
-    $table.append($thead);
-    const $tbody = $('<tbody></tbody>');
-    if (!allStats || allStats.length === 0) {
-        // No stats, just show the add row
-    }
-    else {
-        allStats.forEach(stat => {
+    const scopeLabels = {
+        [StatScope.Character]: 'Character stats',
+        [StatScope.Scene]: 'Scene stats'
+    };
+    const scopesToRender = Array.from(new Set([
+        ...Object.values(StatScope),
+        ...(allStats || []).map(stat => stat.scope)
+    ]));
+    scopesToRender.forEach((scope, index) => {
+        const statsForScope = (allStats || []).filter(stat => stat.scope === scope);
+        const label = scopeLabels[scope] ?? `${scope.charAt(0).toUpperCase()}${scope.slice(1)} stats`;
+        const includeControls = index === 0;
+        const displayHeaderHtml = includeControls
+            ? `<i class="fa-solid fa-pencil edit-all-display-names" title="Edit all display names" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
+                <i class="fa-solid fa-times discard-display-name-changes" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
+                Display`
+            : 'Display';
+        const defaultHeaderHtml = includeControls
+            ? `<i class="fa-solid fa-pencil edit-default-values-btn" title="Edit defaults for custom stats" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em;"></i>
+                <i class="fa-solid fa-times discard-default-value-changes-btn" title="Discard changes" style="margin-right: 2px; cursor: pointer; opacity: 0.6; font-size: 0.9em; display: none;"></i>
+                Default`
+            : 'Default';
+        const $scopeSection = $('<div class="stats-scope-section"></div>');
+        $scopeSection.append($(`<h3 class="stats-scope-header" style="margin: 12px 0 6px; font-size: 1.05em;">${label}</h3>`));
+        const $table = $('<table style="width:100%; border-collapse:collapse; background:none;"></table>');
+        const $thead = $(`
+            <thead>
+                <tr style="border:none; background:none;">
+                    <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Enable</th>
+                    <th style="padding: 6px 0; border:none; background:none; text-align:left;">Stat</th>
+                    <th style="padding: 6px 0; border:none; background:none; text-align:left;">${displayHeaderHtml}</th>
+                    <th style="padding: 6px 0; border:none; background:none; text-align:left;">${defaultHeaderHtml}</th>
+                    <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:left;">Manual</th>
+                    <th style="padding: 6px 0; border:none; background:none; width:1%; text-align:right;"></th>
+                </tr>
+            </thead>
+        `);
+        $table.append($thead);
+        const $tbody = $('<tbody></tbody>');
+        statsForScope.forEach(stat => {
             const isCustom = !!stat.isCustom;
             const checked = stat.isActive ? 'checked' : '';
             const manualChecked = stat.isManual ? 'checked' : '';
-            let defaultCell;
-            if (isCustom && isDefaultEditMode) {
-                defaultCell = `<input type="text" class="text_pole default-value-input" data-key="${stat.name}" value="${stat.defaultValue}" style="width:90%;font-size:0.95em;" />`;
-            }
-            else {
-                defaultCell = `<i>${stat.defaultValue}</i>`;
-            }
+            const defaultValue = defaultEditCache[stat.name] ?? stat.defaultValue;
+            const defaultCell = (isCustom && isDefaultEditMode)
+                ? `<input type="text" class="text_pole default-value-input" data-key="${stat.name}" value="${defaultValue}" style="width:90%;font-size:0.95em;" />`
+                : `<i>${defaultValue}</i>`;
             const $row = $(`
-                <tr style="border:none; background:none;">
+                <tr style="border:none; background:none;" data-scope="${scope}">
                     <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
                         <input type="checkbox" class="toggle-stat-active" data-key="${stat.name}" ${checked} style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
                     </td>
@@ -105,34 +115,37 @@ export function renderStatsList() {
             `);
             $tbody.append($row);
         });
+        const $addRow = $(`
+            <tr style="border:none; background:none;" data-scope="${scope}">
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                    <input type="checkbox" checked disabled style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto; opacity:0.5;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                    <input class="text_pole custom-stat-name" type="text" placeholder="Stat name" style="width: 100%;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                    <input class="text_pole custom-stat-display-name" type="text" placeholder="Display name (optional)" style="width: 100%;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
+                    <input class="text_pole custom-stat-value" type="text" placeholder="Default value" style="width: 100%;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
+                    <input class="custom-stat-manual" type="checkbox" style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
+                </td>
+                <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
+                    <i class="fa-solid fa-plus add-custom-stat" data-scope="${scope}" title="Add" style="cursor:pointer; opacity:0.7;"></i>
+                </td>
+            </tr>
+        `);
+        $tbody.append($addRow);
+        $table.append($tbody);
+        $scopeSection.append($table);
+        $list.append($scopeSection);
+    });
+    if (isDefaultEditMode) {
+        $('.edit-default-values-btn').removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save all default values');
+        $('.discard-default-value-changes-btn').show();
     }
-    // Add custom stat creation row always at the end
-    const $addRow = $(`
-        <tr style="border:none; background:none;">
-            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
-                <input type="checkbox" checked disabled style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto; opacity:0.5;" />
-            </td>
-            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
-                <input id="customStatName" class="text_pole" type="text" placeholder="Stat name" style="width: 100%;" />
-            </td>
-            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
-                <input id="customStatDisplayName" class="text_pole" type="text" placeholder="Display name (optional)" style="width: 100%;" />
-            </td>
-            <td style="padding: 6px 0; border:none; background:none; vertical-align:middle;">
-                <input id="customStatValue" class="text_pole" type="text" placeholder="Default value" style="width: 100%;" />
-            </td>
-            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:center; vertical-align:middle;">
-                <input id="customStatManual" type="checkbox" style="vertical-align: middle; margin: 0; margin-left:auto; margin-right:auto;" />
-            </td>
-            <td style="padding: 6px 0; border:none; background:none; width:1%; text-align:right; vertical-align:middle;">
-                <i id="add-custom-stat-btn" class="fa-solid fa-plus add-custom-stat" title="Add" style="cursor:pointer; opacity:0.7;"></i>
-            </td>
-        </tr>
-    `);
-    $tbody.append($addRow);
-    $table.append($tbody);
-    $list.append($table);
-    // Attach handler for adding custom stat
     attachAddCustomStatHandler();
     $('.toggle-stat-active').off('change.statSuite').on('change.statSuite', function () {
         const key = $(this).data('key');
@@ -199,7 +212,6 @@ export function renderStatsList() {
         $('.edit-all-display-names').removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit all display names');
         $(this).hide();
     });
-    // Edit mode for custom stat default values (in-place, like display names)
     $('.edit-default-values-btn').off('click.statSuite').on('click.statSuite', function () {
         const isEditMode = $(this).hasClass('fa-check');
         if (isEditMode) {
@@ -216,6 +228,8 @@ export function renderStatsList() {
             onChatChanged();
             $(this).removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
             $('.discard-default-value-changes-btn').hide();
+            isDefaultEditMode = false;
+            defaultEditCache = {};
         }
         else {
             $('.display-name-container').each(function () {
@@ -223,7 +237,8 @@ export function renderStatsList() {
                 const stat = Stats.getStatEntry(key);
                 if (!stat || !stat.isCustom)
                     return;
-                const cell = $(this).closest('tr').find('td').eq(3);
+                const row = $(this).closest('tr');
+                const cell = row.find('td').eq(3);
                 const val = stat.defaultValue;
                 const input = $('<input type="text" class="text_pole default-value-input">')
                     .val(val)
@@ -231,29 +246,28 @@ export function renderStatsList() {
                     .css({ width: '90%', 'font-size': '0.95em' });
                 cell.find('i').replaceWith(input);
             });
-            // Cache current values
             defaultEditCache = {};
             allStats.forEach(stat => {
                 if (stat.isCustom)
                     defaultEditCache[stat.name] = stat.defaultValue;
             });
-            $(this).removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save all default values');
+            $('.edit-default-values-btn').removeClass('fa-pencil').addClass('fa-check').attr('title', 'Save all default values');
             $('.discard-default-value-changes-btn').show();
+            isDefaultEditMode = true;
         }
     });
     $('.discard-default-value-changes-btn').off('click.statSuite').on('click.statSuite', function () {
-        // Restore cached values
         Object.entries(defaultEditCache).forEach(([key, val]) => {
             const stat = Stats.getStatEntry(key);
             if (!stat)
                 return;
             stat.defaultValue = val;
-            // Replace input with <i>
             const row = $(`.display-name-container[data-key="${key}"]`).closest('tr');
             const cell = row.find('td').eq(3);
             cell.find('input.default-value-input').replaceWith($('<i></i>').text(val));
         });
         isDefaultEditMode = false;
+        defaultEditCache = {};
         $('.edit-default-values-btn').removeClass('fa-check').addClass('fa-pencil').attr('title', 'Edit defaults for custom stats');
         $(this).hide();
     });
@@ -261,7 +275,9 @@ export function renderStatsList() {
     $('.remove-custom-stat').off('click.statSuite').on('click.statSuite', function () {
         const key = $(this).data('key');
         if (confirm(`Remove custom stat "${key}"? This cannot be undone.`)) {
-            Stats.removeStat(key);
+            if (Stats.removeStat(key)) {
+                renderStatsList();
+            }
         }
     });
     $('#preset-selector').off('change.statSuite').on('change.statSuite', function () {
@@ -321,14 +337,14 @@ export function renderStatsList() {
         }
     });
 }
-let isDefaultEditMode = false;
-let defaultEditCache = {};
 function attachAddCustomStatHandler() {
-    $('#add-custom-stat-btn').off('click.statSuite').on('click.statSuite', function () {
-        const name = String($('#customStatName').val()).trim();
-        const displayName = String($('#customStatDisplayName').val()).trim();
-        const value = String($('#customStatValue').val()).trim();
-        const isManual = $('#customStatManual').prop('checked');
+    $('.add-custom-stat').off('click.statSuite').on('click.statSuite', function () {
+        const scope = $(this).data('scope') || StatScope.Character;
+        const $row = $(this).closest('tr');
+        const name = String($row.find('.custom-stat-name').val()).trim();
+        const displayName = String($row.find('.custom-stat-display-name').val()).trim();
+        const value = String($row.find('.custom-stat-value').val()).trim();
+        const isManual = $row.find('.custom-stat-manual').prop('checked');
         if (!name) {
             alert('Please enter a stat name.');
             return;
@@ -345,13 +361,11 @@ function attachAddCustomStatHandler() {
             isCustom: true,
             dependencies: [],
             order: Stats.getAllStats(null).length,
-            scope: StatScope.Character
+            scope: scope
         });
-        Stats.addStat(newEntry);
-        $('#customStatName').val('');
-        $('#customStatDisplayName').val('');
-        $('#customStatValue').val('');
-        $('#customStatManual').prop('checked', false);
+        if (Stats.addStat(newEntry)) {
+            renderStatsList();
+        }
     });
-    $('#add-custom-stat-btn').hover(function () { $(this).css('opacity', '1'); }, function () { $(this).css('opacity', '0.7'); });
+    $('.add-custom-stat').hover(function () { $(this).css('opacity', '1'); }, function () { $(this).css('opacity', '0.7'); });
 }
