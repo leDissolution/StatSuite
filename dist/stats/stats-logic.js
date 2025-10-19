@@ -83,7 +83,7 @@ export function getRecentMessages(specificMessageIndex = null) {
         }
     }
     finalPreviousStats.Scenes = Array.from(previousScenes).reduce((acc, sceneName) => {
-        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? null;
+        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? Scenes.getLatestSceneStats(sceneName, context.previousIndex ?? -1);
         return acc;
     }, {});
     return {
@@ -309,15 +309,20 @@ export async function injectStatsFromMessage(messageId) {
         }
     }
     Templates.getEnabledTemplates().forEach(template => {
-        const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
-        if (!text)
-            return;
-        ctx.variables.local.set(template.variableName, text);
-        if (template.injectAtDepth) {
-            ctx.setExtensionPrompt("StatSuite" + `.${template.name.replace(/\s+/g, '_')}`, text, extension_prompt_types.IN_CHAT, template.injectAtDepthValue);
+        try {
+            const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
+            if (!text)
+                return;
+            ctx.variables.local.set(template.variableName, text);
+            if (template.injectAtDepth) {
+                ctx.setExtensionPrompt("StatSuite" + `.${template.name.replace(/\s+/g, '_')}`, text, extension_prompt_types.IN_CHAT, template.injectAtDepthValue);
+            }
+            else {
+                console.warn(`StatSuite: Template "${template.name}" did not produce an injection.`);
+            }
         }
-        else {
-            console.warn(`StatSuite: Template "${template.name}" did not produce an injection.`);
+        catch (error) {
+            console.error(`StatSuite: Template "${template?.name ?? 'unknown'}" failed during rendering.`, error);
         }
     });
 }

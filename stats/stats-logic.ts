@@ -92,7 +92,7 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
     }
 
     finalPreviousStats.Scenes = Array.from(previousScenes).reduce((acc, sceneName) => {
-        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? null;
+        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? Scenes.getLatestSceneStats(sceneName, context.previousIndex ?? -1);
         return acc;
     }, {} as Record<string, StatsBlock | null>);
 

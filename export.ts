@@ -93,6 +93,11 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
     for (const sceneName of Object.keys(newStats.Scenes)) {
         filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes?.[sceneName] !== undefined ? previousStats.Scenes?.[sceneName] : Scenes.getLatestSceneStats(sceneName, messageContext.previousIndex ?? -1);
     }
+    for (const sceneName of Object.keys(previousStats.Scenes)) {
+        if (!filteredPreviousStats.Scenes[sceneName]) {
+            filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes[sceneName] ?? null;
+        }
+    }
 
     let exportPrompt = generateExportPrompt(
         messageContext.previousName ?? '',
