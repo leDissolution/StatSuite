@@ -363,14 +363,15 @@ export async function injectStatsFromMessage(messageId: number) {
     }
 
     Templates.getEnabledTemplates().forEach(template => {
-        const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
-        if (!text) return;
+        try {
+            const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
+            if (!text) return;
 
-        ctx.variables.local.set(template.variableName, text);
+            ctx.variables.local.set(template.variableName, text);
 
-        if (template.injectAtDepth) {
-            ctx.setExtensionPrompt(
-                "StatSuite" + `.${template.name.replace(/\s+/g, '_')}`,
+            if (template.injectAtDepth) {
+                ctx.setExtensionPrompt(
+                    "StatSuite" + `.${template.name.replace(/\s+/g, '_')}`,
                     text,
                     extension_prompt_types.IN_CHAT,
                     template.injectAtDepthValue
@@ -378,6 +379,8 @@ export async function injectStatsFromMessage(messageId: number) {
             } else {
                 console.warn(`StatSuite: Template "${template.name}" did not produce an injection.`);
             }
+        } catch (error) {
+            console.error(`StatSuite: Template "${template?.name ?? 'unknown'}" failed during rendering.`, error);
         }
-    );
+    });
 }
