@@ -24,6 +24,29 @@ function runCase(messages: MessageDef[]) {
 }
 
 describe('SceneManager DSL cases', () => {
+    it('[0] reverse passage enrichment', () => {
+        const store: any = {
+            Characters: {},
+            Scenes: {
+                'house, hallway': { passages: 'door (wooden) to living room; door (metal) to basement [locked]' },
+                'house, living room': { passages: 'unspecified' },
+            }
+        };
+
+        const getMessageStats = (id: number) => (id === 0) ? store : ({ Characters: {}, Scenes: {} } as any);
+
+        const sm = new SceneManager(getMessageStats);
+        const graph = sm.getSceneGraphForMessage(0);
+
+        assertGraphMatches({ house: { hallway: {}, 'living room': {}, basement: {} } }, graph.scenes, null);
+
+        const scenesStats = store.Scenes as Record<string, any>;
+        if (!('house, living room' in scenesStats)) throw new Error('Expected reverse scene for living room');
+        if (typeof scenesStats['house, living room']?.passages !== 'string') throw new Error('Expected passages string on house, living room');
+        if (!scenesStats['house, living room'].passages.includes('door (wooden) to hallway')) throw new Error('Expected reverse door (wooden) to hallway');
+        if (!('house, basement' in scenesStats)) throw new Error('Expected reverse scene for basement');
+        if (!scenesStats['house, basement'].passages.includes('door (metal) to hallway [locked]')) throw new Error('Expected reverse door (metal) to hallway [locked]');
+    });
     it('[1] apartment, bedroom nesting; active bedroom', () => {
         const messages: MessageDef[] = [
             ['Alex', 'bedroom'],

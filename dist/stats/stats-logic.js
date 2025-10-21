@@ -83,7 +83,9 @@ export function getRecentMessages(specificMessageIndex = null) {
         }
     }
     finalPreviousStats.Scenes = Array.from(previousScenes).reduce((acc, sceneName) => {
-        acc[sceneName] = sourcePreviousStats.Scenes[sceneName] ?? Scenes.getLatestSceneStats(sceneName, context.previousIndex ?? -1);
+        const fromPrevious = sourcePreviousStats.Scenes[sceneName] ?? null;
+        const fromHistory = fromPrevious ? null : Scenes.getLatestSceneStats(sceneName, context.previousIndex ?? -1);
+        acc[sceneName] = StatsBlock.clone(fromPrevious) ?? StatsBlock.clone(fromHistory);
         return acc;
     }, {});
     return {
@@ -206,20 +208,15 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
                 }
                 if (statEntry.isManual) {
                     const prevBucket = messages.previousStats?.ofScope(currentScope);
-                    const prevStats = prevBucket?.[subjectName];
+                    const prevStats = prevBucket?.[subjectName] ?? (currentScope === StatScope.Scene
+                        ? Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1)
+                        : null);
                     if (prevStats && prevStats[statEntry.name] !== undefined) {
                         subjectStats[statEntry.name] = prevStats[statEntry.name];
                     }
                 }
             });
             bucket[subjectName] = subjectStats;
-            const oldBucket = messages.previousStats?.ofScope(currentScope);
-            if (!oldBucket[subjectName]) {
-                if (currentScope == StatScope.Scene)
-                    oldBucket[subjectName] = Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1);
-                else
-                    oldBucket[subjectName] = null;
-            }
         });
         let statsActuallyGenerated = false;
         if (!ExtensionSettings.offlineMode) {
@@ -245,7 +242,9 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
                     if (!subjectStats)
                         continue;
                     const prevBucket = messages.previousStats?.ofScope(currentScope);
-                    const prevStats = prevBucket?.[subject];
+                    const prevStats = prevBucket?.[subject] ?? (currentScope === StatScope.Scene
+                        ? Scenes.getLatestSceneStats(subject, messages.previousIndex ?? -1)
+                        : null);
                     if (copyOver && prevStats && prevStats[stat] !== undefined) {
                         subjectStats[stat] = prevStats[stat];
                         statsActuallyGenerated = true;

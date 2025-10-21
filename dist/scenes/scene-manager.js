@@ -520,6 +520,185 @@ export class SceneManager {
             highestVersion = Math.max(highestVersion, ver);
             this.processMessage(id, scenes, ver || 1, index, unownedIndex);
         }
+        // Enrich reverse passages for this message and ensure nodes exist in graph
+        try {
+            const stats = this.getMessageStats(messageId);
+            // IMPORTANT: Work on a deep-cloned copy to avoid mutating a shared stats store across messages.
+            // Some environments keep a single Scenes object shared by multiple message snapshots.
+            // Mutating it here would make newly inferred scenes appear in earlier messages too.
+            const sceneStats = (() => {
+                const src = stats && stats.Scenes ? stats.Scenes : null;
+                if (!src)
+                    return null;
+                try {
+                    return JSON.parse(JSON.stringify(src));
+                }
+                catch {
+                    // Fallback: shallow copy
+                    return { ...src };
+                }
+            })();
+            if (sceneStats) {
+                // Helpers
+                const buildChain = (id) => {
+                    const chain = [];
+                    const guard = new Set();
+                    let cur = id;
+                    while (cur && scenes[cur] && !guard.has(cur)) {
+                        guard.add(cur);
+                        chain.push(scenes[cur].baseName);
+                        cur = scenes[cur].parentId ?? null;
+                    }
+                    chain.reverse();
+                    return chain;
+                };
+                const displayNameOf = (id) => this.buildDisplayName(scenes, id);
+                const parsePassageEntries = (text) => {
+                    if (typeof text !== 'string')
+                        return [];
+                    const entries = [];
+                    for (const seg of text.split(';')) {
+                        const trimmed = seg.trim();
+                        if (!trimmed)
+                            continue;
+                        const m = trimmed.match(/^(.*?)\bto\b\s*([^\[\]]+?)(?:\s*(\[[^\]]+\]))?\s*$/i);
+                        if (!m)
+                            continue;
+                        const kind = (m[1] || '').trim();
+                        const rawTarget = (m[2] || '').trim().replace(/[.,;:]+$/, '');
+                        const state = (m[3] || '').trim() || null;
+                        if (!rawTarget || rawTarget.toLowerCase() === 'unspecified')
+                            continue;
+                        entries.push({ kind, target: rawTarget, state });
+                    }
+                    return entries;
+                };
+                const joinPassage = (kind, target, state) => {
+                    const core = `${kind} to ${target}`.trim();
+                    return state ? `${core} ${state}` : core;
+                };
+                const passagesContainTarget = (text, target) => {
+                    if (!text || typeof text !== 'string')
+                        return false;
+                    const want = target.trim().toLowerCase();
+                    return parsePassageEntries(text).some(e => e.target.trim().toLowerCase() === want);
+                };
+                const resolveByName = (name) => {
+                    const segs = name.split(',').map(s => s.trim()).filter(Boolean);
+                    if (segs.length === 0)
+                        return null;
+                    // Try direct resolve from root
+                    const direct = this.resolveSceneByPath(segs, scenes);
+                    if (direct)
+                        return direct;
+                    // Fallback: suffix match unique
+                    const matches = [];
+                    for (const id of Object.keys(scenes)) {
+                        const chain = buildChain(id);
+                        if (chain.length < segs.length)
+                            continue;
+                        const start = chain.length - segs.length;
+                        let ok = true;
+                        for (let i = 0; i < segs.length; i++) {
+                            if (this.ownerlessBase(chain[start + i]).toLowerCase() !== this.ownerlessBase(segs[i]).toLowerCase()) {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (ok)
+                            matches.push(id);
+                        if (matches.length > 1)
+                            break;
+                    }
+                    return matches.length === 1 ? matches[0] : null;
+                };
+                const ensureChain = (segments) => {
+                    if (segments.length === 0)
+                        return null;
+                    let parentId = null;
+                    for (const seg of segments) {
+                        const baseName = this.normalizeName(seg);
+                        // find existing child under parent with same base
+                        let foundId = null;
+                        for (const [id, sc] of Object.entries(scenes)) {
+                            if (sc.parentId === parentId && this.ownerlessBase(sc.baseName) === this.ownerlessBase(baseName)) {
+                                foundId = id;
+                                break;
+                            }
+                        }
+                        if (!foundId) {
+                            const id = uuidv4();
+                            scenes[id] = {
+                                id,
+                                baseName,
+                                explicitOwner: this.extractOwner(baseName) || null,
+                                parentId,
+                                visitors: {},
+                                createdAt: messageId,
+                                updatedAt: messageId,
+                                messageVersion: highestVersion,
+                                isMobile: false
+                            };
+                            this.enforceMobilityOverride(scenes[id]);
+                            foundId = id;
+                        }
+                        parentId = foundId;
+                    }
+                    return parentId;
+                };
+                for (const [sName, blockAny] of Object.entries(sceneStats)) {
+                    // Ensure origin scene chain exists in graph
+                    const sSegments = sName.split(',').map(s => s.trim()).filter(Boolean);
+                    const originId = resolveByName(sName) ?? ensureChain(sSegments);
+                    const chain = originId ? buildChain(originId) : sSegments;
+                    if (chain.length === 0)
+                        continue;
+                    const parentPrefix = chain.slice(0, -1);
+                    const originLeaf = chain[chain.length - 1];
+                    const passagesRaw = blockAny?.['passages'];
+                    if (!passagesRaw || typeof passagesRaw !== 'string' || passagesRaw.trim() === '')
+                        continue;
+                    const entries = parsePassageEntries(passagesRaw);
+                    for (const e of entries) {
+                        const targetFullChain = [...parentPrefix, e.target];
+                        const targetFullName = targetFullChain.join(', ');
+                        const targetId = resolveByName(targetFullName) ?? ensureChain(targetFullChain);
+                        const reverse = joinPassage(e.kind, originLeaf, e.state);
+                        if (!targetId) {
+                            // Create scene stat with reverse passage if missing
+                            const cur = sceneStats[targetFullName];
+                            if (!cur) {
+                                sceneStats[targetFullName] = { passages: reverse };
+                            }
+                            else {
+                                const existing = cur['passages'] ?? '';
+                                if (!passagesContainTarget(existing, originLeaf)) {
+                                    cur['passages'] = existing && String(existing).trim().toLowerCase() !== 'unspecified'
+                                        ? `${existing}; ${reverse}`
+                                        : reverse;
+                                }
+                            }
+                            continue;
+                        }
+                        // Ensure reverse link on existing target
+                        const keyName = displayNameOf(targetId) ?? targetFullName;
+                        const cur = sceneStats[keyName] ?? {};
+                        const existing = cur['passages'] ?? '';
+                        if (!passagesContainTarget(existing, originLeaf)) {
+                            cur['passages'] = existing && String(existing).trim().toLowerCase() !== 'unspecified'
+                                ? `${existing}; ${reverse}`
+                                : reverse;
+                            sceneStats[keyName] = cur;
+                        }
+                    }
+                }
+                // Note: Do NOT write enriched stats back to `stats` to avoid mutating shared
+                // objects across messages. We only use the enriched copy locally for graph building.
+            }
+        }
+        catch (ex) {
+            console.log(`Failed to enrich scene passages for message ${messageId}: ${ex}`);
+        }
         const hierarchy = this.buildHierarchy(scenes);
         const sceneGraph = { scenes, hierarchy, messageVersion: highestVersion };
         this.sceneGraphCache.set(messageId, sceneGraph);

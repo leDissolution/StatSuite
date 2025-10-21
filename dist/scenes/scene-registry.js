@@ -163,6 +163,27 @@ export class SceneRegistry {
         }
         return Array.from(targets);
     }
+    static parsePassageEntries(passageText) {
+        if (typeof passageText !== 'string')
+            return [];
+        const entries = [];
+        for (const segment of passageText.split(';')) {
+            const trimmed = segment.trim();
+            if (!trimmed)
+                continue;
+            // capture: left side (kind), target, optional [state]
+            const m = trimmed.match(/^(.*?)\bto\b\s*([^\[\]]+?)(?:\s*(\[[^\]]+\]))?\s*$/i);
+            if (!m)
+                continue;
+            const kind = (m[1] || '').trim();
+            let target = (m[2] || '').trim().replace(/[.,;:]+$/, '');
+            const state = (m[3] || '').trim() || null;
+            if (!target || target.toLowerCase() === 'unspecified')
+                continue;
+            entries.push({ kind, target, state });
+        }
+        return entries;
+    }
     prefetchSceneNames(messageId) {
         const stats = Chat.getMessageStats(messageId);
         if (!stats)
@@ -315,6 +336,7 @@ export class SceneRegistry {
         for (const sName in sceneStats) {
             const block = sceneStats[sName] ?? {};
             const passagesRaw = block['passages'];
+            // Prefetch nearby based on passages
             if (typeof passagesRaw === 'string' && passagesRaw.trim()) {
                 const startIds = findSceneIdsForName(sName);
                 if (startIds.length > 0) {
