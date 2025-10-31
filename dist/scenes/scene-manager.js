@@ -523,9 +523,6 @@ export class SceneManager {
         // Enrich reverse passages for this message and ensure nodes exist in graph
         try {
             const stats = this.getMessageStats(messageId);
-            // IMPORTANT: Work on a deep-cloned copy to avoid mutating a shared stats store across messages.
-            // Some environments keep a single Scenes object shared by multiple message snapshots.
-            // Mutating it here would make newly inferred scenes appear in earlier messages too.
             const sceneStats = (() => {
                 const src = stats && stats.Scenes ? stats.Scenes : null;
                 if (!src)
@@ -692,8 +689,6 @@ export class SceneManager {
                         }
                     }
                 }
-                // Note: Do NOT write enriched stats back to `stats` to avoid mutating shared
-                // objects across messages. We only use the enriched copy locally for graph building.
             }
         }
         catch (ex) {

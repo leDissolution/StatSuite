@@ -14,7 +14,7 @@ const defaultTemplateSettings = {
     enabled: true,
     injectAtDepth: true,
     injectAtDepthValue: 1,
-    variableName: ''
+    variableName: 'stats'
 };
 export class TemplateRegistry {
     constructor() {

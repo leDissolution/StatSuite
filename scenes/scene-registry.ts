@@ -300,20 +300,37 @@ export class SceneRegistry {
 		};
 
 		const findNearbyScenes = (startId: string, targetName: string): string[] => {
-			const targetKey = SceneRegistry.normalizeBaseName(targetName);
-			if (!targetKey) return [];
+			const segments = targetName
+				.split(',')
+				.map(part => SceneRegistry.normalizeBaseName(part))
+				.filter(Boolean);
+
+			if (segments.length === 0) return [];
+
 			const matches = new Set<string>();
 			const queue: Array<{ id: string; depth: number }> = [{ id: startId, depth: 0 }];
 			const visited = new Set<string>([startId]);
+
+			const suffixMatches = (id: string, node: SceneGraphEntry): boolean => {
+				if (segments.length === 1) {
+					return SceneRegistry.normalizeBaseName(node.baseName) === segments[0];
+				}
+
+				const chain = buildChain(id).map(SceneRegistry.normalizeBaseName);
+				if (chain.length < segments.length) return false;
+				for (let i = 0; i < segments.length; i++) {
+					if (chain[chain.length - segments.length + i] !== segments[i]) return false;
+				}
+				return true;
+			};
+
 			while (queue.length > 0) {
 				const { id, depth } = queue.shift()!;
 				const node: SceneGraphEntry | undefined = scenes[id as keyof SceneGraphMap];
 				if (!node) continue;
-				if (depth > 0) {
-					if (SceneRegistry.normalizeBaseName(node.baseName) === targetKey) {
-						const fullName = getFullName(id) ?? node.baseName;
-						matches.add(fullName);
-					}
+				if (depth > 0 && suffixMatches(id, node)) {
+					const fullName = getFullName(id) ?? node.baseName;
+					matches.add(fullName);
 				}
 				if (depth >= PREFETCH_PASSAGE_SCAN_DEPTH) continue;
 				const next = neighbors.get(id) ?? [];

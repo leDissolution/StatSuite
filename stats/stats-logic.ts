@@ -365,7 +365,9 @@ export async function injectStatsFromMessage(messageId: number) {
             const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
             if (!text) return;
 
-            ctx.variables.local.set(template.variableName, text);
+            if (template.variableName) {
+                ctx.variables.local.set(template.variableName, text);
+            }
 
             if (template.injectAtDepth) {
                 ctx.setExtensionPrompt(
