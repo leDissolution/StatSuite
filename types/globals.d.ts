@@ -4,7 +4,7 @@ declare global {
     export const SillyTavern: {
         getContext(): {
             setExtensionPrompt(extension: string, prompt: string, location: any, depth: number): unknown;
-            characters: Array<{ name: string }>;
+            characters: Array<{ name: string, description: string }>;
             characterId: number;
             variables: {
                 local: {

@@ -312,7 +312,9 @@ export async function injectStatsFromMessage(messageId) {
             const text = template.render(TemplateData.fromMessageStatEntry(finalStats));
             if (!text)
                 return;
-            ctx.variables.local.set(template.variableName, text);
+            if (template.variableName) {
+                ctx.variables.local.set(template.variableName, text);
+            }
             if (template.injectAtDepth) {
                 ctx.setExtensionPrompt("StatSuite" + `.${template.name.replace(/\s+/g, '_')}`, text, extension_prompt_types.IN_CHAT, template.injectAtDepthValue);
             }

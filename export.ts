@@ -153,10 +153,24 @@ export function characterDescription(name: string): string {
         description = substituteParams("{{persona}}");
     }
     else {
-        const char = substituteParams(`{{char}}`);
+        var context = SillyTavern.getContext();
+
+        let char = substituteParams(`{{char}}`);
+
+        if (!char) {
+            char = context.characters.find(c => c.name === name)?.name || context.characters.find(c => c.name.startsWith(name))?.name || '';
+        }
 
         if (char.includes(name)) {
             description = substituteParams("{{description}}");
+
+            if (!description) {
+                description = context.characters.find(c => c.name === char)?.description || '';
+
+                if (description) {
+                    description = substituteParams(description);
+                }
+            }
         }
     }
 

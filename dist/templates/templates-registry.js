@@ -103,7 +103,7 @@ export class TemplateRegistry {
         this.getEnabledTemplates().forEach(template => {
             try {
                 const text = template.render(stats);
-                if (text) {
+                if (text && template.variableName) {
                     ctx.variables.local.set(template.variableName, text);
                 }
             }
