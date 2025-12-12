@@ -70,6 +70,11 @@ export function getRecentMessages(specificMessageIndex = null) {
             Stats.getActiveStats(StatScope.Character).forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
+            Object.entries(charSourceStats).forEach(([statName, statValue]) => {
+                if (!statsBlock.hasOwnProperty(statName) && Stats.hasStat(statName)) {
+                    statsBlock[statName] = statValue;
+                }
+            });
             finalPreviousStats.Characters[char] = new StatsBlock(statsBlock);
         }
     });
@@ -156,6 +161,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
         return;
     }
     const scopesToProcess = scope ? [scope] : getActiveScopes();
+    const specificStatEntry = specificStat ? Stats.getStatEntry(specificStat) : null;
     if (!ExtensionSettings.offlineMode && specificMessageIndex === null && specificSubject === null && specificStat === null) {
         console.log("StatSuite: Testing API connection before automatic stat generation...");
         const connectionOk = await checkApiConnection();
@@ -189,9 +195,16 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
                 return Scenes.listActiveSceneNames(messages.newIndex, messages.previousIndex);
             return [];
         })();
-        let activeStats = Stats.getActiveStats(currentScope);
+        const baseStats = Stats.getActiveStats(currentScope);
+        const isSpecificStatInScope = specificStatEntry && specificStatEntry.scope === currentScope;
+        const statsForSetup = isSpecificStatInScope && !baseStats.find(stat => stat.name === specificStatEntry.name)
+            ? [...baseStats, specificStatEntry]
+            : [...baseStats];
+        let activeStats = isSpecificStatInScope && !baseStats.find(stat => stat.name === specificStatEntry.name)
+            ? [...baseStats, specificStatEntry]
+            : [...baseStats];
         if (ExtensionSettings.offlineMode) {
-            activeStats = activeStats.filter(stat => stat.isManual);
+            activeStats = activeStats.filter(stat => stat.isManual || (isSpecificStatInScope && stat.name === specificStatEntry.name));
         }
         subjectsToProcess.forEach(subjectName => {
             const bucket = resultingStats.ofScope(currentScope);
@@ -202,7 +215,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
             else if (!(subjectStats instanceof StatsBlock)) {
                 subjectStats = new StatsBlock(subjectStats);
             }
-            activeStats.forEach(statEntry => {
+            statsForSetup.forEach(statEntry => {
                 if (!subjectStats.hasOwnProperty(statEntry.name)) {
                     subjectStats[statEntry.name] = statEntry.defaultValue;
                 }
@@ -229,7 +242,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
                     break;
                 }
                 const statsToGenerateForSubject = specificStat
-                    ? getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual)
+                    ? (copyOver ? [specificStat] : getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual))
                     : statsToGenerate;
                 const sortedStatsToGenerate = statsToGenerateForSubject.sort((a, b) => (Stats.getStatEntry(a)?.order ?? 0) - (Stats.getStatEntry(b)?.order ?? 0));
                 console.log(`StatSuite: Processing stats for ${currentScope} "${subject}"`, sortedStatsToGenerate);

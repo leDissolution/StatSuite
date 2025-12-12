@@ -76,6 +76,11 @@ export function getRecentMessages(specificMessageIndex: number | null = null): M
             Stats.getActiveStats(StatScope.Character).forEach(statEntry => {
                 statsBlock[statEntry.name] = charSourceStats[statEntry.name] || statEntry.defaultValue;
             });
+            Object.entries(charSourceStats).forEach(([statName, statValue]) => {
+                if (!statsBlock.hasOwnProperty(statName) && Stats.hasStat(statName)) {
+                    statsBlock[statName] = statValue as string | null;
+                }
+            });
             finalPreviousStats.Characters[char] = new StatsBlock(statsBlock);
         }
     });
@@ -176,6 +181,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
     }
 
     const scopesToProcess: StatScope[] = scope ? [scope] : getActiveScopes();
+    const specificStatEntry = specificStat ? Stats.getStatEntry(specificStat) : null;
 
     if (!ExtensionSettings.offlineMode && specificMessageIndex === null && specificSubject === null && specificStat === null) {
         console.log("StatSuite: Testing API connection before automatic stat generation...");
@@ -211,10 +217,18 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
             return [] as string[];
         })();
 
-        let activeStats = Stats.getActiveStats(currentScope);
+        const baseStats = Stats.getActiveStats(currentScope);
+        const isSpecificStatInScope = specificStatEntry && specificStatEntry.scope === currentScope;
+        const statsForSetup = isSpecificStatInScope && !baseStats.find(stat => stat.name === specificStatEntry!.name)
+            ? [...baseStats, specificStatEntry!]
+            : [...baseStats];
+
+        let activeStats = isSpecificStatInScope && !baseStats.find(stat => stat.name === specificStatEntry!.name)
+            ? [...baseStats, specificStatEntry!]
+            : [...baseStats];
 
         if (ExtensionSettings.offlineMode) {
-            activeStats = activeStats.filter(stat => stat.isManual);
+            activeStats = activeStats.filter(stat => stat.isManual || (isSpecificStatInScope && stat.name === specificStatEntry!.name));
         }
 
         subjectsToProcess.forEach(subjectName => {
@@ -226,7 +240,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
             } else if (!(subjectStats instanceof StatsBlock)) {
                 subjectStats = new StatsBlock(subjectStats);
             }
-            activeStats.forEach(statEntry => {
+            statsForSetup.forEach(statEntry => {
                 if (!subjectStats!.hasOwnProperty(statEntry.name)) {
                     (subjectStats as StatsBlock)[statEntry.name] = statEntry.defaultValue;
                 }
@@ -259,7 +273,7 @@ export async function makeStats(specificMessageIndex: number | null = null, spec
                 }
 
                 const statsToGenerateForSubject = specificStat
-                    ? getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual)
+                    ? (copyOver ? [specificStat] : getRequiredStats(specificStat).filter(stat => !Stats.getStatEntry(stat)?.isManual))
                     : statsToGenerate;
                 const sortedStatsToGenerate = statsToGenerateForSubject.sort((a, b) => (Stats.getStatEntry(a)?.order ?? 0) - (Stats.getStatEntry(b)?.order ?? 0));
 
