@@ -46,8 +46,8 @@ export async function exportChat() {
                 previousStats.Scenes[sceneName] = Scenes.getLatestSceneStats(sceneName, currentIndex);
             }
         }
-        const prevStatsString = statsToStringFull(previousStats);
-        const currStatsString = statsToStringFull(currentStats);
+        const prevStatsString = statsToStringFull(previousStats, false);
+        const currStatsString = statsToStringFull(currentStats, false);
         if (!prevStatsString && !currStatsString)
             continue;
         const exportPrompt = generateExportPrompt(previousName, previousMes, currentMessage.name, currentMessage.mes, prevStatsString, currStatsString);
@@ -80,7 +80,7 @@ export async function exportSingleMessage(messageContext) {
             filteredPreviousStats.Scenes[sceneName] = previousStats.Scenes[sceneName] ?? null;
         }
     }
-    let exportPrompt = generateExportPrompt(messageContext.previousName ?? '', messageContext.previousMessage ?? '', messageContext.newName ?? '', messageContext.newMessage ?? '', statsToStringFull(filteredPreviousStats), statsToStringFull(newStats));
+    let exportPrompt = generateExportPrompt(messageContext.previousName ?? '', messageContext.previousMessage ?? '', messageContext.newName ?? '', messageContext.newMessage ?? '', statsToStringFull(filteredPreviousStats, false), statsToStringFull(newStats, false));
     if (ExtensionSettings.anonymizeClipboardExport) {
         let characterMap = {};
         Characters.listTrackedCharacterNames().forEach((name, index) => {
@@ -139,17 +139,19 @@ export function characterDescription(name) {
     description = `<character name="${sanitizeForXML(name)}" description="${sanitizeForXML(description)}" />`;
     return description;
 }
-export function statsToStringFull(stats) {
+export function statsToStringFull(stats, fillMissingWithDefaults = true) {
     if (!stats)
         return '';
     const chars = Object.entries(stats.Characters)
         .map(([charName, stats]) => {
         if (!stats)
             return characterDescription(charName);
-        const block = stats ?? new StatsBlock();
-        for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
-            if (block[statEntry.name] === undefined) {
-                block[statEntry.name] = statEntry.defaultValue;
+        const block = StatsBlock.fromObject(stats);
+        if (fillMissingWithDefaults) {
+            for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
+                if (block[statEntry.name] === undefined) {
+                    block[statEntry.name] = statEntry.defaultValue;
+                }
             }
         }
         return statsToString(charName, block, StatScope.Character);
@@ -159,10 +161,12 @@ export function statsToStringFull(stats) {
         .map(([sceneName, stats]) => {
         if (!stats)
             return ''; // No scene description for now
-        const block = stats ?? new StatsBlock();
-        for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
-            if (block[statEntry.name] === undefined) {
-                block[statEntry.name] = statEntry.defaultValue;
+        const block = StatsBlock.fromObject(stats);
+        if (fillMissingWithDefaults) {
+            for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
+                if (block[statEntry.name] === undefined) {
+                    block[statEntry.name] = statEntry.defaultValue;
+                }
             }
         }
         return statsToString(sceneName, block, StatScope.Scene);

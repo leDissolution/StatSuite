@@ -55,8 +55,8 @@ export async function exportChat(): Promise<void> {
             }
         }
 
-        const prevStatsString = statsToStringFull(previousStats);
-        const currStatsString = statsToStringFull(currentStats);
+        const prevStatsString = statsToStringFull(previousStats, false);
+        const currStatsString = statsToStringFull(currentStats, false);
 
         if (!prevStatsString && !currStatsString) continue;
 
@@ -104,8 +104,8 @@ export async function exportSingleMessage(messageContext: MessageContext): Promi
         messageContext.previousMessage ?? '',
         messageContext.newName ?? '',
         messageContext.newMessage ?? '',
-        statsToStringFull(filteredPreviousStats),
-        statsToStringFull(newStats)
+        statsToStringFull(filteredPreviousStats, false),
+        statsToStringFull(newStats, false)
     );
 
     if (ExtensionSettings.anonymizeClipboardExport) {
@@ -179,7 +179,7 @@ export function characterDescription(name: string): string {
     return description;
 }
 
-export function statsToStringFull(stats: ChatStatEntry | null): string {
+export function statsToStringFull(stats: ChatStatEntry | null, fillMissingWithDefaults: boolean = true): string {
     if (!stats) return '';
 
     const chars = Object.entries(stats.Characters)
@@ -187,11 +187,13 @@ export function statsToStringFull(stats: ChatStatEntry | null): string {
             if (!stats)
                 return characterDescription(charName);
 
-            const block = stats ?? new StatsBlock();
+            const block = StatsBlock.fromObject(stats);
 
-            for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
-                if (block[statEntry.name] === undefined) {
-                    block[statEntry.name] = statEntry.defaultValue;
+            if (fillMissingWithDefaults) {
+                for (const statEntry of Stats.getActiveStats(StatScope.Character)) {
+                    if (block[statEntry.name] === undefined) {
+                        block[statEntry.name] = statEntry.defaultValue;
+                    }
                 }
             }
 
@@ -203,12 +205,14 @@ export function statsToStringFull(stats: ChatStatEntry | null): string {
         .map(([sceneName, stats]) => {
             if (!stats) 
                 return ''; // No scene description for now
-            
-            const block = stats ?? new StatsBlock();
 
-            for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
-                if (block[statEntry.name] === undefined) {
-                    block[statEntry.name] = statEntry.defaultValue;
+            const block = StatsBlock.fromObject(stats);
+
+            if (fillMissingWithDefaults) {
+                for (const statEntry of Stats.getActiveStats(StatScope.Scene)) {
+                    if (block[statEntry.name] === undefined) {
+                        block[statEntry.name] = statEntry.defaultValue;
+                    }
                 }
             }
 
