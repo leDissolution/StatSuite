@@ -173,12 +173,35 @@ function renderStatsTableControls(messageId: number, container: JQuery<HTMLEleme
     const regenerateButton = $('<div class="stats-regenerate-button fa-solid fa-rotate" title="Click: Regenerate all stats\nAlt+Click: Regenerate with more randomness\nShift+Click: Regenerate all later messages\nCtrl+Click: Regenerate next 5 messages\nRight Click: Copy stats from previous message(s)"></div>');
     const editButton = $('<div class="stats-edit-button fa-solid fa-pencil" title="Edit stats"></div>');
     const addSceneButton = $('<div class="stats-add-scene-button fa-solid fa-plus" title="Add scene to this message" style="display:none;"></div>');
+    const exportToggleButton = $('<div class="stats-export-toggle-button fa-regular"></div>');
     const exportButton = $('<div class="stats-export-button fa-solid fa-copy" title="Copy message export format"></div>');
     const deleteButton = $('<div class="stats-delete-button fa-solid fa-trash" title="Delete stats from message(s)"></div>');
     const discardButton = $('<div class="stats-discard-button fa-solid fa-xmark" title="Discard changes" style="display:none;"></div>');
-    buttonContainer.append(regenerateButton, editButton, discardButton, addSceneButton, exportButton, deleteButton);
-    buttonContainer.on('mouseenter', '.fa-solid', function () { $(this).css('opacity', '1'); })
-                   .on('mouseleave', '.fa-solid', function () { $(this).css('opacity', '0.3'); });
+    buttonContainer.append(regenerateButton, editButton, discardButton, addSceneButton, exportToggleButton, exportButton, deleteButton);
+    buttonContainer.on('mouseenter', '.fa-solid, .fa-regular', function () { $(this).css('opacity', '1'); })
+                   .on('mouseleave', '.fa-solid, .fa-regular', function () { $(this).css('opacity', '0.3'); });
+    const updateExportToggleButton = () => {
+        const message = Chat.getMessage(messageId);
+        const exportStats = message?.exportStats !== false;
+        exportToggleButton
+            .toggleClass('fa-eye', exportStats)
+            .toggleClass('fa-eye-slash', !exportStats)
+            .attr('title', exportStats ? 'Exclude stats from export' : 'Include stats in export');
+    };
+    updateExportToggleButton();
+    exportToggleButton.on('click', function (e) {
+        e.stopPropagation();
+        const message = Chat.getMessage(messageId);
+        if (!message) return;
+        const exportStats = message.exportStats !== false;
+        if (exportStats) {
+            message.exportStats = false;
+        } else {
+            delete message.exportStats;
+        }
+        saveChatConditional();
+        updateExportToggleButton();
+    });
     // Export
     exportButton.on('click', function () {
         const messages = getRecentMessages(messageId);

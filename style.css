@@ -37,6 +37,7 @@
 
 .stats-regenerate-button,
 .stats-edit-button,
+.stats-export-toggle-button,
 .stats-export-button,
 .stats-delete-button,
 .stats-discard-button {
@@ -48,10 +49,19 @@
 
 .stats-regenerate-button:hover,
 .stats-edit-button:hover,
+.stats-export-toggle-button:hover,
 .stats-export-button:hover,
 .stats-delete-button:hover,
 .stats-discard-button:hover {
     opacity: 1;
+}
+
+.stats-export-toggle-button {
+    display: none;
+}
+
+.stats-details.editing .stats-export-toggle-button {
+    display: inline-block;
 }
 
 .remove-character-btn {

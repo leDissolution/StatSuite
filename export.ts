@@ -13,12 +13,17 @@ import { Scenes } from './scenes/scene-registry.js';
 export async function exportChat(): Promise<void> {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports: Array<string> = [];
+    let exportIndex = 0;
     
     for (let i = 0; i < exportableMessages.length; i++) {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i]!;
         
         let previousName: string, previousMes: string;
         let previousStats: ChatStatEntry;
+
+        if (currentMessage.exportStats === false) {
+            continue;
+        }
 
         const currentStats = Chat.getMessageStats(currentIndex)?.clone();
 
@@ -68,7 +73,8 @@ export async function exportChat(): Promise<void> {
             prevStatsString,
             currStatsString
         );
-        exports.push(`\\\\-------${i + 1}--------\n` + exportPrompt);
+        exports.push(`\\\\-------${exportIndex + 1}--------\n` + exportPrompt);
+        exportIndex += 1;
     }
     const exportString = exports.join('\n\n');
     const blob = new Blob([exportString], { type: 'text/plain' });

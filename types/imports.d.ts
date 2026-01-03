@@ -1,5 +1,6 @@
 declare interface ChatMessage {
     stats?: Array<ChatStatEntry> | null;
+    exportStats?: boolean;
     swipe_id?: number | null;
     swipe_info?: Array<object> | null;
     swipes?: Array<string> | null;

@@ -12,10 +12,14 @@ import { Scenes } from './scenes/scene-registry.js';
 export async function exportChat() {
     const exportableMessages = Chat.getStatEligibleMessages();
     const exports = [];
+    let exportIndex = 0;
     for (let i = 0; i < exportableMessages.length; i++) {
         const { message: currentMessage, index: currentIndex } = exportableMessages[i];
         let previousName, previousMes;
         let previousStats;
+        if (currentMessage.exportStats === false) {
+            continue;
+        }
         const currentStats = Chat.getMessageStats(currentIndex)?.clone();
         if (!currentStats) {
             continue; // Skip if no stats or invalid stats
@@ -51,7 +55,8 @@ export async function exportChat() {
         if (!prevStatsString && !currStatsString)
             continue;
         const exportPrompt = generateExportPrompt(previousName, previousMes, currentMessage.name, currentMessage.mes, prevStatsString, currStatsString);
-        exports.push(`\\\\-------${i + 1}--------\n` + exportPrompt);
+        exports.push(`\\\\-------${exportIndex + 1}--------\n` + exportPrompt);
+        exportIndex += 1;
     }
     const exportString = exports.join('\n\n');
     const blob = new Blob([exportString], { type: 'text/plain' });
