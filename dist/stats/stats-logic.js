@@ -206,24 +206,36 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
         if (ExtensionSettings.offlineMode) {
             activeStats = activeStats.filter(stat => stat.isManual || (isSpecificStatInScope && stat.name === specificStatEntry.name));
         }
+        const previousStatsBySubject = {};
         subjectsToProcess.forEach(subjectName => {
             const bucket = resultingStats.ofScope(currentScope);
+            const prevBucket = messages.previousStats?.ofScope(currentScope);
+            const prevStats = prevBucket?.[subjectName] ?? (currentScope === StatScope.Scene
+                ? Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1)
+                : null);
+            if (prevBucket && prevStats && prevBucket[subjectName] == null) {
+                prevBucket[subjectName] = StatsBlock.clone(prevStats);
+            }
+            previousStatsBySubject[subjectName] = prevStats ?? null;
             let subjectStats = bucket[subjectName];
             if (!subjectStats) {
-                subjectStats = new StatsBlock();
+                subjectStats = new StatsBlock(prevStats ?? {});
             }
             else if (!(subjectStats instanceof StatsBlock)) {
                 subjectStats = new StatsBlock(subjectStats);
+            }
+            if (prevStats) {
+                Object.entries(prevStats).forEach(([statName, statValue]) => {
+                    if (!subjectStats.hasOwnProperty(statName)) {
+                        subjectStats[statName] = statValue;
+                    }
+                });
             }
             statsForSetup.forEach(statEntry => {
                 if (!subjectStats.hasOwnProperty(statEntry.name)) {
                     subjectStats[statEntry.name] = statEntry.defaultValue;
                 }
                 if (statEntry.isManual) {
-                    const prevBucket = messages.previousStats?.ofScope(currentScope);
-                    const prevStats = prevBucket?.[subjectName] ?? (currentScope === StatScope.Scene
-                        ? Scenes.getLatestSceneStats(subjectName, messages.previousIndex ?? -1)
-                        : null);
                     if (prevStats && prevStats[statEntry.name] !== undefined) {
                         subjectStats[statEntry.name] = prevStats[statEntry.name];
                     }
@@ -254,8 +266,7 @@ export async function makeStats(specificMessageIndex = null, specificSubject = n
                     const subjectStats = resultingStats.ofScope(currentScope)[subject];
                     if (!subjectStats)
                         continue;
-                    const prevBucket = messages.previousStats?.ofScope(currentScope);
-                    const prevStats = prevBucket?.[subject] ?? (currentScope === StatScope.Scene
+                    const prevStats = previousStatsBySubject[subject] ?? (currentScope === StatScope.Scene
                         ? Scenes.getLatestSceneStats(subject, messages.previousIndex ?? -1)
                         : null);
                     if (copyOver && prevStats && prevStats[stat] !== undefined) {
@@ -298,6 +309,13 @@ export function retryStatGeneration() {
 }
 export async function injectStatsFromMessage(messageId) {
     const ctx = SillyTavern.getContext();
+    Templates.getAll().forEach(template => {
+        const promptName = "StatSuite" + `.${template.name.replace(/\s+/g, '_')}`;
+        ctx.setExtensionPrompt(promptName, "", extension_prompt_types.IN_CHAT, template.injectAtDepthValue ?? 0);
+        if (template.variableName) {
+            ctx.variables.local.set(template.variableName, "");
+        }
+    });
     ctx.setExtensionPrompt("StatSuite", "", extension_prompt_types.IN_CHAT, 0);
     const stats = Chat.getMessageStats(messageId);
     if (!stats || Object.keys(stats).length === 0) {

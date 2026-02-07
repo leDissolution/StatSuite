@@ -108,13 +108,14 @@ async function processMessageForStats(message_id: number) {
 function onSwipeChanged(messageId: number) {
     if (!ExtensionInitialized) return;
     if (!ExtensionSettings.enableAutoRequestStats) return;
+    if (!shouldRequestStats(Chat.currentCharacter)) return;
     if (!Chat.isValidMessageForStats(messageId)) return;
 
     const message = chat[messageId]!;
 
     if (message.swipe_id! >= message.swipes!.length) // swipe_id out of bounds means new swipe request before message is generated
     {
-    displayStats(messageId, new ChatStatEntry({'...': null}), getActiveScopes());
+        displayStats(messageId, new ChatStatEntry({'...': null}), getActiveScopes());
         return;
     } 
 

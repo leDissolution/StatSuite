@@ -11,9 +11,9 @@ export async function injectStats(chat, _ctx, abort, type) {
     if (type == "regenerate" || type == "quiet" || type == "impersonate" || type == "continue") {
         return;
     }
-    let messageId = chat.length - 1;
-    while (messageId >= 0 && !Chat.isValidMessageForStats(messageId)) {
-        messageId--;
+    let messageId = Chat.getLatestMessage()?.index ?? -1;
+    if (type == "swipe") {
+        messageId = Chat.getPreviousMessage(messageId)?.index ?? -1;
     }
     if (messageId > -1) {
         await injectStatsFromMessage(messageId);

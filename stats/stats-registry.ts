@@ -13,7 +13,7 @@ const DEFAULT_STATS: StatEntry[] = [
     new StatEntry('outfit', { dependencies: [], order: 2, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
     new StatEntry('exposure', { dependencies: ['outfit'], order: 3, defaultValue: 'none', isActive: true, scope: StatScope.Character }),
     new StatEntry('accessories', { dependencies: ['outfit'], order: 4, defaultValue: 'unspecified', isActive: true, scope: StatScope.Character }),
-    new StatEntry('bodyState', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false, scope: StatScope.Character }),
+    new StatEntry('bodystate', { dependencies: [], order: 5, defaultValue: 'normal', isActive: false, scope: StatScope.Character }),
     new StatEntry('mood', { dependencies: [], order: 6, defaultValue: 'neutral', isActive: false, scope: StatScope.Character }),
 
 

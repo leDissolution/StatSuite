@@ -95,6 +95,8 @@ function onSwipeChanged(messageId) {
         return;
     if (!ExtensionSettings.enableAutoRequestStats)
         return;
+    if (!shouldRequestStats(Chat.currentCharacter))
+        return;
     if (!Chat.isValidMessageForStats(messageId))
         return;
     const message = chat[messageId];
